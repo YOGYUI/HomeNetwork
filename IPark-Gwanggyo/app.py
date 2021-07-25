@@ -6,6 +6,7 @@ from homeDef import Home
 
 home: Home
 
+
 class MyFlaskApp(Flask):
     def run(self, host=None, port=None, debug=None, load_dotenv=True, **options):
         # if not self.debug or os.getenv('WERKZEUG_RUN_MAIN') == 'true':
@@ -14,11 +15,13 @@ class MyFlaskApp(Flask):
             pass
         super(MyFlaskApp, self).run(host=host, port=port, debug=debug, load_dotenv=load_dotenv, **options)
 
+
 app = MyFlaskApp(__name__)
 auth = HTTPBasicAuth()
 users = {
     'yogyui': generate_password_hash("N3EH~u~C+H74r5!2")
 }
+
 
 @auth.verify_password
 def verify_password(username, password):
@@ -26,6 +29,7 @@ def verify_password(username, password):
         return username
     writeLog('Unauthorized', app)
     return False
+
 
 @app.route('/')
 @app.route('/home')
@@ -44,12 +48,15 @@ def send(target):
         ser = home.serial_485_energy
     elif target == 'control':
         ser = home.serial_485_control
+    elif target == 'smart1':
+        ser = home.serial_485_smart1
     else:
-        ser = home.serial_485_smart
+        ser = home.serial_485_smart2
     req = request.get_data().decode(encoding='utf-8')
     req = req.replace('\r', '')
     req = req.replace('\n', '')
     packet = req[7:].strip().upper() if 'packet=' in req else ''
+    msg = ''
     if len(packet) > 0:
         try:
             temp = packet.replace(' ', '')
@@ -61,6 +68,7 @@ def send(target):
         except Exception as e:
             msg = str(e)
     return render_template('packet_sender.html', target=target, result=msg, packet=packet)
+
 
 # homebridge APIs from Here...
 @app.route('/light', methods=['POST'])
@@ -264,4 +272,3 @@ if __name__ == '__main__':
     home.initDevices()
     app.run(host='0.0.0.0', port=1234, debug=False)
     home.release()
-    

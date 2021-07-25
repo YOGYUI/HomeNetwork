@@ -1,0 +1,6 @@
+flask
+flask_httpauth
+werkzeug
+paho-mqtt
+PyQt5
+pyserial

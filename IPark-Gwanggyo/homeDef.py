@@ -136,9 +136,18 @@ class Room:
         self.index = index
         self.lights = list()
         for i in range(light_count):
-            self.lights.append(Light(name='Light {}'.format(i + 1), index=i, room_index=self.index, mqtt_client=kwargs.get('mqtt_client')))
+            self.lights.append(Light(
+                name='Light {}'.format(i + 1),
+                index=i,
+                room_index=self.index,
+                mqtt_client=kwargs.get('mqtt_client')
+            ))
         if has_thermostat:
-            self.thermostat = Thermostat(name='Thermostat', room_index=self.index, mqtt_client=kwargs.get('mqtt_client'))
+            self.thermostat = Thermostat(
+                name='Thermostat',
+                room_index=self.index,
+                mqtt_client=kwargs.get('mqtt_client')
+            )
 
     @property
     def light_count(self):
@@ -170,7 +179,8 @@ class ThreadMonitoring(threading.Thread):
                 if ser.isConnected():
                     delta = ser.time_after_last_recv()
                     if delta > 10:
-                        writeLog('Warning!! Serial <{}> is not receiving for {:.1f} seconds'.format(ser.name, delta), self)
+                        msg = 'Warning!! Serial <{}> is not receiving for {:.1f} seconds'.format(ser.name, delta)
+                        writeLog(msg, self)
                 else:
                     # writeLog('Warning!! Serial <{}> is not connected'.format(ser.name), self)
                     pass
@@ -238,7 +248,7 @@ class ThreadCommand(threading.Thread):
                                 func()
                             dev.publish_mqtt()
                 except Exception as e:
-                    writeLog(e, self)
+                    writeLog(str(e), self)
             else:
                 time.sleep(1e-3)
         writeLog('Terminated', self)
@@ -383,7 +393,13 @@ class Home:
             name = info['name']
             light_count = info['light_count']
             has_thermostat = info['has_thermostat']
-            self.rooms.append(Room(name=name, index=i, light_count=light_count, has_thermostat=has_thermostat, mqtt_client=self.mqtt_client))
+            self.rooms.append(Room(
+                name=name,
+                index=i,
+                light_count=light_count,
+                has_thermostat=has_thermostat,
+                mqtt_client=self.mqtt_client)
+            )
         self.gas_valve = GasValve(name='Gas Valve', mqtt_client=self.mqtt_client)
         self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
         self.elevator = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
@@ -608,7 +624,9 @@ class Home:
                 # print('Room Idx: {}, Temperature Current: {}'.format(room_idx, dev.temperature_current))
                 # print('Raw Packet: {}'.format('|'.join(['%02X'%x for x in chunk])))
                 # notification
-                if dev.state != dev.state_prev or dev.temperature_setting != dev.temperature_setting_prev or not dev.init:
+                if dev.state != dev.state_prev \
+                        or dev.temperature_setting != dev.temperature_setting_prev \
+                        or not dev.init:
                     dev.publish_mqtt()
                     dev.init = True
                 if dev.temperature_current != dev.temperature_current_prev:
@@ -651,7 +669,7 @@ class Home:
             if len(chunk) >= 4:
                 header = chunk[1]  # [0xC1]
                 packetLen = chunk[2]
-                cmd  = chunk[3]
+                cmd = chunk[3]
                 if header == 0xC1 and packetLen == 0x13 and cmd == 0x13:
                     dev = self.elevator
                     if len(chunk) >= 13:
@@ -717,13 +735,13 @@ class Home:
         5: Connection refused - not authorised
         """
         if rc == 0:
-            mqtt_is_connected = True
+            self.mqtt_is_connected = True
             self.startMqttSubscribe()
         else:
-            mqtt_is_connected = False
+            self.mqtt_is_connected = False
 
     def onMqttClientDisconnect(self, client, userdata, rc):
-        mqtt_is_connected = False
+        self.mqtt_is_connected = False
         writeLog('Mqtt Client Disconnected: {}, {}'.format(userdata, rc), self)
 
     def onMqttClientPublish(self, client, userdata, mid):
@@ -732,7 +750,7 @@ class Home:
     def onMqttClientMessage(self, client, userdata, message):
         writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
         topic = message.topic
-        msg_dict =  json.loads(message.payload.decode("utf-8"))
+        msg_dict = json.loads(message.payload.decode("utf-8"))
         if 'light/command' in topic:
             splt = topic.split('/')
             room_idx = int(splt[-2])
