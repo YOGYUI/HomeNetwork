@@ -1,0 +1,469 @@
+{
+    "bridge": {
+        "name": "Homebridge 349E",
+        "username": "XX:XX:XX:XX:XX:XX",
+        "port": xxxxx,
+        "pin": "xxx-xx-xxx"
+    },
+    "accessories": [
+        {
+            "accessory": "mqttthing",
+            "type": "fan",
+            "name": "Ventilator (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "caption": "Ventilator(MQTT)",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/ventilator/state",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/ventilator/command",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getRotationSpeed": {
+                    "topic": "home/ipark/ventilator/state",
+                    "apply": "return JSON.parse(message).rotationspeed;"
+                },
+                "setRotationSpeed": {
+                    "topic": "home/ipark/ventilator/command",
+                    "apply": "return JSON.stringify({rotationspeed: message});"
+                }
+            },
+            "integerValue": true,
+            "manufacturer": "HDC iControls",
+            "serialNumber": "Bestin Air",
+            "model": "BIA-H100CPC",
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Kitchen Light1 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/light/state/1/0",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/light/command/1/0",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Kitchen Light2 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/light/state/1/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/light/command/1/1",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Kitchen Light3 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/light/state/1/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/light/command/1/2",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Kitchen Light4 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/light/state/1/3",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/light/command/1/3",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Bedroom Light1 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/light/state/2/0",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/light/command/2/0",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Bedroom Light2 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/light/state/2/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/light/command/2/1",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "PC Room Light1 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/light/state/3/0",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/light/command/3/0",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "PC Room Light2 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/light/state/3/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/light/command/3/1",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "thermostat",
+            "name": "Living room Thermostat (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getCurrentHeatingCoolingState": {
+                    "topic": "home/ipark/thermostat/state/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setTargetHeatingCoolingState": {
+                    "topic": "home/ipark/thermostat/command/1",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getTargetHeatingCoolingState": {
+                    "topic": "home/ipark/thermostat/state/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/ipark/thermostat/state/1",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "setTargetTemperature": {
+                    "topic": "home/ipark/thermostat/command/1",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                },
+                "getTargetTemperature": {
+                    "topic": "home/ipark/thermostat/state/1",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                }
+            },
+            "minTemperature": 5,
+            "maxTemperature": 40,
+            "restrictHeatingCoolingState": [
+                0,
+                1
+            ],
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "thermostat",
+            "name": "Bedroom Thermostat (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getCurrentHeatingCoolingState": {
+                    "topic": "home/ipark/thermostat/state/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setTargetHeatingCoolingState": {
+                    "topic": "home/ipark/thermostat/command/2",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getTargetHeatingCoolingState": {
+                    "topic": "home/ipark/thermostat/state/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/ipark/thermostat/state/2",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "setTargetTemperature": {
+                    "topic": "home/ipark/thermostat/command/2",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                },
+                "getTargetTemperature": {
+                    "topic": "home/ipark/thermostat/state/2",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                }
+            },
+            "minTemperature": 5,
+            "maxTemperature": 40,
+            "restrictHeatingCoolingState": [
+                0,
+                1
+            ],
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "thermostat",
+            "name": "PC Room Thermostat (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getCurrentHeatingCoolingState": {
+                    "topic": "home/ipark/thermostat/state/3",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setTargetHeatingCoolingState": {
+                    "topic": "home/ipark/thermostat/command/3",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getTargetHeatingCoolingState": {
+                    "topic": "home/ipark/thermostat/state/3",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/ipark/thermostat/state/3",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "setTargetTemperature": {
+                    "topic": "home/ipark/thermostat/command/3",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                },
+                "getTargetTemperature": {
+                    "topic": "home/ipark/thermostat/state/3",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                }
+            },
+            "minTemperature": 5,
+            "maxTemperature": 40,
+            "restrictHeatingCoolingState": [
+                0,
+                1
+            ],
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "valve",
+            "valveType": "faucet",
+            "name": "Gas Valve (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "setActive": {
+                    "topic": "home/ipark/gasvalve/command",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getActive": {
+                    "topic": "home/ipark/gasvalve/state",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getInUse": {
+                    "topic": "home/ipark/gasvalve/state",
+                    "apply": "return JSON.parse(message).state;"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Elevator Down (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/elevator/state",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/elevator/command/down",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "occupancySensor",
+            "name": "Elevator Down Occupancy (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOccupancyDetected": {
+                    "topic": "home/ipark/elevator/state/occupancy",
+                    "apply": "return JSON.parse(message).state;"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Living room Light1 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/livingroom/light/state/0",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/livingroom/light/command/0",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Living room Light2 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/livingroom/light/state/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/livingroom/light/command/1",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        }
+    ],
+    "platforms": [
+        {
+            "name": "Config",
+            "port": 8581,
+            "platform": "config"
+        }
+    ]
+}

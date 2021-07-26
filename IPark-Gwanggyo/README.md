@@ -22,10 +22,14 @@ pyserial
 
 Notice
 -------------
-All accessories of [Homebridge](https://homebridge.io/) are implemented with [Mqttthing](https://github.com/arachnetech/homebridge-mqttthing#readme) plugin.<br>
+All accessories of [Homebridge](https://homebridge.io/) are implemented with
+[Mqttthing](https://github.com/arachnetech/homebridge-mqttthing#readme) plugin.<br>
 You should run [Mosquitto](https://mosquitto.org/), a.k.a. MQTT Broker, in somewhere. <br>
-(In my case, homebridge and mosquitto are run in Raspberry-Pi 4 Device) <br><br>
-You should modify 'mqtt' tag in [config.xml](https://github.com/YOGYUI/HomeNetwork/blob/main/IPark-Gwanggyo/config.xml). <br>
+(In my case, homebridge and mosquitto are run in Raspberry-Pi 4 Device) <br>
+You can see my Homebridge config file (json format) in
+[homebridge_config.json](https://github.com/YOGYUI/HomeNetwork/blob/main/IPark-Gwanggyo/homebridge_config.json). <br><br> 
+You should modify 'mqtt' tag in 
+[config.xml](https://github.com/YOGYUI/HomeNetwork/blob/main/IPark-Gwanggyo/config.xml). <br>
 ```
 <homenetworkserver>
     <mqtt>
