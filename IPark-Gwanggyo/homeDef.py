@@ -3,7 +3,7 @@ import time
 import json
 import queue
 import ctypes
-import requests
+# import requests
 import threading
 from abc import ABCMeta, abstractmethod
 from typing import List, Union
@@ -30,6 +30,9 @@ class Device:
     mqtt_client: mqtt.Client = None
     mqtt_publish_topic: str = ''
     mqtt_subscribe_topics: List[str]
+    
+    last_published_time: float = time.perf_counter()
+    publish_interval_sec: float = 10.
 
     def __init__(self, name: str = 'Device', **kwargs):
         self.name = name
@@ -124,20 +127,56 @@ class Elevator(Device):
         self.mqtt_client.publish("home/ipark/elevator/state/occupancy", json.dumps(obj), 1)
 
 
+class Outlet(Device):
+    measurement: float = 0.
+    measurement_prev: float = 0.
+
+    def __init__(self, name: str = 'Device', index: int = 0, **kwargs):
+        self.index = index
+        super().__init__(name, **kwargs)
+    
+    def publish_mqtt(self):
+        """
+        curts = time.perf_counter()
+        if curts  - self.last_published_time > self.publish_interval_sec:
+            obj = {
+                "watts": self.measurement
+            }
+            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+            self.last_published_time = curts
+        """
+        obj = {
+            "state": self.state,
+            "watts": self.measurement
+        }
+        self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+
+
 class Room:
     name: str = 'Room'
     # 각 방에는 조명 모듈 여러개와 난방 모듈 1개 존재
     index: int = 0
     lights: List[Light]
+    outlets: List[Outlet]
     thermostat: Thermostat = None
 
-    def __init__(self, name: str = 'Room', index: int = 0, light_count: int = 0, has_thermostat: bool = True, **kwargs):
+    def __init__(
+        self,
+        name: str = 'Room',
+        index: int = 0,
+        light_count: int = 0,
+        has_thermostat: bool = True,
+        outlet_count: int = 0,
+        **kwargs
+    ):
         self.name = name
         self.index = index
         self.lights = list()
+        self.outlets = list()
+
         for i in range(light_count):
             self.lights.append(Light(
-                name='Light {}'.format(i + 1),
+                name=f'Light {i + 1}',
                 index=i,
                 room_index=self.index,
                 mqtt_client=kwargs.get('mqtt_client')
@@ -148,10 +187,21 @@ class Room:
                 room_index=self.index,
                 mqtt_client=kwargs.get('mqtt_client')
             )
+        for i in range(outlet_count):
+            self.outlets.append(Outlet(
+                name=f'Outlet {i + 1}',
+                index=i,
+                room_index=self.index,
+                mqtt_client=kwargs.get('mqtt_client')
+            ))
 
     @property
     def light_count(self):
         return len(self.lights)
+    
+    @property
+    def outlet_count(self):
+        return len(self.outlets)
 
 
 class ThreadMonitoring(threading.Thread):
@@ -224,11 +274,11 @@ class ThreadCommand(threading.Thread):
                     if target is None:
                         continue
 
-                    if isinstance(dev, Light):
+                    if isinstance(dev, Light) or isinstance(dev, Outlet):
                         if category == 'state':
-                            room_idx = elem['room_idx']
-                            dev_idx = elem['dev_idx']
-                            self.set_light_state(dev, target, room_idx, dev_idx, func)
+                            # room_idx = elem['room_idx']
+                            # dev_idx = elem['dev_idx']
+                            self.set_light_state(dev, target, func)
                     elif isinstance(dev, Thermostat):
                         if category == 'state':
                             self.set_state_common(dev, target, func)
@@ -275,7 +325,7 @@ class ThreadCommand(threading.Thread):
         time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_light_state(self, dev: Light, target: int, room_idx: int, dev_idx: int, func):
+    def set_light_state(self, dev: Union[Light, Outlet], target: int, func):
         cnt = 0
         packet1 = dev.packet_set_state_on if target else dev.packet_set_state_off
         packet2 = dev.packet_get_state
@@ -375,6 +425,22 @@ class Home:
     mqtt_port: int = 1883
     mqtt_is_connected: bool = False
 
+    max_packet_log_cnt: int = 100
+    packets_energy: List[bytearray]
+    enable_log_energy_31: bool = True
+    enable_log_energy_41: bool = True
+    enable_log_energy_42: bool = True
+    enable_log_energy_d1: bool = True
+    enable_log_energy_room_1: bool = True
+    enable_log_energy_room_2: bool = True
+    enable_log_energy_room_3: bool = True
+    packets_control: List[bytearray]
+    enable_log_control_28: bool = True
+    enable_log_control_31: bool = True
+    enable_log_control_61: bool = True
+    packets_smart1: List[bytearray]
+    packets_smart2: List[bytearray]
+
     def __init__(self, room_info: List, name: str = 'Home'):
         self.name = name
         self.device_list = list()
@@ -393,11 +459,13 @@ class Home:
             name = info['name']
             light_count = info['light_count']
             has_thermostat = info['has_thermostat']
+            outlet_count = info['outlet_count']
             self.rooms.append(Room(
                 name=name,
                 index=i,
                 light_count=light_count,
                 has_thermostat=has_thermostat,
+                outlet_count=outlet_count,
                 mqtt_client=self.mqtt_client)
             )
         self.gas_valve = GasValve(name='Gas Valve', mqtt_client=self.mqtt_client)
@@ -411,6 +479,7 @@ class Home:
             self.device_list.extend(room.lights)
             if room.thermostat is not None:
                 self.device_list.append(room.thermostat)
+            self.device_list.extend(room.outlets)
         self.device_list.append(self.gas_valve)
         self.device_list.append(self.ventilator)
         self.device_list.append(self.elevator)
@@ -424,6 +493,11 @@ class Home:
         except Exception as e:
             print('MQTT Connection Error: {}'.format(e))
         self.mqtt_client.loop_start()
+
+        self.packets_energy = list()
+        self.packets_control = list()
+        self.packets_smart1 = list()
+        self.packets_smart2 = list()
 
         self.queue_command = queue.Queue()
         self.startThreadCommand()
@@ -482,29 +556,37 @@ class Home:
         node = root.find('rooms')
         for i, room in enumerate(self.rooms):
             room_node = node.find('room{}'.format(i))
-            if room_node is None:
-                continue
-            for j in range(room.light_count):
-                light_node = room_node.find('light{}'.format(j))
-                if light_node is None:
-                    continue
-                room.lights[j].packet_set_state_on = light_node.find('on').text
-                room.lights[j].packet_set_state_off = light_node.find('off').text
-                room.lights[j].packet_get_state = light_node.find('get').text
-                mqtt_node = light_node.find('mqtt')
-                room.lights[j].mqtt_publish_topic = mqtt_node.find('publish').text
-                room.lights[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
-            thermo_node = room_node.find('thermostat')
-            if thermo_node is None:
-                continue
-            room.thermostat.packet_set_state_on = thermo_node.find('on').text
-            room.thermostat.packet_set_state_off = thermo_node.find('off').text
-            room.thermostat.packet_get_state = thermo_node.find('get').text
-            mqtt_node = thermo_node.find('mqtt')
-            room.thermostat.mqtt_publish_topic = mqtt_node.find('publish').text
-            room.thermostat.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
-            for j in range(71):
-                room.thermostat.packet_set_temperature[j] = thermo_setting_packets[j + 71 * (i - 1)]
+            if room_node is not None:
+                for j in range(room.light_count):
+                    light_node = room_node.find('light{}'.format(j))
+                    if light_node is not None:
+                        room.lights[j].packet_set_state_on = light_node.find('on').text
+                        room.lights[j].packet_set_state_off = light_node.find('off').text
+                        room.lights[j].packet_get_state = light_node.find('get').text
+                        mqtt_node = light_node.find('mqtt')
+                        room.lights[j].mqtt_publish_topic = mqtt_node.find('publish').text
+                        room.lights[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+
+                thermo_node = room_node.find('thermostat')
+                if thermo_node is not None:
+                    room.thermostat.packet_set_state_on = thermo_node.find('on').text
+                    room.thermostat.packet_set_state_off = thermo_node.find('off').text
+                    room.thermostat.packet_get_state = thermo_node.find('get').text
+                    mqtt_node = thermo_node.find('mqtt')
+                    room.thermostat.mqtt_publish_topic = mqtt_node.find('publish').text
+                    room.thermostat.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                for j in range(71):
+                    room.thermostat.packet_set_temperature[j] = thermo_setting_packets[j + 71 * (i - 1)]
+
+                for j in range(room.outlet_count):
+                    outlet_node = room_node.find('outlet{}'.format(j))
+                    if outlet_node is not None:
+                        room.outlets[j].packet_set_state_on = outlet_node.find('on').text
+                        room.outlets[j].packet_set_state_off = outlet_node.find('off').text
+                        room.outlets[j].packet_get_state = outlet_node.find('get').text
+                        mqtt_node = outlet_node.find('mqtt')
+                        room.outlets[j].mqtt_publish_topic = mqtt_node.find('publish').text
+                        room.outlets[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
 
         node = root.find('gasvalve')
         self.gas_valve.packet_set_state_off = node.find('off').text
@@ -585,22 +667,65 @@ class Home:
 
     def onParserEnergyResult(self, chunk: bytearray):
         try:
-            if len(chunk) < 7:
+            if len(chunk) < 8:
                 return
             header = chunk[1]  # [0x31, 0x41, 0x42, 0xD1]
             command = chunk[3]
-            if header == 0x31 and command in [0x81, 0x91]:
-                # 방 조명 패킷
-                room_idx = chunk[5] & 0x0F
-                room = self.rooms[room_idx]
-                for i in range(room.light_count):
-                    dev = room.lights[i]
-                    dev.state = (chunk[6] & (0x01 << i)) >> i
-                    # notification
-                    if dev.state != dev.state_prev or not dev.init:
-                        dev.publish_mqtt()
-                        dev.init = True
-                    dev.state_prev = dev.state
+            room_idx = 0
+            if header == 0x31:
+                if command in [0x81, 0x91]:
+                    # 방 조명 패킷
+                    room_idx = chunk[5] & 0x0F
+                    room = self.rooms[room_idx]
+                    for i in range(room.light_count):
+                        dev = room.lights[i]
+                        dev.state = (chunk[6] & (0x01 << i)) >> i
+                        # notification
+                        if dev.state != dev.state_prev or not dev.init:
+                            dev.publish_mqtt()
+                            dev.init = True
+                        dev.state_prev = dev.state
+                    
+                    # 콘센트 소비전력 패킷
+                    for i in range(room.outlet_count):
+                        dev = room.outlets[i]
+                        dev.state = (chunk[7] & (0x01 << i)) >> i
+                        if room_idx == 1 and i == 2:
+                            dev.state = 1
+                        if len(chunk) >= 14 + 2 * i + 2 + 1:
+                            dev.measurement = int.from_bytes(chunk[14 + 2 * i: 14 + 2 * i + 2], byteorder='big') / 10.
+                        else:
+                            dev.measurement = 0
+                        if int(dev.measurement) != int(dev.measurement_prev) or not dev.init:
+                            dev.publish_mqtt()
+                            dev.init = True
+                        dev.measurement_prev = dev.measurement
+                elif command in [0x11]:
+                    room_idx = chunk[5] & 0x0F
+            
+            # packet log
+            append = True
+            if header == 0x31:
+                if not self.enable_log_energy_31:
+                    append = False
+                else:
+                    if room_idx == 1 and not self.enable_log_energy_room_1:
+                        append = False
+                    if room_idx == 2 and not self.enable_log_energy_room_2:
+                        append = False
+                    if room_idx == 3 and not self.enable_log_energy_room_3:
+                        append = False
+            if header == 0x41 and not self.enable_log_energy_41:
+                append = False
+            if header == 0x42 and not self.enable_log_energy_42:
+                append = False
+            if header == 0xD1 and not self.enable_log_energy_d1:
+                append = False
+            
+            if append:
+                if len(self.packets_energy) > self.max_packet_log_cnt:
+                    self.packets_energy = self.packets_energy[1:]
+                self.packets_energy.append(chunk)
         except Exception as e:
             writeLog('onParserEnergyResult::Exception::{}'.format(e), self)
 
@@ -619,14 +744,11 @@ class Home:
                 dev = room.thermostat
                 dev.state = chunk[6] & 0x01
                 dev.temperature_setting = (chunk[7] & 0x3F) + (chunk[7] & 0x40 > 0) * 0.5
-                # dev.temperature_current = chunk[9] / 10.0
                 dev.temperature_current = int.from_bytes(chunk[8:10], byteorder='big') / 10.0
                 # print('Room Idx: {}, Temperature Current: {}'.format(room_idx, dev.temperature_current))
                 # print('Raw Packet: {}'.format('|'.join(['%02X'%x for x in chunk])))
                 # notification
-                if dev.state != dev.state_prev \
-                        or dev.temperature_setting != dev.temperature_setting_prev \
-                        or not dev.init:
+                if dev.state != dev.state_prev or dev.temperature_setting != dev.temperature_setting_prev or not dev.init:
                     dev.publish_mqtt()
                     dev.init = True
                 if dev.temperature_current != dev.temperature_current_prev:
@@ -661,28 +783,48 @@ class Home:
                 dev.rotation_speed_prev = dev.rotation_speed
             else:
                 pass
+            
+            # packet log
+            append = True
+            if header == 0x28 and not self.enable_log_control_28:
+                append = False
+            if header == 0x31 and not self.enable_log_control_31:
+                append = False
+            if header == 0x61 and not self.enable_log_control_61:
+                append = False
+            
+            if append:
+                if len(self.packets_control) > self.max_packet_log_cnt:
+                    self.packets_control = self.packets_control[1:]
+                self.packets_control.append(chunk)
         except Exception as e:
             writeLog('onParserControlResult Exception::{}'.format(e), self)
 
     def onParserSmartResult1(self, chunk: bytearray):
         try:
-            if len(chunk) >= 4:
-                header = chunk[1]  # [0xC1]
-                packetLen = chunk[2]
-                cmd = chunk[3]
-                if header == 0xC1 and packetLen == 0x13 and cmd == 0x13:
-                    dev = self.elevator
-                    if len(chunk) >= 13:
-                        dev.state = chunk[11]
-                        dev.current_floor = ctypes.c_int8(chunk[12]).value
-                        # notification
-                        if dev.state != dev.state_prev or not dev.init:
-                            dev.publish_mqtt()
-                            dev.init = True
-                        if dev.current_floor != dev.current_floor_prev:
-                            writeLog(f'Elevator Current Floor: {dev.current_floor}', self)
-                        dev.state_prev = dev.state
-                        dev.current_floor_prev = dev.current_floor
+            if len(chunk) < 4:
+                return
+            header = chunk[1]  # [0xC1]
+            packetLen = chunk[2]
+            cmd = chunk[3]
+            if header == 0xC1 and packetLen == 0x13 and cmd == 0x13:
+                dev = self.elevator
+                if len(chunk) >= 13:
+                    dev.state = chunk[11]
+                    dev.current_floor = ctypes.c_int8(chunk[12]).value
+                    # notification
+                    if dev.state != dev.state_prev or not dev.init:
+                        dev.publish_mqtt()
+                        dev.init = True
+                    if dev.current_floor != dev.current_floor_prev:
+                        writeLog(f'Elevator Current Floor: {dev.current_floor}', self)
+                    dev.state_prev = dev.state
+                    dev.current_floor_prev = dev.current_floor
+            
+            # packet log
+            if len(self.packets_smart1) > self.max_packet_log_cnt:
+                self.packets_smart1 = self.packets_smart1[1:]
+            self.packets_smart1.append(chunk)
         except Exception as e:
             writeLog('onParserSmartResult1 Exception::{}'.format(e), self)
 
@@ -696,7 +838,7 @@ class Home:
         writeLog('Command::{}'.format(kwargs), self)
         try:
             dev = kwargs['device']
-            if isinstance(dev, Light):
+            if isinstance(dev, Light) or isinstance(dev, Outlet):
                 kwargs['func'] = self.sendSerialEnergyPacket
             elif isinstance(dev, Thermostat):
                 kwargs['func'] = self.sendSerialControlPacket
@@ -750,7 +892,7 @@ class Home:
     def onMqttClientMessage(self, client, userdata, message):
         writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
         topic = message.topic
-        msg_dict = json.loads(message.payload.decode("utf-8"))
+        msg_dict =  json.loads(message.payload.decode("utf-8"))
         if 'light/command' in topic:
             splt = topic.split('/')
             room_idx = int(splt[-2])
@@ -808,6 +950,18 @@ class Home:
                     category='state',
                     target=msg_dict['state'],
                     direction=last_word
+                )
+        if 'outlet/command' in topic:
+            splt = topic.split('/')
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+            if 'state' in msg_dict.keys():
+                self.command(
+                    device=self.rooms[room_idx].outlets[dev_idx],
+                    category='state',
+                    target=msg_dict['state'],
+                    room_idx=room_idx,
+                    dev_idx=dev_idx
                 )
     
     def onMqttClientLog(self, client, userdata, level, buf):

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Packet Logger</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    </head>
+    <body>
+        <input type="button" id="btn_start" onclick="onBtnStartClicked();" value="START">
+        <input type="button" id="btn_stop"  onclick="onBtnStopClicked();"  value="STOP">
+        <h1>Energy</h1>
+        <form action="packet_log/clear/energy" method="POST">
+            <input type="submit" value="CLEAR">
+        </form>
+        <label>Head </label>
+        <label><input type="checkbox" id="check_energy_31" onclick="onCheckEnergy(0x31)" {% if enable_log_energy_31==1 %} checked {% endif %}>0x31</label>
+        <label><input type="checkbox" id="check_energy_41" onclick="onCheckEnergy(0x41)" {% if enable_log_energy_41==1 %} checked {% endif %}>0x41</label>
+        <label><input type="checkbox" id="check_energy_42" onclick="onCheckEnergy(0x42)" {% if enable_log_energy_42==1 %} checked {% endif %}>0x42</label>
+        <label><input type="checkbox" id="check_energy_d1" onclick="onCheckEnergy(0xD1)" {% if enable_log_energy_d1==1 %} checked {% endif %}>0xD1</label>
+        <br>
+        <label>Room Index</label>
+        <label><input type="checkbox" id="check_energy_room_1" onclick="onCheckEnergy('room1')" {% if enable_log_energy_room_1==1 %} checked {% endif %}>1</label>
+        <label><input type="checkbox" id="check_energy_room_2" onclick="onCheckEnergy('room2')" {% if enable_log_energy_room_2==1 %} checked {% endif %}>2</label>
+        <label><input type="checkbox" id="check_energy_room_3" onclick="onCheckEnergy('room3')" {% if enable_log_energy_room_3==1 %} checked {% endif %}>3</label>
+        <br>
+        <div id="energy_text_box" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll; overflow-wrap: break-word;"></div>
+        <br>
+        <h1>Control</h1>
+        <form action="packet_log/clear/control" method="POST">
+            <input type="submit" value="CLEAR">
+        </form>
+        <label>Head </label>
+        <label><input type="checkbox" id="check_control_28" onclick="onCheckControl(0x28)" {% if enable_log_control_28==1 %} checked {% endif %}>0x28</label>
+        <label><input type="checkbox" id="check_control_31" onclick="onCheckControl(0x31)" {% if enable_log_control_31==1 %} checked {% endif %}>0x31</label>
+        <label><input type="checkbox" id="check_control_61" onclick="onCheckControl(0x61)" {% if enable_log_control_61==1 %} checked {% endif %}>0x61</label>
+        <br>
+        <div id="control_text_box" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll;"></div>
+        <br>
+        <h1>Smart1</h1>
+        <form action="packet_log/clear/smart1" method="POST">
+            <input type="submit" value="CLEAR">
+        </form>
+        <br>
+        <div id="smart1_text_box" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll;"></div>
+        <br>
+
+        <script>
+            var interval;
+
+            function onBtnStartClicked() {
+                interval = setInterval(function(){$.ajax({
+                    url: '/packet_log/update',
+                    type: 'POST',
+                    success: function(response) {
+                        $("#energy_text_box").html(response["energy"]);
+                        $("#control_text_box").html(response["control"]);
+                        $("#smart1_text_box").html(response["smart1"]);
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                })}, 1000);
+                console.log("Interval Started");
+            }
+
+            function onBtnStopClicked() {
+                clearInterval(interval);
+                console.log("Interval Stopped");
+            }
+
+            function onCheckEnergy(value) {
+                var newForm = $('<form></form>');
+                newForm.attr("id", "temp");
+                newForm.attr("method", "POST");
+
+                if (value == 0x31) {
+                    var checked = document.getElementById("check_energy_31").checked;    
+                    newForm.attr("action", "/packet_log/energy/enable/31");
+                    newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+                } else if (value == 0x41) {
+                    var checked = document.getElementById("check_energy_41").checked;
+                    newForm.attr("action", "/packet_log/energy/enable/41");
+                    newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+                } else if (value == 0x42) {
+                    var checked = document.getElementById("check_energy_42").checked;
+                    newForm.attr("action", "/packet_log/energy/enable/42");
+                    newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+                } else if (value == 0xD1) {
+                    var checked = document.getElementById("check_energy_d1").checked;
+                    newForm.attr("action", "/packet_log/energy/enable/D1");
+                    newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+                } else if (value == 'room1') {
+                    var checked = document.getElementById("check_energy_room_1").checked;
+                    newForm.attr("action", "/packet_log/energy/enable/room1");
+                    newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+                } else if (value == 'room2') {
+                    var checked = document.getElementById("check_energy_room_2").checked;
+                    newForm.attr("action", "/packet_log/energy/enable/room2");
+                    newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+                } else if (value == 'room3') {
+                    var checked = document.getElementById("check_energy_room_3").checked;
+                    newForm.attr("action", "/packet_log/energy/enable/room3");
+                    newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+                }
+
+                newForm.appendTo('body');
+                newForm.submit();
+                document.getElementById("temp").remove();
+            }
+            
+            function onCheckControl(value) {
+                var newForm = $('<form></form>');
+                newForm.attr("id", "temp");
+                newForm.attr("method", "POST");
+
+                if (value == 0x28) {
+                    var checked = document.getElementById("check_control_28").checked;    
+                    newForm.attr("action", "/packet_log/control/enable/28");
+                    newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+                } else if (value == 0x31) {
+                    var checked = document.getElementById("check_control_31").checked;
+                    newForm.attr("action", "/packet_log/control/enable/31");
+                    newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+                } else if (value == 0x61) {
+                    var checked = document.getElementById("check_control_61").checked;
+                    newForm.attr("action", "/packet_log/control/enable/61");
+                    newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+                }
+
+                newForm.appendTo('body');
+                newForm.submit();
+                document.getElementById("temp").remove();
+            }
+
+        </script>
+    </body>
+</html>

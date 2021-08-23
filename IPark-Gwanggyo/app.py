@@ -1,3 +1,4 @@
+import http
 from flask import Flask, request, json, render_template, jsonify
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -68,6 +69,95 @@ def send(target):
         except Exception as e:
             msg = str(e)
     return render_template('packet_sender.html', target=target, result=msg, packet=packet)
+
+
+@app.route('/packet_log')
+def packet_log():
+    return render_template(
+        'packet_log.html', 
+        enable_log_energy_31=int(home.enable_log_energy_31),
+        enable_log_energy_41=int(home.enable_log_energy_41),
+        enable_log_energy_42=int(home.enable_log_energy_42),
+        enable_log_energy_d1=int(home.enable_log_energy_d1),
+        enable_log_energy_room_1=int(home.enable_log_energy_room_1),
+        enable_log_energy_room_2=int(home.enable_log_energy_room_2),
+        enable_log_energy_room_3=int(home.enable_log_energy_room_3),
+        enable_log_control_28=int(home.enable_log_control_28),
+        enable_log_control_31=int(home.enable_log_control_31),
+        enable_log_control_61=int(home.enable_log_control_61)
+    )
+
+
+@app.route('/packet_log/update', methods=['POST'])
+def packet_log_update():
+    p1 = '<br>'.join([' '.join(['%02X' % y for y in x])for x in home.packets_energy[::-1]])
+    p2 = '<br>'.join([' '.join(['%02X' % y for y in x])for x in home.packets_control[::-1]])
+    p3 = '<br>'.join([' '.join(['%02X' % y for y in x])for x in home.packets_smart1[::-1]])
+    return jsonify({
+        'energy': p1,
+        'control': p2,
+        'smart1': p3
+    })
+
+
+@app.route('/packet_log/clear/<target>', methods=['POST'])
+def packet_log_clear(target):
+    if target == 'energy':
+        home.packets_energy.clear()
+    elif target == 'control':
+        home.packets_control.clear()
+    elif target == 'smart1':
+        home.packets_smart1.clear()
+    return '', http.HTTPStatus.NO_CONTENT
+
+
+@app.route('/packet_log/<device>/enable/<target>', methods=['POST'])
+def packet_log_energy_enable(device, target):
+    req = request.get_data().decode(encoding='utf-8')
+    value = int(req[6:].strip()) if 'value=' in req else 1
+    if device == 'energy':
+        if target == '31':
+            home.enable_log_energy_31 = bool(value)
+        elif target == '41':
+            home.enable_log_energy_41 = bool(value)
+        elif target == '42':
+            home.enable_log_energy_42 = bool(value)
+        elif target == 'D1':
+            home.enable_log_energy_d1 = bool(value)
+        elif target == 'room1':
+            home.enable_log_energy_room_1 = bool(value)
+        elif target == 'room2':
+            home.enable_log_energy_room_2 = bool(value)
+        elif target == 'room3':
+            home.enable_log_energy_room_3 = bool(value)
+        home.packets_energy.clear()
+    elif device == 'control':
+        if target == '28':
+            home.enable_log_control_28 = bool(value)
+        elif target == '31':
+            home.enable_log_control_31 = bool(value)
+        elif target == '61':
+            home.enable_log_control_61 = bool(value)
+        home.packets_control.clear()
+    return '', http.HTTPStatus.NO_CONTENT
+
+
+@app.route('/outlet')
+def outlet():
+    return render_template('outlet.html')
+
+
+@app.route('/outlet/update', methods=['POST'])
+def outlet_update():
+    return jsonify({
+        'room1_outlet1': home.rooms[1].outlets[0].measurement,
+        'room1_outlet2': home.rooms[1].outlets[1].measurement,
+        'room1_outlet3': home.rooms[1].outlets[2].measurement,
+        'room2_outlet1': home.rooms[2].outlets[0].measurement,
+        'room2_outlet2': home.rooms[2].outlets[1].measurement,
+        'room3_outlet1': home.rooms[3].outlets[0].measurement,
+        'room3_outlet2': home.rooms[3].outlets[1].measurement
+    })
 
 
 # homebridge APIs from Here...
@@ -263,11 +353,11 @@ if __name__ == '__main__':
     os.system('clear')
 
     home = Home(room_info=[
-            {'name': 'Empty', 'light_count': 0, 'has_thermostat': False},
-            {'name': 'Kitchen', 'light_count': 4, 'has_thermostat': True},
-            {'name': 'Bedroom', 'light_count': 2, 'has_thermostat': True},
-            {'name': 'Computer', 'light_count': 2, 'has_thermostat': True}
-        ], name='IPark-Gwanggyo')
+        {'name': 'Empty', 'light_count': 0, 'has_thermostat': False, 'outlet_count': 0},
+        {'name': 'Kitchen', 'light_count': 4, 'has_thermostat': True, 'outlet_count': 3},
+        {'name': 'Bedroom', 'light_count': 2, 'has_thermostat': True, 'outlet_count': 2},
+        {'name': 'Computer', 'light_count': 2, 'has_thermostat': True, 'outlet_count': 2}
+    ], name='IPark-Gwanggyo')
 
     home.initDevices()
     app.run(host='0.0.0.0', port=1234, debug=False)

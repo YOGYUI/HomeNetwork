@@ -59,6 +59,33 @@
                     <subscribe>home/ipark/thermostat/command/1</subscribe>
                 </mqtt>
             </thermostat>
+			<outlet0>
+                <on>02 31 0D 01 FC 01 00 81 00 00 00 09 4F</on>
+                <off>02 31 0D 01 D8 01 00 01 00 00 00 00 EC</off>
+                <get>02 31 07 11 9B 01 C0</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/1/0</publish>
+                    <subscribe>home/ipark/outlet/command/1/0</subscribe>
+                </mqtt>
+            </outlet0>
+            <outlet1>
+                <on>02 31 0D 01 D5 01 00 82 00 00 00 12 62</on>
+                <off>02 31 0D 01 0A 01 00 02 00 00 00 00 3F</off>
+                <get>02 31 07 11 9B 01 C0</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/1/1</publish>
+                    <subscribe>home/ipark/outlet/command/1/1</subscribe>
+                </mqtt>
+            </outlet1>
+            <outlet2>
+                <on></on>
+                <off></off>
+                <get>02 31 07 11 9B 01 C0</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/1/2</publish>
+                    <subscribe>home/ipark/outlet/command/1/2</subscribe>
+                </mqtt>
+            </outlet2>
         </room1>
         <room2>
             <light0>
@@ -88,6 +115,24 @@
                     <subscribe>home/ipark/thermostat/command/2</subscribe>
                 </mqtt>
             </thermostat>
+			<outlet0>
+                <on>02 31 0D 01 B3 02 00 81 00 00 00 09 11</on>
+                <off>02 31 0D 01 05 02 00 01 00 00 00 00 40</off>
+                <get>02 31 07 11 93 02 B5</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/2/0</publish>
+                    <subscribe>home/ipark/outlet/command/2/0</subscribe>
+                </mqtt>
+            </outlet0>
+            <outlet1>
+                <on>02 31 0D 01 65 02 00 82 00 00 00 12 CF</on>
+                <off>02 31 0D 01 81 02 00 02 00 00 00 00 C1</off>
+                <get>02 31 07 11 93 02 B5</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/2/1</publish>
+                    <subscribe>home/ipark/outlet/command/2/1</subscribe>
+                </mqtt>
+            </outlet1>
         </room2>
         <room3>
             <light0>
@@ -117,6 +162,24 @@
                     <subscribe>home/ipark/thermostat/command/3</subscribe>
                 </mqtt>
             </thermostat>
+			<outlet0>
+                <on>02 31 0D 01 B1 03 00 81 00 00 00 09 1C</on>
+                <off>02 31 0D 01 44 03 00 01 00 00 00 00 82</off>
+                <get>02 28 07 11 D4 03 EA</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/3/0</publish>
+                    <subscribe>home/ipark/outlet/command/3/0</subscribe>
+                </mqtt>
+            </outlet0>
+            <outlet1>
+                <on>02 31 0D 01 E8 03 00 82 00 00 00 12 4D</on>
+                <off>02 31 0D 01 6E 03 00 02 00 00 00 00 55</off>
+                <get>02 28 07 11 D4 03 EA</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/3/1</publish>
+                    <subscribe>home/ipark/outlet/command/3/1</subscribe>
+                </mqtt>
+            </outlet1>
         </room3>
     </rooms>
     <gasvalve>

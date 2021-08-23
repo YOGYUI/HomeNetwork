@@ -457,6 +457,188 @@
             "offValue": 0,
             "history": true,
             "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Living room Outlet1 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/outlet/state/1/0",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/outlet/command/1/0",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getWatts": {
+                    "topic": "home/ipark/outlet/state/1/0",
+                    "apply": "return JSON.parse(message).watts;"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Living room Outlet2 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/outlet/state/1/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/outlet/command/1/1",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getWatts": {
+                    "topic": "home/ipark/outlet/state/1/1",
+                    "apply": "return JSON.parse(message).watts;"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Living room Outlet3 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/outlet/state/1/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/outlet/command/1/2",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getWatts": {
+                    "topic": "home/ipark/outlet/state/1/2",
+                    "apply": "return JSON.parse(message).watts;"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Bedroom Outlet1 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/outlet/state/2/0",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/outlet/command/2/0",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getWatts": {
+                    "topic": "home/ipark/outlet/state/2/0",
+                    "apply": "return JSON.parse(message).watts;"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Bedroom Outlet2 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/outlet/state/2/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/outlet/command/2/1",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getWatts": {
+                    "topic": "home/ipark/outlet/state/2/1",
+                    "apply": "return JSON.parse(message).watts;"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "PC room Outlet1 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/outlet/state/3/0",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/outlet/command/3/0",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getWatts": {
+                    "topic": "home/ipark/outlet/state/3/0",
+                    "apply": "return JSON.parse(message).watts;"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "PC room Outlet2 (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/ipark/outlet/state/3/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/ipark/outlet/command/3/1",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getWatts": {
+                    "topic": "home/ipark/outlet/state/3/1",
+                    "apply": "return JSON.parse(message).watts;"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
         }
     ],
     "platforms": [
