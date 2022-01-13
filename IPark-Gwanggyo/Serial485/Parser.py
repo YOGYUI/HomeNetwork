@@ -3,7 +3,7 @@ from SerialComm import SerialComm
 from Define import Callback, writeLog
 
 
-class Parser():
+class Parser:
     __metaclass__ = ABCMeta
 
     buffer: bytearray

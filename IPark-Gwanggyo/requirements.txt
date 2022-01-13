@@ -4,3 +4,5 @@ werkzeug
 paho-mqtt
 PyQt5
 pyserial
+requests
+beautifulsoup4

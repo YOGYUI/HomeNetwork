@@ -3,8 +3,10 @@ import time
 import json
 import queue
 import ctypes
-# import requests
+import datetime
+import requests
 import threading
+from bs4 import BeautifulSoup
 from abc import ABCMeta, abstractmethod
 from typing import List, Union
 import paho.mqtt.client as mqtt
@@ -80,7 +82,7 @@ class Thermostat(Device):
             "state": 'HEAT' if self.state == 1 else 'OFF',
             "currentTemperature": self.temperature_current,
             "targetTemperature": self.temperature_setting
-            }
+        }
         self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
 
 
@@ -99,7 +101,7 @@ class Ventilator(Device):
         obj = {
             "state": self.state,
             "rotationspeed": int(self.rotation_speed / 3 * 100)
-            }
+        }
         self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
 
 
@@ -204,11 +206,98 @@ class Room:
         return len(self.outlets)
 
 
+class AirqualitySensor(Device):
+    """
+    공공데이터포털 - 대기오염정보
+    """
+    _api_key: str = ''
+    _obs_name: str = ''
+    _last_query_time: datetime.datetime = None
+
+    def __init__(self, **kwargs):
+        self._measure_data = {
+            'khaiGrade': -1,
+            'so2Value': 0.0,
+            'coValue': 0.0,
+            'o3Value': 0.0,
+            'no2Value': 0.0,
+            'pm10Value': 0.0,
+            'pm25Value': 0.0,
+        }
+        super().__init__('Airquality', **kwargs)
+
+    def setApiParams(self, api_key: str, obs_name: str):
+        self._api_key = api_key
+        self._obs_name = obs_name
+
+    def refreshData(self):
+        if self._last_query_time is None:
+            call_api = True
+        else:
+            tmdiff = datetime.datetime.now() - self._last_query_time
+            if tmdiff.seconds > 3600:
+                call_api = True
+            else:
+                call_api = False
+
+        if call_api:
+            url_base = "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc"
+            url_spec = "getMsrstnAcctoRltmMesureDnsty"
+            url = url_base + "/" + url_spec
+            api_key_decode = requests.utils.unquote(self._api_key, encoding='utf-8')
+            params = {
+                "serviceKey": api_key_decode,
+                "returnType": "xml",
+                "stationName": self._obs_name,
+                "dataTerm": "DAILY",
+                "ver": "1.3",
+                "numOfRows": 1,
+                "pageNo": 1
+            }
+            response = requests.get(url, params=params)
+            if response.status_code == 200:
+                xml = BeautifulSoup(response.text.replace('\n', ''), "lxml")
+                result_code = xml.find('resultcode').text
+                result_msg = xml.find('resultmsg').text
+                if result_code == '00':
+                    items = xml.findAll("item")
+                    if len(list(items)) >= 1:
+                        item = items[0]
+                        self._measure_data['dataTime'] = item.find('dataTime'.lower()).text
+                        self._measure_data['so2Value'] = float(item.find('so2Value'.lower()).text)
+                        self._measure_data['coValue'] = float(item.find('coValue'.lower()).text)
+                        self._measure_data['o3Value'] = float(item.find('o3Value'.lower()).text)
+                        self._measure_data['no2Value'] = float(item.find('no2Value'.lower()).text)
+                        self._measure_data['pm10Value'] = float(item.find('pm10Value'.lower()).text)
+                        self._measure_data['pm25Value'] = float(item.find('pm25Value'.lower()).text)
+                        self._measure_data['khaiValue'] = float(item.find('khaiValue'.lower()).text)
+                        self._measure_data['khaiGrade'] = int(item.find('khaiGrade'.lower()).text)
+                        self._last_query_time = datetime.datetime.now()
+                else:
+                    writeLog(f"API Error ({result_code, result_msg})", self)
+            else:
+                writeLog(f"Request GET Error ({response.status_code})", self)
+
+    def publish_mqtt(self):
+        self.refreshData()
+        obj = {
+            "grade": self._measure_data.get('khaiGrade'),
+            "so2": self._measure_data.get('so2Value'),
+            "co": self._measure_data.get('coValue'),
+            "o3": self._measure_data.get('o3Value'),
+            "no2": self._measure_data.get('no2Value'),
+            "pm10": self._measure_data.get('pm10Value'),
+            "pm25": self._measure_data.get('pm25Value')
+        }
+        if self.mqtt_client is not None:
+            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+
+
 class ThreadMonitoring(threading.Thread):
     _keepAlive: bool = True
 
     def __init__(
-            self, 
+            self,
             serial_list: List[SerialComm], 
             device_list: List[Device], 
             publish_interval: int = 60, 
@@ -408,6 +497,7 @@ class Home:
     gas_valve: GasValve
     ventilator: Ventilator
     elevator: Elevator
+    airquality: AirqualitySensor
 
     serial_baud: int = 9600
     serial_485_energy_port: str = ''
@@ -441,7 +531,7 @@ class Home:
     packets_smart1: List[bytearray]
     packets_smart2: List[bytearray]
 
-    def __init__(self, room_info: List, name: str = 'Home'):
+    def __init__(self, room_info: List = None, name: str = 'Home', init_service: bool = True):
         self.name = name
         self.device_list = list()
 
@@ -455,24 +545,27 @@ class Home:
         self.mqtt_client.on_log = self.onMqttClientLog
         
         self.rooms = list()
-        for i, info in enumerate(room_info):
-            name = info['name']
-            light_count = info['light_count']
-            has_thermostat = info['has_thermostat']
-            outlet_count = info['outlet_count']
-            self.rooms.append(Room(
-                name=name,
-                index=i,
-                light_count=light_count,
-                has_thermostat=has_thermostat,
-                outlet_count=outlet_count,
-                mqtt_client=self.mqtt_client)
-            )
+        if room_info is not None and isinstance(room_info, list):
+            for i, info in enumerate(room_info):
+                if isinstance(info, dict):
+                    name = info.get('name')
+                    light_count = info.get('light_count')
+                    has_thermostat = info.get('has_thermostat')
+                    outlet_count = info.get('outlet_count')
+                    self.rooms.append(Room(
+                        name=name,
+                        index=i,
+                        light_count=light_count,
+                        has_thermostat=has_thermostat,
+                        outlet_count=outlet_count,
+                        mqtt_client=self.mqtt_client)
+                    )
         self.gas_valve = GasValve(name='Gas Valve', mqtt_client=self.mqtt_client)
         self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
         self.elevator = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
         self.elevator.sig_call_up.connect(self.onElevatorCallUp)
         self.elevator.sig_call_down.connect(self.onElevatorCallDown)
+        self.airquality = AirqualitySensor(mqtt_client=self.mqtt_client)
 
         # device list
         for room in self.rooms:
@@ -483,16 +576,18 @@ class Home:
         self.device_list.append(self.gas_valve)
         self.device_list.append(self.ventilator)
         self.device_list.append(self.elevator)
+        self.device_list.append(self.airquality)
 
         curpath = os.path.dirname(os.path.abspath(__file__))
         xml_path = os.path.join(curpath, 'config.xml')
         self.load_config(xml_path)
 
-        try:
-            self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
-        except Exception as e:
-            print('MQTT Connection Error: {}'.format(e))
-        self.mqtt_client.loop_start()
+        if init_service:
+            try:
+                self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
+            except Exception as e:
+                print('MQTT Connection Error: {}'.format(e))
+            self.mqtt_client.loop_start()
 
         self.packets_energy = list()
         self.packets_control = list()
@@ -500,7 +595,8 @@ class Home:
         self.packets_smart2 = list()
 
         self.queue_command = queue.Queue()
-        self.startThreadCommand()
+        if init_service:
+            self.startThreadCommand()
 
         self.serial_485_energy = SerialComm('Energy')
         self.parser_energy = EnergyParser(self.serial_485_energy)
@@ -514,7 +610,8 @@ class Home:
         self.parser_smart.sig_parse1.connect(self.onParserSmartResult1)
         self.parser_smart.sig_parse2.connect(self.onParserSmartResult2)
 
-        self.startThreadMonitoring()
+        if init_service:
+            self.startThreadMonitoring()
 
     def release(self):
         self.mqtt_client.loop_stop()
@@ -536,22 +633,32 @@ class Home:
         root = ET.parse(filepath).getroot()
 
         node = root.find('serial')
-        self.serial_485_energy_port = node.find('port_energy').text
-        self.serial_485_control_port = node.find('port_control').text
-        self.serial_485_smart_port1 = node.find('port_smart1').text
-        self.serial_485_smart_port2 = node.find('port_smart2').text
+        try:
+            self.serial_485_energy_port = node.find('port_energy').text
+            self.serial_485_control_port = node.find('port_control').text
+            self.serial_485_smart_port1 = node.find('port_smart1').text
+            self.serial_485_smart_port2 = node.find('port_smart2').text
+        except Exception as e:
+            writeLog(f"Failed to load serial port info ({e})", self)
 
         node = root.find('mqtt')
         username = node.find('username').text
         password = node.find('password').text
-        self.mqtt_host = node.find('host').text
-        self.mqtt_port = int(node.find('port').text)
-        self.mqtt_client.username_pw_set(username, password)
+        try:
+            self.mqtt_host = node.find('host').text
+            self.mqtt_port = int(node.find('port').text)
+            self.mqtt_client.username_pw_set(username, password)
+        except Exception as e:
+            writeLog(f"Failed to load mqtt config ({e})", self)
 
         node = root.find('thermo_temp_packet')
-        thermo_setting_packets = node.text.split('\n')
-        thermo_setting_packets = [x.replace('\t', '').strip() for x in thermo_setting_packets]
-        thermo_setting_packets = list(filter(lambda x: len(x) > 0, thermo_setting_packets))
+        try:
+            thermo_setting_packets = node.text.split('\n')
+            thermo_setting_packets = [x.replace('\t', '').strip() for x in thermo_setting_packets]
+            thermo_setting_packets = list(filter(lambda x: len(x) > 0, thermo_setting_packets))
+        except Exception as e:
+            writeLog(f"Failed to load thermo packets ({e})", self)
+            thermo_setting_packets = []
 
         node = root.find('rooms')
         for i, room in enumerate(self.rooms):
@@ -575,8 +682,11 @@ class Home:
                     mqtt_node = thermo_node.find('mqtt')
                     room.thermostat.mqtt_publish_topic = mqtt_node.find('publish').text
                     room.thermostat.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
-                for j in range(71):
-                    room.thermostat.packet_set_temperature[j] = thermo_setting_packets[j + 71 * (i - 1)]
+                try:
+                    for j in range(71):
+                        room.thermostat.packet_set_temperature[j] = thermo_setting_packets[j + 71 * (i - 1)]
+                except Exception:
+                    pass
 
                 for j in range(room.outlet_count):
                     outlet_node = room_node.find('outlet{}'.format(j))
@@ -614,6 +724,13 @@ class Home:
         topic_text = mqtt_node.find('subscribe').text
         topics = list(filter(lambda y: len(y) > 0, [x.strip() for x in topic_text.split('\n')]))
         self.elevator.mqtt_subscribe_topics.extend(topics)
+
+        node = root.find('airquality')
+        mqtt_node = node.find('mqtt')
+        self.airquality.mqtt_publish_topic = mqtt_node.find('publish').text
+        apikey = node.find('apikey').text
+        obsname = node.find('obsname').text
+        self.airquality.setApiParams(apikey, obsname)
 
     def startThreadCommand(self):
         if self.thread_command is None:

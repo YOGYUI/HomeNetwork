@@ -429,4 +429,12 @@
         02 28 0E 12 27 03 00 67 00 00 00 00 00 7B
         02 28 0E 12 3E 03 00 28 00 00 00 00 00 3F
     </thermo_temp_packet>
+    <airquality>
+        <apikey>your api key from data portal</apikey>
+        <obsname>name of observatory</obsname>
+        <mqtt>
+            <publish>home/ipark/airquality/state</publish>
+            <subscribe>home/ipark/airquality/command</subscribe>
+        </mqtt>
+    </airquality>
 </homenetworkserver>

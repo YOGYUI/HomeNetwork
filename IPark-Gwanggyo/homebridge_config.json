@@ -639,6 +639,45 @@
             "offValue": 0,
             "integerValue": false,
             "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "airQualitySensor",
+            "name": "Air Quality Sensor (Outer)",
+            "topics":
+            {
+                "getAirQuality": {
+                    "topic": "home/ipark/airquality/state",
+                    "apply": "return JSON.parse(message).grade;"
+                },
+                "getPM10Density": {
+                    "topic": "home/ipark/airquality/state",
+                    "apply": "return JSON.parse(message).pm10;"
+                },
+                "getPM2_5Density": {
+                    "topic": "home/ipark/airquality/state",
+                    "apply": "return JSON.parse(message).pm25;"
+                },
+                "getOzoneDensity": {
+                    "topic": "home/ipark/airquality/state",
+                    "apply": "return JSON.parse(message).o3;"
+                },
+                "getNitrogenDioxideDensity": {
+                    "topic": "home/ipark/airquality/state",
+                    "apply": "return JSON.parse(message).no2;"
+                },
+                "getSulphurDioxideDensity": {
+                    "topic": "home/ipark/airquality/state",
+                    "apply": "return JSON.parse(message).so2;"
+                },
+                "getCarbonMonoxideLevel": {
+                    "topic": "home/ipark/airquality/state",
+                    "apply": "return JSON.parse(message).co;"
+                }
+            },
+            "airQualityValues": [-1, 0, 1, 2, 3, 4],
+            "history": false,
+            "room2": false
         }
     ],
     "platforms": [

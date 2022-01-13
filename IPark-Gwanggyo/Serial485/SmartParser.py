@@ -5,7 +5,7 @@ from SerialComm import SerialComm
 from Define import Callback, writeLog
 
 
-class SmartParser():
+class SmartParser:
     buffer1: bytearray
     buffer2: bytearray
     timestamp1: int = 0
@@ -92,7 +92,7 @@ class SmartParser():
                 if len(self.buffer1) >= 5:
                     self.timestamp1 = self.buffer1[4]
                 if len(self.buffer1) >= 12:
-                    self.flag_moving = self.buffer1[11]
+                    self.flag_moving = bool(self.buffer1[11])
                     if self.flag_moving:  # 0 = stopped, 1 = moving, 4 = arrived
                         self.flag_send_up_packet = False
                         self.flag_send_down_packet = False
@@ -143,13 +143,13 @@ class SmartParser():
 
 
 if __name__ == '__main__':
-    ser1 = SerialComm()
-    ser2 = SerialComm()
-    par = SmartParser(ser1, ser2)
+    ser1_ = SerialComm()
+    ser2_ = SerialComm()
+    par = SmartParser(ser1_, ser2_)
     par.enable_console_log = True
 
-    ser1.connect('/dev/rs485_smart1', 9600)
-    ser2.connect('/dev/rs485_smart2', 9600)
+    ser1_.connect('/dev/rs485_smart1', 9600)
+    ser2_.connect('/dev/rs485_smart2', 9600)
 
     while True:
         pass
