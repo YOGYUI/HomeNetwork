@@ -644,6 +644,9 @@
             "accessory": "mqttthing",
             "type": "airQualitySensor",
             "name": "Air Quality Sensor (Outer)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
             "topics":
             {
                 "getAirQuality": {
