@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>Outlet Status</h1>
+</div>
+<div>
+    <h1>Room 1</h1>
+    <h2>Outlet1: <a id="room1_outlet1"></a></h2>
+    <h2>Outlet2: <a id="room1_outlet2"></a></h2>
+    <h2>Outlet3: <a id="room1_outlet3"></a></h2>
+
+    <h1>Room 2</h1>
+    <h2>Outlet1: <a id="room2_outlet1"></a></h2>
+    <h2>Outlet2: <a id="room2_outlet2"></a></h2>
+
+    <h1>Room 3</h1>
+    <h2>Outlet1: <a id="room3_outlet1"></a></h2>
+    <h2>Outlet2: <a id="room3_outlet2"></a></h2>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+setInterval(function() {$.ajax({
+    url: '/api/outlet_info/update',
+    type: 'POST',
+    success: function(response) {
+        $("#room1_outlet1").html(response["room1_outlet1"] + ' W');
+        $("#room1_outlet2").html(response["room1_outlet2"] + ' W');
+        $("#room1_outlet3").html(response["room1_outlet3"] + ' W');
+        $("#room2_outlet1").html(response["room2_outlet1"] + ' W');
+        $("#room2_outlet2").html(response["room2_outlet2"] + ' W');
+        $("#room3_outlet1").html(response["room3_outlet1"] + ' W');
+        $("#room3_outlet2").html(response["room3_outlet2"] + ' W');
+    },
+    error: function(error) {
+         console.log(error);
+    }
+})}, 1000);
+</script>
+{% endblock %}

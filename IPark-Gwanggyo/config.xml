@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<homenetworkserver>
+<config>
+    <webserver>
+        <host>0.0.0.0</host>
+        <port>1234</port>
+    </webserver>
     <serial>
         <port_energy>/dev/rs485_energy</port_energy>
         <port_control>/dev/rs485_control</port_control>
@@ -14,6 +18,8 @@
     </mqtt>
     <rooms>
         <room1>
+            <name>Kitchen</name>
+            <index>1</index>
             <light0>
                 <on>02 31 0D 01 D0 01 81 00 00 00 00 04 76</on>
                 <off>02 31 0D 01 D7 01 01 00 00 00 00 00 F5</off>
@@ -88,6 +94,8 @@
             </outlet2>
         </room1>
         <room2>
+            <name>Bedroom</name>
+            <index>2</index>
             <light0>
                 <on>02 31 0D 01 8C 02 81 00 00 00 00 04 3F</on>
                 <off>02 31 0D 01 93 02 01 00 00 00 00 00 B8</off>
@@ -135,6 +143,8 @@
             </outlet1>
         </room2>
         <room3>
+            <name>Computer</name>
+            <index>3</index>
             <light0>
                 <on>02 31 0D 01 3B 03 81 00 00 00 00 04 97</on>
                 <off>02 31 0D 01 43 03 01 00 00 00 00 00 8B</off>
@@ -205,7 +215,7 @@
         </mqtt>
     </ventilator>
     <elevator>
-        <myfloor>15</myfloor>
+        <myfloor>1</myfloor>
         <mqtt>
             <publish>home/ipark/elevator/state</publish>
             <subscribe>
@@ -437,4 +447,4 @@
             <subscribe>home/ipark/airquality/command</subscribe>
         </mqtt>
     </airquality>
-</homenetworkserver>
+</config>

@@ -69,7 +69,7 @@ class ThreadReceive(threading.Thread):
                 else:
                     time.sleep(1e-3)
             except Exception as e:
-                writeLog('Exception::{}'.format(e), self)
+                writeLog(f'Exception::{self._serial.port}::{e}', self)
                 traceback.print_exc()
                 self.sig_exception.emit(str(e))
                 # break

@@ -1,6 +1,35 @@
 Summary
 -------------
+Integrate Gwanggyo I-Park Home Network (Bestin) to Apple HomeKit<br>
+<br>
 ![summary](./summary.png)
+
+Install
+-------------
+```
+git clone https://github.com/YOGYUI/HomeNetwork.git
+```
+
+Python Requirements
+-------------
+Python 3
+```
+flask
+flask_wtf
+flask_moment
+flask_httpauth
+flask_bootstrap
+werkzeug
+paho-mqtt
+PyQt5
+pyserial
+requests
+beautifulsoup4
+```
+Use pip to install packages
+```
+sudo pip3 install -r requirements.txt
+```
 
 How to run?
 -------------
@@ -9,29 +38,25 @@ Bash example is written in [run.sh](https://github.com/YOGYUI/HomeNetwork/blob/m
 /bin/python3 /home/pi/Project/HomeNetwork/IPark-Gwanggyo/app.py
 ```
 
-Python Requirements
--------------
-```
-flask
-flask_httpauth
-werkzeug
-paho-mqtt
-PyQt5
-pyserial
-```
-
 Notice
 -------------
+This project is designed to be run at Raspberry-Pi with Raspbian OS. <br>
+However, I think any other platforms like Windows, Linux, Mac OS are also feasible to run because of cross-platform versatility of Python. <br>
+
+At least three "RS485-to-USB" converters are needed to interact with all controllable devices. <br>
+You can find the way to connect RS485 communication lines between converter and Bestin home network gateway in my blog (links are located at the bottom of this article). 
+<br>
+<br>
 All accessories of [Homebridge](https://homebridge.io/) are implemented with
 [Mqttthing](https://github.com/arachnetech/homebridge-mqttthing#readme) plugin.<br>
 You should run [Mosquitto](https://mosquitto.org/), a.k.a. MQTT Broker, in somewhere. <br>
-(In my case, homebridge and mosquitto are run in Raspberry-Pi 4 Device) <br>
+(In my case, homebridge and mosquitto are both run in "Raspberry-Pi 4 Model B" Device) <br>
 You can see my Homebridge config file (json format) in
 [homebridge_config.json](https://github.com/YOGYUI/HomeNetwork/blob/main/IPark-Gwanggyo/homebridge_config.json). <br><br> 
 You should modify 'mqtt' tag in 
 [config.xml](https://github.com/YOGYUI/HomeNetwork/blob/main/IPark-Gwanggyo/config.xml). <br>
 ```
-<homenetworkserver>
+<config>
     <mqtt>
         <host>...</host>
         <port>...</port>
