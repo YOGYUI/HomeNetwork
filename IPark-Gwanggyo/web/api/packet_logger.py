@@ -5,9 +5,10 @@ import os
 import sys
 CURPATH = os.path.dirname(os.path.abspath(__file__))  # /project/web/api/
 PROJPATH = os.path.dirname(os.path.dirname(CURPATH))  # /project/
-sys.path.extend([CURPATH, PROJPATH])
+INCPATH = os.path.join(PROJPATH, 'Include')  # /project/Include
+sys.path.extend([CURPATH, PROJPATH, INCPATH])
 sys.path = list(set(sys.path))
-from app import get_home
+from Include import get_home
 
 
 @api.route('/packet/logger', methods=['GET', 'POST'])

@@ -16,4 +16,4 @@ from AirqualitySensor import AirqualitySensor
 from Room import Room
 from ThreadCommand import ThreadCommand
 from ThreadMonitoring import ThreadMonitoring
-from Home import Home
+from Home import Home, get_home

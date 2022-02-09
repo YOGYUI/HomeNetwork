@@ -134,6 +134,7 @@ class Home:
             except Exception as e:
                 writeLog('MQTT Connection Error: {}'.format(e), self)
             self.mqtt_client.loop_start()
+        writeLog(f'Created <{self.name}> ', self)
 
     def release(self):
         self.mqtt_client.loop_stop()
@@ -671,3 +672,13 @@ class Home:
 
     def onMqttClientUnsubscribe(self, _, userdata, mid):
         writeLog('Mqtt Client Unsubscribe: {}, {}'.format(userdata, mid), self)
+
+
+home_: Union[Home, None] = None
+
+
+def get_home(name: str = '') -> Home:
+    global home_
+    if home_ is None:
+        home_ = Home(name=name)
+    return home_
