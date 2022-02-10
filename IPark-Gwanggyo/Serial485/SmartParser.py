@@ -1,3 +1,4 @@
+# deprecated - separated to send/recv parser
 import os
 import pickle
 from typing import List
@@ -27,7 +28,6 @@ class SmartParser:
     second: int = 0
 
     def __init__(self, ser1: SerialComm, ser2: SerialComm):
-        super().__init__()
         self.buffer1 = bytearray()
         self.buffer2 = bytearray()
         self.sig_parse1 = Callback(bytearray)
@@ -36,6 +36,7 @@ class SmartParser:
         ser1.sig_recv_data.connect(self.onRecvData1)
         ser2.sig_send_data.connect(self.onSendData2)
         ser2.sig_recv_data.connect(self.onRecvData2)
+        self.serial1 = ser1
         self.serial2 = ser2
 
         # packets in here
@@ -58,8 +59,19 @@ class SmartParser:
             self.elevator_down_packets = [''] * 256
 
     def release(self):
+        self.serial1.release()
+        self.serial2.release()
         self.buffer1.clear()
         self.buffer2.clear()
+
+    def sendPacketString(self, packet_str: str):
+        self.sendPacketString2(packet_str)
+
+    def sendPacketString1(self, packet_str: str):
+        self.serial1.sendData(bytearray([int(x, 16) for x in packet_str.split(' ')]))
+
+    def sendPacketString2(self, packet_str: str):
+        self.serial2.sendData(bytearray([int(x, 16) for x in packet_str.split(' ')]))
 
     def onSendData1(self, data: bytes):
         msg = ' '.join(['%02X' % x for x in data])
@@ -101,10 +113,10 @@ class SmartParser:
                     if chunk[3] == 0x11:
                         if self.flag_send_up_packet:
                             packet = self.elevator_up_packets[self.timestamp1]
-                            self.serial2.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))
+                            self.sendPacketString2(packet)
                         if self.flag_send_down_packet:
                             packet = self.elevator_down_packets[self.timestamp1]
-                            self.serial2.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))
+                            self.sendPacketString2(packet)
                     if chunk[1] == 0xC1 and chunk[3] == 0x13:
                         self.year = chunk[5]
                         self.month = chunk[6]
@@ -140,16 +152,3 @@ class SmartParser:
                     # TODO: bypass here
         except Exception:
             pass
-
-
-if __name__ == '__main__':
-    ser1_ = SerialComm()
-    ser2_ = SerialComm()
-    par = SmartParser(ser1_, ser2_)
-    par.enable_console_log = True
-
-    ser1_.connect('/dev/rs485_smart1', 9600)
-    ser2_.connect('/dev/rs485_smart2', 9600)
-
-    while True:
-        pass

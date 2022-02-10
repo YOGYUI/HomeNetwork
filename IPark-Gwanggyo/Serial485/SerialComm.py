@@ -117,9 +117,9 @@ class SerialComm:
             self._queue_recv.get()
 
     def sendData(self, data: Union[bytes, bytearray, str]):
+        if not self.isConnected():
+            return
         try:
-            if not self.isConnected():
-                return
             if isinstance(data, str):
                 sData = bytearray()
                 sData.extend(map(ord, data))

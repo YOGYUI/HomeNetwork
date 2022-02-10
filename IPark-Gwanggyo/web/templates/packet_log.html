@@ -38,12 +38,12 @@
     <div id="control_text_box" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll;"></div>
     <br>
 
-    <h2>Smart1</h2>
-    <form action="/api/packet/logger/clear/smart1" method="POST">
+    <h2>Smart(Recv)</h2>
+    <form action="/api/packet/logger/clear/smart_recv" method="POST">
         <input type="submit" value="CLEAR">
     </form>
     <br>
-    <div id="smart1_text_box" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll;"></div>
+    <div id="smart_recv_text_box" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll;"></div>
     <br>
 </div>
 
@@ -61,7 +61,7 @@
             success: function(response) {
                 $("#energy_text_box").html(response["energy"]);
                 $("#control_text_box").html(response["control"]);
-                $("#smart1_text_box").html(response["smart1"]);
+                $("#smart_recv_text_box").html(response["smart_recv"]);
             },
             error: function(error) {
                 console.log(error);

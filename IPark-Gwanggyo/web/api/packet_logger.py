@@ -21,8 +21,8 @@ def packet_logger_update():
     home = get_home()
     p1 = '<br>'.join([' '.join(['%02X' % y for y in x]) for x in home.packets_energy[::-1]])
     p2 = '<br>'.join([' '.join(['%02X' % y for y in x]) for x in home.packets_control[::-1]])
-    p3 = '<br>'.join([' '.join(['%02X' % y for y in x]) for x in home.packets_smart1[::-1]])
-    return jsonify({'energy': p1, 'control': p2, 'smart1': p3})
+    p3 = '<br>'.join([' '.join(['%02X' % y for y in x]) for x in home.packets_smart_recv[::-1]])
+    return jsonify({'energy': p1, 'control': p2, 'smart_recv': p3})
 
 
 @api.route('/packet/logger/clear/<target>', methods=['POST'])
@@ -32,8 +32,8 @@ def packet_log_clear(target):
         home.packets_energy.clear()
     elif target == 'control':
         home.packets_control.clear()
-    elif target == 'smart1':
-        home.packets_smart1.clear()
+    elif target == 'smart_recv':
+        home.packets_smart_recv.clear()
     return '', http.HTTPStatus.NO_CONTENT
 
 

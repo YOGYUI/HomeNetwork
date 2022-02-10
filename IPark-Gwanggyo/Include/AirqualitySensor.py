@@ -66,15 +66,40 @@ class AirqualitySensor(Device):
                         items = xml.findAll("item")
                         if len(list(items)) >= 1:
                             item = items[0]
+                            # 점검 및 교정 혹은 '-' 텍스트가 기록될 수 있다
                             self._measure_data['dataTime'] = item.find('dataTime'.lower()).text
-                            self._measure_data['so2Value'] = float(item.find('so2Value'.lower()).text)
-                            self._measure_data['coValue'] = float(item.find('coValue'.lower()).text)
-                            self._measure_data['o3Value'] = float(item.find('o3Value'.lower()).text)
-                            self._measure_data['no2Value'] = float(item.find('no2Value'.lower()).text)
-                            self._measure_data['pm10Value'] = float(item.find('pm10Value'.lower()).text)
-                            self._measure_data['pm25Value'] = float(item.find('pm25Value'.lower()).text)
-                            self._measure_data['khaiValue'] = float(item.find('khaiValue'.lower()).text)
-                            self._measure_data['khaiGrade'] = int(item.find('khaiGrade'.lower()).text)
+                            try:
+                                self._measure_data['so2Value'] = float(item.find('so2Value'.lower()).text)
+                            except ValueError:
+                                self._measure_data['so2Value'] = 0.0
+                            try:
+                                self._measure_data['coValue'] = float(item.find('coValue'.lower()).text)
+                            except ValueError:
+                                self._measure_data['coValue'] = 0.0
+                            try:
+                                self._measure_data['o3Value'] = float(item.find('o3Value'.lower()).text)
+                            except ValueError:
+                                self._measure_data['o3Value'] = 0.0
+                            try:
+                                self._measure_data['no2Value'] = float(item.find('no2Value'.lower()).text)
+                            except ValueError:
+                                self._measure_data['no2Value'] = 0.0
+                            try:
+                                self._measure_data['pm10Value'] = float(item.find('pm10Value'.lower()).text)
+                            except ValueError:
+                                self._measure_data['pm10Value'] = 0.0
+                            try:
+                                self._measure_data['pm25Value'] = float(item.find('pm25Value'.lower()).text)
+                            except ValueError:
+                                self._measure_data['pm25Value'] = 0.0
+                            try:
+                                self._measure_data['khaiValue'] = float(item.find('khaiValue'.lower()).text)
+                            except ValueError:
+                                self._measure_data['khaiValue'] = 0.0
+                            try:
+                                self._measure_data['khaiGrade'] = int(item.find('khaiGrade'.lower()).text)
+                            except ValueError:
+                                self._measure_data['khaiGrade'] = 0
                             self._last_query_time = datetime.datetime.now()
                     else:
                         writeLog(f"API Error ({result_code_text, result_msg_text})", self)

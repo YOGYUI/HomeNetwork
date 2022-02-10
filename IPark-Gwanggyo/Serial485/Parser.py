@@ -13,14 +13,18 @@ class Parser:
     max_buffer_size: int = 200
 
     def __init__(self, ser: SerialComm):
-        super().__init__()
         self.buffer = bytearray()
         self.sig_parse = Callback(bytearray)
         ser.sig_send_data.connect(self.onSendData)
         ser.sig_recv_data.connect(self.onRecvData)
+        self.serial = ser
 
     def release(self):
+        self.serial.release()
         self.buffer.clear()
+
+    def sendPacketString(self, packet_str: str):
+        self.serial.sendData(bytearray([int(x, 16) for x in packet_str.split(' ')]))
 
     def onSendData(self, data: bytes):
         msg = ' '.join(['%02X' % x for x in data])

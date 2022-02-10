@@ -20,9 +20,6 @@ class ThreadCommand(threading.Thread):
         self._queue = queue_
         self._retry_cnt = 10
         self._delay_response = 0.4
-        self.sig_send_energy = Callback(str)
-        self.sig_send_control = Callback(str)
-        self.sig_send_smart = Callback(str)
         self.sig_terminated = Callback()
 
     def run(self):

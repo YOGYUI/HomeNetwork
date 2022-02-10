@@ -5,8 +5,8 @@ from Device import Device
 
 class Elevator(Device):
     my_floor: int = -1
-    current_floor: int = -1
-    current_floor_prev: int = -1
+    current_floor: str = 'unknown'
+    current_floor_prev: str = 'unknown'
 
     def __init__(self, name: str = 'Elevator', **kwargs):
         super().__init__(name, **kwargs)
@@ -20,8 +20,13 @@ class Elevator(Device):
         self.sig_call_down.emit()
 
     def publish_mqtt(self):
+        """
+        state value
+        1: moving
+        4: arrived
+        """
         obj = {
-            "state": int(self.state == 4 and self.current_floor == self.my_floor)
+            "state": int(self.state == 4)
         }
         self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
         self.mqtt_client.publish("home/ipark/elevator/state/occupancy", json.dumps(obj), 1)
