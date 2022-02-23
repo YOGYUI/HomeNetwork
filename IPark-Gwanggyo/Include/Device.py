@@ -29,8 +29,15 @@ class Device:
             self.room_index = kwargs['room_index']
         self.mqtt_client = kwargs.get('mqtt_client')
         self.mqtt_subscribe_topics = list()
-        writeLog('Device Created >> Name: {}, Room Index: {}'.format(self.name, self.room_index), self)
+        # writeLog('Device Created >> Name: {}, Room Index: {}'.format(self.name, self.room_index), self)
+        writeLog('Device Created >> {}'.format(str(self)), self)
 
     @abstractmethod
     def publish_mqtt(self):
         pass
+
+    def __repr__(self):
+        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
+        repr_txt += f' Room Idx: {self.room_index}'
+        repr_txt += '>'
+        return repr_txt

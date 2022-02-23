@@ -27,7 +27,10 @@ class ThreadCommand(threading.Thread):
         while self._keepAlive:
             if not self._queue.empty():
                 elem = self._queue.get()
-                writeLog('Get Command Queue: {}'.format(elem), self)
+                elem_txt = '\n'
+                for k, v in elem.items():
+                    elem_txt += f'  {k}: {v}\n'
+                writeLog(f'Get Command Queue: \n{{{elem_txt}}}', self)
                 try:
                     dev = elem['device']
                     category = elem['category']

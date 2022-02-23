@@ -409,9 +409,11 @@ class Home:
                     dev.state = chunk[6] & 0x01
                     dev.temperature_setting = (chunk[7] & 0x3F) + (chunk[7] & 0x40 > 0) * 0.5
                     dev.temperature_current = int.from_bytes(chunk[8:10], byteorder='big') / 10.0
-                    # print('Room Idx: {}, Temperature Current: {}'.format(room_idx, dev.temperature_current))
-                    # print('Raw Packet: {}'.format('|'.join(['%02X'%x for x in chunk])))
-                    # notification
+                    """
+                    print('Room Idx: {}, Temperature Current: {}, Temperature Setting: {}'.format(
+                        room_idx, dev.temperature_current, dev.temperature_setting))
+                    print('Raw Packet: {}'.format('|'.join(['%02X'%x for x in chunk])))
+                    """
                     if not dev.init:
                         dev.publish_mqtt()
                         dev.init = True
@@ -513,7 +515,7 @@ class Home:
         pass
 
     def command(self, **kwargs):
-        writeLog('Command::{}'.format(kwargs), self)
+        # writeLog('Command::{}'.format(kwargs), self)
         try:
             dev = kwargs['device']
             if isinstance(dev, Light) or isinstance(dev, Outlet):

@@ -121,3 +121,8 @@ class AirqualitySensor(Device):
         }
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+
+    def __repr__(self):
+        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
+        repr_txt += '>'
+        return repr_txt

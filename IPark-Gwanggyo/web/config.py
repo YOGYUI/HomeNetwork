@@ -7,6 +7,8 @@ class Config:
     HOST: str = '0.0.0.0'
     PORT: int = 9999
 
+    SECRET_KEY = 'Yogyui Secret Key'  # for CSRF
+
     def init_app(self, app: Flask):
         curpath = os.path.dirname(os.path.abspath(__file__))  # /project/web
         projpath = os.path.dirname(curpath)  # /project

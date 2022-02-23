@@ -27,4 +27,6 @@ def create_webapp():
     from .api import api as blueprint_api
     app.register_blueprint(blueprint_api, url_prefix='/api')
 
+    print(f"Flask App is created ({app})")
+
     return app
