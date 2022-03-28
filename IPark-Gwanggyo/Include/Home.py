@@ -302,10 +302,11 @@ class Home:
             self.thread_monitoring = ThreadMonitoring([
                 self.serial_485_energy,
                 self.serial_485_control,
-                self.serial_485_smart_recv
+                self.serial_485_smart_recv,
                 # self.serial_485_smart_send
-            ], self.device_list)
+            ])
             self.thread_monitoring.sig_terminated.connect(self.onThreadMonitoringTerminated)
+            self.thread_monitoring.sig_publish_regular.connect(self.publish_all)
             self.thread_monitoring.setDaemon(True)
             self.thread_monitoring.start()
 
@@ -316,6 +317,13 @@ class Home:
     def onThreadMonitoringTerminated(self):
         del self.thread_monitoring
         self.thread_monitoring = None
+
+    def publish_all(self):
+        for dev in self.device_list:
+            try:
+                dev.publish_mqtt()
+            except ValueError as e:
+                writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
 
     def sendSerialEnergyPacket(self, packet: str):
         self.serial_485_energy.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))

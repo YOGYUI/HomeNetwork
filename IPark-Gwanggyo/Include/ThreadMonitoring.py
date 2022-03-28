@@ -3,7 +3,6 @@ import sys
 import time
 import threading
 from typing import List
-from Device import Device
 from Common import Callback, writeLog
 CURPATH = os.path.dirname(os.path.abspath(__file__))  # Project/Include
 PROJPATH = os.path.dirname(CURPATH)  # Proejct/
@@ -19,21 +18,27 @@ class ThreadMonitoring(threading.Thread):
     def __init__(
             self,
             serial_list: List[SerialComm],
-            device_list: List[Device],
             publish_interval: int = 60,
             interval_ms: int = 2000
     ):
         threading.Thread.__init__(self)
         self._serial_list = serial_list
-        self._device_list = device_list
         self._publish_interval = publish_interval
         self._interval_ms = interval_ms
         self.sig_terminated = Callback()
+        self.sig_publish_regular = Callback()
 
     def run(self):
+        first_publish: bool = False
         writeLog('Started', self)
         tm = time.perf_counter()
         while self._keepAlive:
+            ser_all_connected: bool = sum([x.isConnected() for x in self._serial_list]) == len(self._serial_list)
+            if ser_all_connected and not first_publish:
+                first_publish = True
+                writeLog('Serial ports are all opened >> Publish', self)
+                self.sig_publish_regular.emit()
+
             for ser in self._serial_list:
                 if ser.isConnected():
                     delta = ser.time_after_last_recv()
@@ -43,13 +48,10 @@ class ThreadMonitoring(threading.Thread):
                 else:
                     # writeLog('Warning!! Serial <{}> is not connected'.format(ser.name), self)
                     pass
+
             if time.perf_counter() - tm > self._publish_interval:
                 writeLog('Regular Publishing Device State MQTT (interval: {} sec)'.format(self._publish_interval), self)
-                for dev in self._device_list:
-                    try:
-                        dev.publish_mqtt()
-                    except ValueError as e:
-                        writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
+                self.sig_publish_regular.emit()
                 tm = time.perf_counter()
             time.sleep(self._interval_ms / 1000)
         writeLog('Terminated', self)

@@ -13,6 +13,6 @@ class Light(Device):
 
     def __repr__(self):
         repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += f' Room Idx: {self.room_index}, Dev Indx: {self.index}'
+        repr_txt += f' Room Idx: {self.room_index}, Dev Idx: {self.index}'
         repr_txt += '>'
         return repr_txt
