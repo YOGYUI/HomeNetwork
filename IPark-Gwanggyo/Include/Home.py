@@ -1,3 +1,4 @@
+import time
 import json
 import queue
 import ctypes
@@ -51,9 +52,57 @@ class Home:
     packets_smart_recv: List[bytearray]
     packets_smart_send: List[bytearray]
 
+    serial_list: List[SerialComm]
+    parser_list: List[Parser]
+
     def __init__(self, name: str = 'Home', init_service: bool = True):
         self.name = name
         self.device_list = list()
+        self.rooms = list()
+        self.queue_command = queue.Queue()
+        # for packet monitoring
+        self.packets_energy = list()
+        self.packets_control = list()
+        self.packets_smart_recv = list()
+        self.packets_smart_send = list()
+        self.serial_list = list()
+        self.parser_list = list()
+
+        self.serial_485_energy = SerialComm('Energy')
+        self.serial_list.append(self.serial_485_energy)
+        self.parser_energy = EnergyParser(self.serial_485_energy)
+        self.parser_energy.sig_parse.connect(self.onParserEnergyResult)
+        self.parser_list.append(self.parser_energy)
+
+        self.serial_485_control = SerialComm('Control')
+        self.serial_list.append(self.serial_485_control)
+        self.parser_control = ControlParser(self.serial_485_control)
+        self.parser_control.sig_parse.connect(self.onParserControlResult)
+        self.parser_list.append(self.parser_control)
+
+        self.serial_485_smart_recv = SerialComm('Smart(Recv)')
+        self.serial_list.append(self.serial_485_smart_recv)
+        self.parser_smart_recv = SmartRecvParser(self.serial_485_smart_recv)
+        self.parser_smart_recv.sig_parse.connect(self.onParserSmartRecvResult)
+        self.parser_smart_recv.sig_call_elevator.connect(self.callElevatorByParser)
+        self.parser_list.append(self.parser_smart_recv)
+
+        self.serial_485_smart_send = SerialComm('Smart(Send)')
+        self.serial_list.append(self.serial_485_smart_send)
+        self.parser_smart_send = SmartSendParser(self.serial_485_smart_send)
+        self.parser_smart_send.sig_parse.connect(self.onParserSmartSendResult)
+        self.parser_list.append(self.parser_smart_send)
+
+        self.initialize(init_service, False)
+
+    def initialize(self, init_service: bool, serial_conn: bool):
+        self.device_list.clear()
+        self.rooms.clear()
+
+        self.packets_energy.clear()
+        self.packets_control.clear()
+        self.packets_smart_recv.clear()
+        self.packets_smart_send.clear()
 
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.on_connect = self.onMqttClientConnect
@@ -68,7 +117,6 @@ class Home:
         projpath = os.path.dirname(curpath)  # /project/
         xml_path = os.path.join(projpath, 'config.xml')
 
-        self.rooms = list()
         self.initRoomsFromConfig(xml_path)
         self.gas_valve = GasValve(name='Gas Valve', mqtt_client=self.mqtt_client)
         self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
@@ -87,30 +135,6 @@ class Home:
 
         self.loadConfig(xml_path)
 
-        # for packet monitoring
-        self.packets_energy = list()
-        self.packets_control = list()
-        self.packets_smart_recv = list()
-        self.packets_smart_send = list()
-
-        self.serial_485_energy = SerialComm('Energy')
-        self.parser_energy = EnergyParser(self.serial_485_energy)
-        self.parser_energy.sig_parse.connect(self.onParserEnergyResult)
-
-        self.serial_485_control = SerialComm('Control')
-        self.parser_control = ControlParser(self.serial_485_control)
-        self.parser_control.sig_parse.connect(self.onParserControlResult)
-
-        self.serial_485_smart_recv = SerialComm('Smart(Recv)')
-        self.parser_smart_recv = SmartRecvParser(self.serial_485_smart_recv)
-        self.parser_smart_recv.sig_parse.connect(self.onParserSmartRecvResult)
-        self.parser_smart_recv.sig_call_elevator.connect(self.callElevatorByParser)
-
-        self.serial_485_smart_send = SerialComm('Smart(Send)')
-        self.parser_smart_send = SmartSendParser(self.serial_485_smart_send)
-        self.parser_smart_send.sig_parse.connect(self.onParserSmartSendResult)
-
-        self.queue_command = queue.Queue()
         if init_service:
             self.startThreadCommand()
             self.startThreadMonitoring()
@@ -119,17 +143,30 @@ class Home:
             except Exception as e:
                 writeLog('MQTT Connection Error: {}'.format(e), self)
             self.mqtt_client.loop_start()
-        writeLog(f'Created <{self.name}> ', self)
+        
+        if serial_conn:
+            self.initSerialConnection();
+
+        writeLog(f'Initialized <{self.name}>', self)
 
     def release(self):
         self.mqtt_client.loop_stop()
         self.mqtt_client.disconnect()
+        del self.mqtt_client
+
         self.stopThreadCommand()
         self.stopThreadMonitoring()
-        self.parser_energy.release()
-        self.parser_control.release()
-        self.parser_smart_recv.release()
-        self.parser_smart_send.release()
+
+        for parser in self.parser_list:
+            parser.release()
+        for serial in self.serial_list:
+            serial.release()
+        writeLog(f'Released', self)
+
+    def restart(self):
+        self.release()
+        time.sleep(1)
+        self.initialize(True, True)
 
     def initRoomsFromConfig(self, filepath: str):
         if not os.path.isfile(filepath):
@@ -553,6 +590,7 @@ class Home:
         self.parser_smart_recv.setFlagCallDown()
 
     def startMqttSubscribe(self):
+        self.mqtt_client.subscribe('system/command')
         for dev in self.device_list:
             for topic in dev.mqtt_subscribe_topics:
                 self.mqtt_client.subscribe(topic)
@@ -592,6 +630,16 @@ class Home:
             writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
         topic = message.topic
         msg_dict = json.loads(message.payload.decode("utf-8"))
+        if 'system/command' == topic:
+            if 'query_all' in msg_dict.keys():
+                writeLog('Got query all command', self)
+                self.publish_all()
+            if 'restart' in msg_dict.keys():
+                writeLog('Got restart command', self)
+                self.restart()
+            if 'reboot' in msg_dict.keys():
+                import os
+                os.system('sudo reboot')
         if 'light/command' in topic:
             splt = topic.split('/')
             room_idx = int(splt[-2])

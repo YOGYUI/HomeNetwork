@@ -20,7 +20,6 @@ class Parser:
         self.serial = ser
 
     def release(self):
-        self.serial.release()
         self.buffer.clear()
 
     def sendPacketString(self, packet_str: str):
