@@ -18,6 +18,7 @@ class Home:
     ventilator: Ventilator
     elevator: Elevator
     airquality: AirqualitySensor
+    door: Door
 
     serial_baud: int = 9600
     serial_485_energy_port: str = ''
@@ -124,6 +125,7 @@ class Home:
         self.elevator.sig_call_up.connect(self.callElevatorUp)
         self.elevator.sig_call_down.connect(self.callElevatorDown)
         self.airquality = AirqualitySensor(mqtt_client=self.mqtt_client)
+        self.door = Door(name='Door', mqtt_client=self.mqtt_client)
 
         # append device list
         for room in self.rooms:
@@ -132,6 +134,7 @@ class Home:
         self.device_list.append(self.ventilator)
         self.device_list.append(self.elevator)
         self.device_list.append(self.airquality)
+        self.device_list.append(self.door)
 
         self.loadConfig(xml_path)
 
@@ -712,6 +715,10 @@ class Home:
                         category='state',
                         target=msg_dict['state']
                     )
+        if 'door/command' in topic:
+            # do not use command queue becase door module handles only gpio
+            if msg_dict['state'] == 1:
+                self.door.open()
 
     def onMqttClientLog(self, _, userdata, level, buf):
         if self.enable_mqtt_console_log:

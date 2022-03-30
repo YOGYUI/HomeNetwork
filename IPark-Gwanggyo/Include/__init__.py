@@ -14,6 +14,7 @@ from Elevator import Elevator
 from Outlet import Outlet
 from AirqualitySensor import AirqualitySensor
 from Room import Room
+from Door import Door
 from ThreadCommand import ThreadCommand
 from ThreadMonitoring import ThreadMonitoring
 from Home import Home, get_home
