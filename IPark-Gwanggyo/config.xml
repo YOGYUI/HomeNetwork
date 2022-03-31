@@ -448,4 +448,13 @@
             <subscribe>home/ipark/airquality/command</subscribe>
         </mqtt>
     </airquality>
+    <doorlock>
+        <port>23</port>
+        <repeat>2</repeat>
+        <interval>200</interval>
+        <mqtt>
+            <publish>home/ipark/doorlock/state</publish>
+            <subscribe>home/ipark/doorlock/command</subscribe>
+        </mqtt>
+    </doorlock>
 </config>

@@ -26,18 +26,19 @@ class ThreadOpen(threading.Thread):
         self.sig_terminated.emit()
 
 
-class Door(Device):
+class Doorlock(Device):
     gpio_port: int
+    repeat: int
+    interval_ms: int
     thread_open: Union[ThreadOpen, None] = None
 
-    def __init__(self, name: str = 'Door', **kwargs):
+    def __init__(self, name: str = 'Doorlock', **kwargs):
         super().__init__(name, **kwargs)
-        # TODO: parameterize
-        self.gpio_port = 23
-        self.repeat = 2
-        self.interval_ms = 200
-        self.mqtt_publish_topic = 'home/ipark/door/state'
-        self.mqtt_subscribe_topics.append('home/ipark/door/command')
+
+    def setParams(self, gpio_port: int = 23, repeat: int = 2, interval_ms: int = 200):
+        self.gpio_port = gpio_port
+        self.repeat = repeat
+        self.interval_ms = interval_ms
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.gpio_port, GPIO.IN, GPIO.PUD_DOWN)  # GPIO IN, Pull Down 설정

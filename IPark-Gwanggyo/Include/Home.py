@@ -18,7 +18,7 @@ class Home:
     ventilator: Ventilator
     elevator: Elevator
     airquality: AirqualitySensor
-    door: Door
+    doorlock: Doorlock
 
     serial_baud: int = 9600
     serial_485_energy_port: str = ''
@@ -125,7 +125,7 @@ class Home:
         self.elevator.sig_call_up.connect(self.callElevatorUp)
         self.elevator.sig_call_down.connect(self.callElevatorDown)
         self.airquality = AirqualitySensor(mqtt_client=self.mqtt_client)
-        self.door = Door(name='Door', mqtt_client=self.mqtt_client)
+        self.doorlock = Doorlock(name='Doorlock', mqtt_client=self.mqtt_client)
 
         # append device list
         for room in self.rooms:
@@ -134,7 +134,7 @@ class Home:
         self.device_list.append(self.ventilator)
         self.device_list.append(self.elevator)
         self.device_list.append(self.airquality)
-        self.device_list.append(self.door)
+        self.device_list.append(self.doorlock)
 
         self.loadConfig(xml_path)
 
@@ -315,6 +315,16 @@ class Home:
         apikey = node.find('apikey').text
         obsname = node.find('obsname').text
         self.airquality.setApiParams(apikey, obsname)
+
+        node = root.find('doorlock')
+        mqtt_node = node.find('mqtt')
+        self.doorlock.mqtt_publish_topic = mqtt_node.find('publish').text
+        self.doorlock.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+        gpio_port = int(node.find('port').text)
+        repeat = int(node.find('repeat').text)
+        interval_ms = int(node.find('interval').text)
+        self.doorlock.setParams(gpio_port, repeat, interval_ms)
+
 
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
@@ -715,10 +725,10 @@ class Home:
                         category='state',
                         target=msg_dict['state']
                     )
-        if 'door/command' in topic:
+        if 'doorlock/command' in topic:
             # do not use command queue becase door module handles only gpio
             if msg_dict['state'] == 1:
-                self.door.open()
+                self.doorlock.open()
 
     def onMqttClientLog(self, _, userdata, level, buf):
         if self.enable_mqtt_console_log:
