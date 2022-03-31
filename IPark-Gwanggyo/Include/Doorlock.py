@@ -27,15 +27,17 @@ class ThreadOpen(threading.Thread):
 
 
 class Doorlock(Device):
-    gpio_port: int
-    repeat: int
-    interval_ms: int
+    enable: bool = False
+    gpio_port: int = 0
+    repeat: int = 0
+    interval_ms: int = 0
     thread_open: Union[ThreadOpen, None] = None
 
     def __init__(self, name: str = 'Doorlock', **kwargs):
         super().__init__(name, **kwargs)
 
-    def setParams(self, gpio_port: int = 23, repeat: int = 2, interval_ms: int = 200):
+    def setParams(self, enable: bool = False, gpio_port: int = 23, repeat: int = 2, interval_ms: int = 200):
+        self.enable = enable
         self.gpio_port = gpio_port
         self.repeat = repeat
         self.interval_ms = interval_ms
@@ -60,7 +62,10 @@ class Doorlock(Device):
         GPIO.setup(self.gpio_port, GPIO.IN, GPIO.PUD_DOWN)  # GPIO IN, Pull Down 설정
 
     def open(self):
+        if self.enable:
         self.startThreadOpen()
+        else:
+            writeLog('Disabled!', self)
 
     def publish_mqtt(self):
         obj = {"state": int(self.state == 1)}

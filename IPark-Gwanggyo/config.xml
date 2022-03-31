@@ -449,6 +449,7 @@
         </mqtt>
     </airquality>
     <doorlock>
+        <enable>0</enable>
         <port>23</port>
         <repeat>2</repeat>
         <interval>200</interval>

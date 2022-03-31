@@ -320,11 +320,11 @@ class Home:
         mqtt_node = node.find('mqtt')
         self.doorlock.mqtt_publish_topic = mqtt_node.find('publish').text
         self.doorlock.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+        enable = bool(int(node.find('enable').text))
         gpio_port = int(node.find('port').text)
         repeat = int(node.find('repeat').text)
         interval_ms = int(node.find('interval').text)
-        self.doorlock.setParams(gpio_port, repeat, interval_ms)
-
+        self.doorlock.setParams(enable, gpio_port, repeat, interval_ms)
 
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
