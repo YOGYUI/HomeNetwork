@@ -63,7 +63,7 @@ class Doorlock(Device):
 
     def open(self):
         if self.enable:
-        self.startThreadOpen()
+            self.startThreadOpen()
         else:
             writeLog('Disabled!', self)
 
