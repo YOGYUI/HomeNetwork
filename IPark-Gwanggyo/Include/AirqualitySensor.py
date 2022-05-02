@@ -54,73 +54,79 @@ class AirqualitySensor(Device):
                 "numOfRows": 1,
                 "pageNo": 1
             }
-            response = requests.get(url, params=params)
-            if response.status_code == 200:
-                xml = BeautifulSoup(response.text.replace('\n', ''), "lxml")
-                result_code = xml.find('resultcode')
-                result_msg = xml.find('resultmsg')
-                if result_code is not None and result_msg is not None:
-                    result_code_text = result_code.text
-                    result_msg_text = result_msg.text
-                    if result_code_text == '00':
-                        items = xml.findAll("item")
-                        if len(list(items)) >= 1:
-                            item = items[0]
-                            # 점검 및 교정 혹은 '-' 텍스트가 기록될 수 있다
-                            self._measure_data['dataTime'] = item.find('dataTime'.lower()).text
-                            try:
-                                self._measure_data['so2Value'] = float(item.find('so2Value'.lower()).text)
-                            except ValueError:
-                                self._measure_data['so2Value'] = 0.0
-                            try:
-                                self._measure_data['coValue'] = float(item.find('coValue'.lower()).text)
-                            except ValueError:
-                                self._measure_data['coValue'] = 0.0
-                            try:
-                                self._measure_data['o3Value'] = float(item.find('o3Value'.lower()).text)
-                            except ValueError:
-                                self._measure_data['o3Value'] = 0.0
-                            try:
-                                self._measure_data['no2Value'] = float(item.find('no2Value'.lower()).text)
-                            except ValueError:
-                                self._measure_data['no2Value'] = 0.0
-                            try:
-                                self._measure_data['pm10Value'] = float(item.find('pm10Value'.lower()).text)
-                            except ValueError:
-                                self._measure_data['pm10Value'] = 0.0
-                            try:
-                                self._measure_data['pm25Value'] = float(item.find('pm25Value'.lower()).text)
-                            except ValueError:
-                                self._measure_data['pm25Value'] = 0.0
-                            try:
-                                self._measure_data['khaiValue'] = float(item.find('khaiValue'.lower()).text)
-                            except ValueError:
-                                self._measure_data['khaiValue'] = 0.0
-                            try:
-                                self._measure_data['khaiGrade'] = int(item.find('khaiGrade'.lower()).text)
-                            except ValueError:
-                                self._measure_data['khaiGrade'] = 0
-                            self._last_query_time = datetime.datetime.now()
+            try:
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    xml = BeautifulSoup(response.text.replace('\n', ''), "lxml")
+                    result_code = xml.find('resultcode')
+                    result_msg = xml.find('resultmsg')
+                    if result_code is not None and result_msg is not None:
+                        result_code_text = result_code.text
+                        result_msg_text = result_msg.text
+                        if result_code_text == '00':
+                            items = xml.findAll("item")
+                            if len(list(items)) >= 1:
+                                item = items[0]
+                                # 점검 및 교정 혹은 '-' 텍스트가 기록될 수 있다
+                                self._measure_data['dataTime'] = item.find('dataTime'.lower()).text
+                                try:
+                                    self._measure_data['so2Value'] = float(item.find('so2Value'.lower()).text)
+                                except ValueError:
+                                    self._measure_data['so2Value'] = 0.0
+                                try:
+                                    self._measure_data['coValue'] = float(item.find('coValue'.lower()).text)
+                                except ValueError:
+                                    self._measure_data['coValue'] = 0.0
+                                try:
+                                    self._measure_data['o3Value'] = float(item.find('o3Value'.lower()).text)
+                                except ValueError:
+                                    self._measure_data['o3Value'] = 0.0
+                                try:
+                                    self._measure_data['no2Value'] = float(item.find('no2Value'.lower()).text)
+                                except ValueError:
+                                    self._measure_data['no2Value'] = 0.0
+                                try:
+                                    self._measure_data['pm10Value'] = float(item.find('pm10Value'.lower()).text)
+                                except ValueError:
+                                    self._measure_data['pm10Value'] = 0.0
+                                try:
+                                    self._measure_data['pm25Value'] = float(item.find('pm25Value'.lower()).text)
+                                except ValueError:
+                                    self._measure_data['pm25Value'] = 0.0
+                                try:
+                                    self._measure_data['khaiValue'] = float(item.find('khaiValue'.lower()).text)
+                                except ValueError:
+                                    self._measure_data['khaiValue'] = 0.0
+                                try:
+                                    self._measure_data['khaiGrade'] = int(item.find('khaiGrade'.lower()).text)
+                                except ValueError:
+                                    self._measure_data['khaiGrade'] = 0
+                                self._last_query_time = datetime.datetime.now()
+                        else:
+                            writeLog(f"API Error ({result_code_text, result_msg_text})", self)
                     else:
-                        writeLog(f"API Error ({result_code_text, result_msg_text})", self)
+                        writeLog(f"API Error (xml parsing error {xml.text})", self)
                 else:
-                    writeLog(f"API Error (xml parsing error {xml.text})", self)
-            else:
-                writeLog(f"Request GET Error ({response.status_code})", self)
+                    writeLog(f"Request GET Error ({response.status_code})", self)
+            except requests.exceptions.ConnectionError as e:
+                writeLog(f'{e}', self)
 
     def publish_mqtt(self):
-        self.refreshData()
-        obj = {
-            "grade": self._measure_data.get('khaiGrade'),
-            "so2": self._measure_data.get('so2Value'),
-            "co": self._measure_data.get('coValue'),
-            "o3": self._measure_data.get('o3Value'),
-            "no2": self._measure_data.get('no2Value'),
-            "pm10": self._measure_data.get('pm10Value'),
-            "pm25": self._measure_data.get('pm25Value')
-        }
-        if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+        try:
+            self.refreshData()
+            obj = {
+                "grade": self._measure_data.get('khaiGrade'),
+                "so2": self._measure_data.get('so2Value'),
+                "co": self._measure_data.get('coValue'),
+                "o3": self._measure_data.get('o3Value'),
+                "no2": self._measure_data.get('no2Value'),
+                "pm10": self._measure_data.get('pm10Value'),
+                "pm25": self._measure_data.get('pm25Value')
+            }
+            if self.mqtt_client is not None:
+                self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+        except Exception:
+            pass
 
     def __repr__(self):
         repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'

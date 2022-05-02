@@ -10,7 +10,7 @@ class ThreadSend(threading.Thread):
     _keepAlive: bool = True
 
     def __init__(self, serial_: serial.Serial, queue_: queue.Queue):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name='Serial Send Thread')
         self.sig_send_data = Callback(bytes)
         self.sig_terminated = Callback()
         self.sig_exception = Callback(str)
@@ -46,7 +46,7 @@ class ThreadReceive(threading.Thread):
     _keepAlive: bool = True
 
     def __init__(self, serial_: serial.Serial, queue_: queue.Queue):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name='Serial Recv Thread')
         self.sig_terminated = Callback()
         # self.sig_recv_data = Callback(bytes)
         self.sig_recv_data = Callback()
@@ -84,7 +84,7 @@ class ThreadCheck(threading.Thread):
     _keepAlive: bool = True
 
     def __init__(self, queue_: queue.Queue):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name='Serial Check Thread')
         self.sig_get = Callback(bytes)
         self.sig_terminated = Callback()
         self.sig_exception = Callback(str)
