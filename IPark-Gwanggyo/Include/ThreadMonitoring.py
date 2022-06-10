@@ -21,7 +21,7 @@ class ThreadMonitoring(threading.Thread):
             publish_interval: int = 60,
             interval_ms: int = 2000
     ):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name='Monitoring Thread')
         self._serial_list = serial_list
         self._publish_interval = publish_interval
         self._interval_ms = interval_ms

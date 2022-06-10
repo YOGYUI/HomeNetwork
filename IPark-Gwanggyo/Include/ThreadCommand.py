@@ -16,7 +16,7 @@ class ThreadCommand(threading.Thread):
     _keepAlive: bool = True
 
     def __init__(self, queue_: queue.Queue):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name='Command Thread')
         self._queue = queue_
         self._retry_cnt = 10
         self._delay_response = 0.4
