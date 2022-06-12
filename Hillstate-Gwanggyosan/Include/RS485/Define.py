@@ -21,9 +21,6 @@ class Callback(object):
 
     def connect(self, callback):
         self._callback = callback
-    
-    def disconnect(self):
-        self._callback = None
 
     def emit(self, *args):
         if len(args) != len(self._args):
