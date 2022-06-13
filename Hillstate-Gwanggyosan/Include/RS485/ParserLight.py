@@ -1,4 +1,4 @@
-from SerialParser import SerialParser
+from SerialParser import *
 
 
 class ParserLight(SerialParser):
@@ -17,7 +17,7 @@ class ParserLight(SerialParser):
     
     def interpretPacket(self, packet: bytearray):
         try:
-            if packet[2] == 0x01 and packet[3] == 0x19:
+            if packet[2:4] == bytearray([0x01, 0x19]):
                 room_idx = packet[6] >> 4
                 if packet[4] == 0x01:  # 조명 상태 쿼리
                     pass
@@ -43,5 +43,13 @@ class ParserLight(SerialParser):
                             'room_index': room_idx,
                             'state': state
                         })
+            elif packet[2:4] == bytearray([0x01, 0x1F]):
+                room_idx = packet[6] >> 4
+                if packet[4] == 0x01:
+                    pass
+                elif packet[4] == 0x02:
+                    pass
+                elif packet[4] == 0x04:
+                    pass
         except Exception as e:
-            writeLog('interpretPacket::Exception::{} ({})'.format(e, data), self)
+            writeLog('interpretPacket::Exception::{} ({})'.format(e, packet), self)

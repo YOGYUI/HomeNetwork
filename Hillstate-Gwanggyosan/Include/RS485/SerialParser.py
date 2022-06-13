@@ -54,3 +54,7 @@ class SerialParser:
         while self.chunk_cnt < count:
             pass
         self.enable_console_log = False
+
+    @staticmethod
+    def prettifyPacket(packet: bytearray) -> str:
+        return ' '.join(['%02X' % x for x in packet])
