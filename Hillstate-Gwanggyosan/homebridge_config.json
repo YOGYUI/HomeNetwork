@@ -227,7 +227,7 @@
                 {
                     "nameNow": "Yogyui Weather Station",
                     "service": "openweathermap",
-                    "key": "27409b04e6ebb1a191a4c74b50498254",
+                    "key": "Open Weather Map API Key",
                     "locationGeo": [
                         37.33294668,
                         127.0673802
