@@ -15,7 +15,7 @@ class SerialParser:
 
     def __init__(self, ser: SerialComm):
         self.buffer = bytearray()
-        self.sig_parse = Callback(bytearray)
+        self.sig_parse_result = Callback(dict)
         ser.sig_send_data.connect(self.onSendData)
         ser.sig_recv_data.connect(self.onRecvData)
         self.serial = ser
@@ -41,6 +41,10 @@ class SerialParser:
 
     @abstractmethod
     def handlePacket(self):
+        pass
+    
+    @abstractmethod
+    def interpretPacket(self, packet: bytearray):
         pass
     
     def startRecv(self, count: int = 64):

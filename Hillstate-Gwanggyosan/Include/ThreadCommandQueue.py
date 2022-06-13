@@ -5,6 +5,7 @@ from typing import Union
 from Device import Device
 from Common import Callback, writeLog
 from Light import Light
+from RS485 import SerialParser
 
 
 class ThreadCommandQueue(threading.Thread):
@@ -30,13 +31,13 @@ class ThreadCommandQueue(threading.Thread):
                     dev = elem['device']
                     category = elem['category']
                     target = elem['target']
-                    func = elem['func']
+                    parser = elem['parser']
                     if target is None:
                         continue
 
                     if isinstance(dev, Light):
                         if category == 'state':
-                            self.set_state_common(dev, target, func)
+                            self.set_state_common(dev, target, parser)
                 except Exception as e:
                     writeLog(str(e), self)
             else:
@@ -47,19 +48,19 @@ class ThreadCommandQueue(threading.Thread):
     def stop(self):
         self._keepAlive = False
 
-    def set_state_common(self, dev: Device, target: int, func):
+    def set_state_common(self, dev: Device, target: int, parser: SerialParser):
         cnt = 0
         packet_command = dev.makePacketSetState(bool(target))
         packet_query = dev.makePacketQueryState()
         for _ in range(self._retry_cnt):
             if dev.state == target:
                 break
-            func(packet_command)
+            parser.sendPacket(packet_command)
             cnt += 1
             time.sleep(0.2)
             if dev.state == target:
                 break
-            func(packet_query)
+            parser.sendPacket(packet_query)
             time.sleep(0.2)
         writeLog('set_state_common::send # = {}'.format(cnt), self)
         time.sleep(self._delay_response)

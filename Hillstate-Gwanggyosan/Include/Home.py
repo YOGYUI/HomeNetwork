@@ -44,7 +44,7 @@ class Home:
         self.serial_light = SerialComm('Light')
         self.serial_list.append(self.serial_light)
         self.parser_light = ParserLight(self.serial_light)
-        self.parser_light.sig_parse.connect(self.onParserLightResult)
+        self.parser_light.sig_parse_result.connect(self.onParsePacketResult)
         self.parser_list.append(self.parser_light)
 
         self.initialize(init_service, False)
@@ -218,44 +218,23 @@ class Home:
             except ValueError as e:
                 writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
 
-    def onParserLightResult(self, data: bytearray):
+    def onParsePacketResult(self, result: dict):
         try:
-            if data[2] == 0x01 and data[3] == 0x19:
-                room_idx = data[6] >> 4
-                if data[4] == 0x01:
-                    # 조명 상태 쿼리
-                    pass
-                elif data[4] == 0x02:
-                    # 조명 상태 변경 명령
-                    pass
-                elif data[4] == 0x04:
-                    # 각 방별 조명 On/Off 상태
-                    dev_idx = data[6] & 0x0F
-                    room_obj = self.getRoomObjectByIndex(room_idx)
-                    if dev_idx == 0:  # 일반 쿼리
-                        light_count = len(data) - 10
-                        for idx in range(light_count):
-                            dev = room_obj.lights[idx]
-                            temp = data[8 + idx]
-                            dev.state = 0 if temp == 0x02 else 1
-                    else:  # 상태 변경 명령 직후 응답
-                        dev = room_obj.lights[dev_idx - 1]
-                        temp = data[8]
-                        dev.state = 0 if temp == 0x02 else 1
-                    if not dev.init:
-                        dev.publish_mqtt()
-                        dev.init = True
-                    if dev.state != dev.state_prev:
-                        dev.publish_mqtt()
-                    dev.state_prev = dev.state                    
+            if result.get('device') == 'light':
+                room_idx = result.get('room_index')
+                dev_idx = result.get('index')
+                state = result.get('state')
+                room_obj = self.getRoomObjectByIndex(room_idx)
+                dev = room_obj.lights[dev_idx]
+                dev.setState(state)                
         except Exception as e:
-            writeLog('onParserLightResult::Exception::{} ({})'.format(e, data), self)
+            writeLog('onParsePacketResult::Exception::{} ({})'.format(e, data), self)
 
     def command(self, **kwargs):
         try:
             dev = kwargs['device']
             if isinstance(dev, Light):
-                kwargs['func'] = self.parser_light.sendPacket
+                kwargs['parser'] = self.parser_light
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
@@ -335,6 +314,7 @@ class Home:
     def onMqttClientUnsubscribe(self, _, userdata, mid):
         if self.enable_mqtt_console_log:
             writeLog('Mqtt Client Unsubscribe: {}, {}'.format(userdata, mid), self)
+
 
 home_: Union[Home, None] = None
 

@@ -35,6 +35,15 @@ class Device:
         repr_txt += '>'
         return repr_txt
 
+    def setState(self, state: int):
+        self.state = state
+        if not self.init:
+            self.publish_mqtt()
+            self.init = False
+        if self.state != self.state_prev:
+            self.publish_mqtt()
+        self.state_prev = self.state
+
     @staticmethod
     def calcXORChecksum(data: Union[bytearray, bytes, List[int]]) -> int:
         return reduce(lambda x, y: x ^ y, data, 0)
