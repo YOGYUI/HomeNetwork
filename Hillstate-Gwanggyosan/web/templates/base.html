@@ -28,7 +28,8 @@
             {% if session['o365_user_info'] %}
             {% endif %}
             <ul class="nav navbar-nav">
-                <li><a href="{{ url_for('api.light_ctrl') }}">조명 제어</a></li>
+                <li><a href="{{ url_for('api.light_ctrl') }}">조명</a></li>
+                <li><a href="{{ url_for('api.outlet_ctrl') }}">콘센트</a></li>
             </ul>
 
             <ul class="nav navbar-nav navbar-right">

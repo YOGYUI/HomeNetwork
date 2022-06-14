@@ -113,6 +113,108 @@ light:
     command_off_template: '{"state": 0}'
     optimistic: false
 
+switch:
+  - platform: mqtt
+    name: "거실 콘센트 1"
+    unique_id: "livingroom_outlet_1"
+    state_topic: "home/hillstate/outlet/state/1/1"
+    command_topic: "home/hillstate/outlet/command/1/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "거실 콘센트 2"
+    unique_id: "livingroom_outlet_2"
+    state_topic: "home/hillstate/outlet/state/1/2"
+    command_topic: "home/hillstate/outlet/command/1/2"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "침실 콘센트 1"
+    unique_id: "bedroom_outlet_1"
+    state_topic: "home/hillstate/outlet/state/2/1"
+    command_topic: "home/hillstate/outlet/command/2/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "침실 콘센트 2"
+    unique_id: "bedroom_outlet_2"
+    state_topic: "home/hillstate/outlet/state/2/2"
+    command_topic: "home/hillstate/outlet/command/2/2"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "서재 콘센트 1"
+    unique_id: "library_outlet_1"
+    state_topic: "home/hillstate/outlet/state/3/1"
+    command_topic: "home/hillstate/outlet/command/3/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "서재 콘센트 2"
+    unique_id: "library_outlet_2"
+    state_topic: "home/hillstate/outlet/state/3/2"
+    command_topic: "home/hillstate/outlet/command/3/2"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "컴퓨터방 콘센트 1"
+    unique_id: "pcroom_outlet_1"
+    state_topic: "home/hillstate/outlet/state/4/1"
+    command_topic: "home/hillstate/outlet/command/4/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "컴퓨터방 콘센트 2"
+    unique_id: "pcroom_outlet_2"
+    state_topic: "home/hillstate/outlet/state/4/2"
+    command_topic: "home/hillstate/outlet/command/4/2"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "주방 콘센트 1"
+    unique_id: "kitchen_outlet_1"
+    state_topic: "home/hillstate/outlet/state/6/1"
+    command_topic: "home/hillstate/outlet/command/6/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "주방 콘센트 2"
+    unique_id: "kitchen_outlet_2"
+    state_topic: "home/hillstate/outlet/state/6/2"
+    command_topic: "home/hillstate/outlet/command/6/2"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+
 http:
   ssl_certificate: ssl/fullchain.pem
   ssl_key: ssl/privkey.pem

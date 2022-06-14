@@ -2,7 +2,7 @@
     "bridge": {
         "name": "Homebridge 349E",
         "username": "XX:XX:XX:XX:XX:XX",
-        "port": xxxxx,
+        "port": 51332,
         "pin": "xxx-xx-xxx"
     },
     "accessories": [
@@ -189,6 +189,226 @@
             "offValue": 0,
             "history": true,
             "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Living room Outlet1 (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/outlet/state/1/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/outlet/command/1/1",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Living room Outlet2 (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/outlet/state/1/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/outlet/command/1/2",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Bedroom Outlet1 (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/outlet/state/2/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/outlet/command/2/1",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Bedroom Outlet2 (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/outlet/state/2/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/outlet/command/2/2",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Library Outlet1 (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/outlet/state/3/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/outlet/command/3/1",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Library Outlet2 (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/outlet/state/3/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/outlet/command/3/2",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "PC room Outlet1 (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/outlet/state/4/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/outlet/command/4/1",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "PC room Outlet2 (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/outlet/state/4/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/outlet/command/4/2",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Kitchen Outlet1 (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/outlet/state/6/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/outlet/command/6/1",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "name": "Kitchen Outlet2 (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/outlet/state/6/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/outlet/command/6/2",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "onValue": 1,
+            "offValue": 0,
+            "integerValue": false,
+            "history": true
         },
         {
             "accessory": "mqttthing",

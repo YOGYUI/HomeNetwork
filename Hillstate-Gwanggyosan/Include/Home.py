@@ -119,10 +119,13 @@ class Home:
                 index = int(child.find('index').text)
                 tag_lights = child.find('lights')
                 light_count = len(list(tag_lights))
+                tag_outlets = child.find('outlets')
+                outlet_count = len(list(tag_outlets))
                 room = Room(
                     name=name,
                     index=index,
                     light_count=light_count,
+                    outlet_count=outlet_count,
                     mqtt_client=self.mqtt_client
                 )
                 self.rooms.append(room)
@@ -169,6 +172,15 @@ class Home:
                                 mqtt_node = light_node.find('mqtt')
                                 room.lights[j].mqtt_publish_topic = mqtt_node.find('publish').text
                                 room.lights[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                    outlets_node = room_node.find('outlets')
+                    if outlets_node is not None:
+                        for j in range(room.outlet_count):
+                            outlet_node = outlets_node.find(f'outlet{j + 1}')
+                            if outlet_node is not None:
+                                room.outlets[j].name = outlet_node.find('name').text
+                                mqtt_node = outlet_node.find('mqtt')
+                                room.outlets[j].mqtt_publish_topic = mqtt_node.find('publish').text
+                                room.outlets[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
                 else:
                     writeLog(f"Failed to find room{room.index} node", self)        
         except Exception as e:
@@ -226,7 +238,14 @@ class Home:
                 state = result.get('state')
                 room_obj = self.getRoomObjectByIndex(room_idx)
                 dev = room_obj.lights[dev_idx]
-                dev.setState(state)                
+                dev.setState(state)
+            elif result.get('device') == 'outlet':
+                room_idx = result.get('room_index')
+                dev_idx = result.get('index')
+                state = result.get('state')
+                room_obj = self.getRoomObjectByIndex(room_idx)
+                dev = room_obj.outlets[dev_idx]
+                dev.setState(state)
         except Exception as e:
             writeLog('onParsePacketResult::Exception::{} ({})'.format(e, data), self)
 
@@ -234,6 +253,8 @@ class Home:
         try:
             dev = kwargs['device']
             if isinstance(dev, Light):
+                kwargs['parser'] = self.parser_light
+            elif isinstance(dev, Outlet):
                 kwargs['parser'] = self.parser_light
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
@@ -299,6 +320,18 @@ class Home:
                 if 'state' in msg_dict.keys():
                     self.command(
                         device=room.lights[dev_idx],
+                        category='state',
+                        target=msg_dict['state']
+                    )
+        elif 'outlet/command' in topic:
+            splt = topic.split('/')
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1]) - 1
+            room = self.getRoomObjectByIndex(room_idx)
+            if room is not None:
+                if 'state' in msg_dict.keys():
+                    self.command(
+                        device=room.outlets[dev_idx],
                         category='state',
                         target=msg_dict['state']
                     )

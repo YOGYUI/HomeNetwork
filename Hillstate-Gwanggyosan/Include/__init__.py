@@ -8,6 +8,7 @@ del CURPATH
 from Common import *
 from Device import *
 from Light import *
+from Outlet import *
 from Room import *
 from ThreadCommandQueue import *
 from ThreadTimer import *

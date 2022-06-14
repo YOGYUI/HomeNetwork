@@ -5,6 +5,7 @@ from typing import Union
 from Device import Device
 from Common import Callback, writeLog
 from Light import Light
+from Outlet import Outlet
 from RS485 import SerialParser
 
 
@@ -36,6 +37,9 @@ class ThreadCommandQueue(threading.Thread):
                         continue
 
                     if isinstance(dev, Light):
+                        if category == 'state':
+                            self.set_state_common(dev, target, parser)
+                    elif isinstance(dev, Outlet):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
                 except Exception as e:

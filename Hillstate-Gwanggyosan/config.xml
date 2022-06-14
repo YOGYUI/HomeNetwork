@@ -41,6 +41,22 @@
                     </mqtt>
                 </light3>
             </lights>
+            <outlets>
+                <outlet1>
+                    <name>outlet 1</name>
+                    <mqtt>
+                        <publish>home/hillstate/outlet/state/1/1</publish>
+                        <subscribe>home/hillstate/outlet/command/1/1</subscribe>
+                    </mqtt>
+                </outlet1>
+                <outlet2>
+                    <name>outlet 2</name>
+                    <mqtt>
+                        <publish>home/hillstate/outlet/state/1/2</publish>
+                        <subscribe>home/hillstate/outlet/command/1/2</subscribe>
+                    </mqtt>
+                </outlet2>
+            </outlets>
         </room1>
         <room2>
             <name>Bedroom</name>
@@ -61,6 +77,22 @@
                     </mqtt>
                 </light2>
             </lights>
+            <outlets>
+                <outlet1>
+                    <name>outlet 1</name>
+                    <mqtt>
+                        <publish>home/hillstate/outlet/state/2/1</publish>
+                        <subscribe>home/hillstate/outlet/command/2/1</subscribe>
+                    </mqtt>
+                </outlet1>
+                <outlet2>
+                    <name>outlet 2</name>
+                    <mqtt>
+                        <publish>home/hillstate/outlet/state/2/2</publish>
+                        <subscribe>home/hillstate/outlet/command/2/2</subscribe>
+                    </mqtt>
+                </outlet2>
+            </outlets>
         </room2>
         <room3>
             <name>Library</name>
@@ -74,6 +106,22 @@
                     </mqtt>
                 </light1>
             </lights>
+            <outlets>
+                <outlet1>
+                    <name>outlet 1</name>
+                    <mqtt>
+                        <publish>home/hillstate/outlet/state/3/1</publish>
+                        <subscribe>home/hillstate/outlet/command/3/1</subscribe>
+                    </mqtt>
+                </outlet1>
+                <outlet2>
+                    <name>outlet 2</name>
+                    <mqtt>
+                        <publish>home/hillstate/outlet/state/3/2</publish>
+                        <subscribe>home/hillstate/outlet/command/3/2</subscribe>
+                    </mqtt>
+                </outlet2>
+            </outlets>
         </room3>
         <room4>
             <name>PC Room</name>
@@ -87,6 +135,22 @@
                     </mqtt>
                 </light1>
             </lights>
+            <outlets>
+                <outlet1>
+                    <name>outlet 1</name>
+                    <mqtt>
+                        <publish>home/hillstate/outlet/state/4/1</publish>
+                        <subscribe>home/hillstate/outlet/command/4/1</subscribe>
+                    </mqtt>
+                </outlet1>
+                <outlet2>
+                    <name>outlet 2</name>
+                    <mqtt>
+                        <publish>home/hillstate/outlet/state/4/2</publish>
+                        <subscribe>home/hillstate/outlet/command/4/2</subscribe>
+                    </mqtt>
+                </outlet2>
+            </outlets>
         </room4>
         <room6>
             <name>Kitchen</name>
@@ -107,6 +171,22 @@
                     </mqtt>
                 </light2>
             </lights>
+            <outlets>
+                <outlet1>
+                    <name>outlet 1</name>
+                    <mqtt>
+                        <publish>home/hillstate/outlet/state/6/1</publish>
+                        <subscribe>home/hillstate/outlet/command/6/1</subscribe>
+                    </mqtt>
+                </outlet1>
+                <outlet2>
+                    <name>outlet 2</name>
+                    <mqtt>
+                        <publish>home/hillstate/outlet/state/6/2</publish>
+                        <subscribe>home/hillstate/outlet/command/6/2</subscribe>
+                    </mqtt>
+                </outlet2>
+            </outlets>
         </room6>
     </rooms>
 </config>

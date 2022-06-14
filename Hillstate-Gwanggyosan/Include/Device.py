@@ -61,5 +61,3 @@ class Device:
     def makePacketSetState(self, state: bool) -> bytearray:
         # 디바이스 전원 On/Off
         return bytearray()
-
-    
