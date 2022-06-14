@@ -5,4 +5,5 @@ sys.path.extend([CURPATH])
 sys.path = list(set(sys.path))
 del CURPATH
 
-from Home import get_home
+from ThreadCommandQueue import ThreadCommandQueue
+from ThreadTimer import ThreadTimer

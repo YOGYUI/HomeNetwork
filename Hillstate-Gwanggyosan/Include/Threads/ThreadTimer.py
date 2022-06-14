@@ -4,8 +4,8 @@ import time
 import threading
 from typing import List
 from Common import Callback, writeLog
-CURPATH = os.path.dirname(os.path.abspath(__file__))  # Project/Include
-PROJPATH = os.path.dirname(CURPATH)  # Proejct/
+CURPATH = os.path.dirname(os.path.abspath(__file__))  # Project/Include/Threads
+PROJPATH = os.path.dirname(os.path.dirname(CURPATH))  # Proejct/
 SERPATH = os.path.join(PROJPATH, 'Serial485')  # Project/Serial485
 sys.path.extend([SERPATH])
 sys.path = list(set(sys.path))

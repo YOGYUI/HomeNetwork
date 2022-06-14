@@ -180,7 +180,11 @@ class SerialComm:
 if __name__ == '__main__':
     import time
 
+    def onRecv(data: bytes):
+        print(data)
+
     obj = SerialComm()
+    obj.sig_recv_data.connect(onRecv)
     obj.connect('/dev/ttyUSB0', 9600)
     time.sleep(5)
     obj.release()

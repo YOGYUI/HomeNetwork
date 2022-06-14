@@ -1,5 +1,5 @@
 import json
-from Device import Device
+from Device import *
 
 
 class Outlet(Device):

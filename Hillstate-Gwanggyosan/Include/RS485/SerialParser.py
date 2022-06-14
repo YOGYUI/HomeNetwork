@@ -1,7 +1,6 @@
 from abc import abstractmethod, ABCMeta
 from typing import Union
-from SerialComm import SerialComm
-from Define import Callback, writeLog
+from SerialComm import *
 
 
 class SerialParser:

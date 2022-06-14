@@ -1,11 +1,16 @@
+import os
+import sys
 import time
 import queue
 import threading
 from typing import Union
-from Device import Device
+CURPATH = os.path.dirname(os.path.abspath(__file__))
+INCPATH = os.path.dirname(CURPATH)
+sys.path.extend([CURPATH, INCPATH])
+sys.path = list(set(sys.path))
+del CURPATH, INCPATH
+from Define import *
 from Common import Callback, writeLog
-from Light import Light
-from Outlet import Outlet
 from RS485 import SerialParser
 
 

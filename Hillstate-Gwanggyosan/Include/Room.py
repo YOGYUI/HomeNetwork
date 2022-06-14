@@ -1,7 +1,5 @@
 from typing import List
-from Device import Device
-from Light import Light
-from Outlet import Outlet
+from Define import *
 from Common import writeLog
 
 

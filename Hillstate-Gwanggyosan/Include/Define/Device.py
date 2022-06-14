@@ -1,8 +1,15 @@
+import os
+import sys
 import time
 from typing import List, Union
 import paho.mqtt.client as mqtt
 from abc import ABCMeta, abstractmethod
 from functools import reduce
+CURPATH = os.path.dirname(os.path.abspath(__file__))
+INCPATH = os.path.dirname(CURPATH)
+sys.path.extend([CURPATH, INCPATH])
+sys.path = list(set(sys.path))
+del CURPATH, INCPATH
 from Common import writeLog
 
 

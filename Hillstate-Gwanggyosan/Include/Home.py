@@ -5,10 +5,9 @@ from typing import List, Union
 from matplotlib.colors import LightSource
 import paho.mqtt.client as mqtt
 import xml.etree.ElementTree as ET
-from Device import *
+from Define import *
 from Room import *
-from ThreadCommandQueue import *
-from ThreadTimer import *
+from Threads import *
 from RS485 import *
 
 

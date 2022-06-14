@@ -1,9 +1,16 @@
+import os
+import sys
 import time
 import queue
 import serial
 import threading
 import traceback
-from Define import Callback, writeLog
+CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/Include/RS485
+INCPATH = os.path.dirname(CURPATH)  # {$PROJECT}/Include/
+sys.path.extend([CURPATH, INCPATH])
+sys.path = list(set(sys.path))
+del CURPATH, INCPATH
+from Common import writeLog, Callback
 
 
 class ThreadSend(threading.Thread):
@@ -18,7 +25,7 @@ class ThreadSend(threading.Thread):
         self._queue = queue_
 
     def run(self):
-        writeLog('Started', self)
+        writeLog(f'Started ({self._serial.port})', self)
         while self._keepAlive:
             try:
                 if not self._queue.empty():
@@ -35,7 +42,7 @@ class ThreadSend(threading.Thread):
                 writeLog('Exception::{}'.format(e), self)
                 traceback.print_exc()
                 self.sig_exception.emit(str(e))
-        writeLog('Terminated', self)
+        writeLog(f'Terminated ({self._serial.port})', self)
         self.sig_terminated.emit()
     
     def stop(self):
@@ -48,20 +55,18 @@ class ThreadReceive(threading.Thread):
     def __init__(self, serial_: serial.Serial, queue_: queue.Queue):
         threading.Thread.__init__(self, name='Serial Recv Thread')
         self.sig_terminated = Callback()
-        # self.sig_recv_data = Callback(bytes)
         self.sig_recv_data = Callback()
         self.sig_exception = Callback(str)
         self._serial = serial_
         self._queue = queue_
     
     def run(self):
-        writeLog('Started', self)
+        writeLog(f'Started ({self._serial.port})', self)
         while self._keepAlive:
             try:
                 if self._serial.isOpen():
                     if self._serial.in_waiting > 0:
                         rcv = self._serial.read(self._serial.in_waiting)
-                        # self.sig_recv_data.emit(rcv)
                         self.sig_recv_data.emit()
                         self._queue.put(rcv)
                     else:
@@ -73,36 +78,38 @@ class ThreadReceive(threading.Thread):
                 traceback.print_exc()
                 self.sig_exception.emit(str(e))
                 # break
-        writeLog('Terminated', self)
+        writeLog(f'Terminated ({self._serial.port})', self)
         self.sig_terminated.emit()
     
     def stop(self):
         self._keepAlive = False
 
 
-class ThreadCheck(threading.Thread):
+class ThreadCheckRecvQueue(threading.Thread):
     _keepAlive: bool = True
 
-    def __init__(self, queue_: queue.Queue):
+    def __init__(self, serial_: serial.Serial, queue_: queue.Queue):
         threading.Thread.__init__(self, name='Serial Check Thread')
         self.sig_get = Callback(bytes)
         self.sig_terminated = Callback()
         self.sig_exception = Callback(str)
+        self._serial = serial_
         self._queue = queue_
     
     def run(self):
-        writeLog('Started', self)
+        writeLog(f'Started ({self._serial.port})', self)
         while self._keepAlive:
             try:
                 if not self._queue.empty():
-                    self.sig_get.emit(self._queue.get())
+                    chunk = self._queue.get()
+                    self.sig_get.emit(chunk)
                 else:
                     time.sleep(1e-3)
             except Exception as e:
                 writeLog('Exception::{}'.format(e), self)
                 traceback.print_exc()
                 self.sig_exception.emit(str(e))
-        writeLog('Terminated', self)
+        writeLog(f'Terminated ({self._serial.port})', self)
         self.sig_terminated.emit()
     
     def stop(self):

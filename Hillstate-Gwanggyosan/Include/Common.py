@@ -1,4 +1,3 @@
-
 import datetime
 import threading
 
@@ -36,6 +35,8 @@ class Callback(object):
             validTypes = [checkAgrumentType(args[i], self._args[i]) for i in range(arglen)]
             if sum(validTypes) != arglen:
                 raise Exception('Callback::Argument Type Mismatch (Definition: {}, Call: {})'.format(self._args, args))
+        if self._callback is not None:
+            self._callback(*args)
 
 
 def timestampToString(timestamp: datetime.datetime):
