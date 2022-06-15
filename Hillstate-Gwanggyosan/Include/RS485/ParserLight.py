@@ -2,18 +2,6 @@ from SerialParser import *
 
 
 class ParserLight(SerialParser):
-    def handlePacket(self):
-        idx = self.buffer.find(0xF7)
-        if idx > 0:
-            self.buffer = self.buffer[idx:]
-        if len(self.buffer) >= 3:
-            packet_length = self.buffer[1]
-            if len(self.buffer) >= packet_length:
-                if self.buffer[packet_length - 1] == 0xEE:
-                    packet = self.buffer[:packet_length]
-                    self.interpretPacket(packet)
-                    self.buffer = self.buffer[packet_length:]
-    
     def interpretPacket(self, packet: bytearray):
         try:
             if packet[2:4] == bytearray([0x01, 0x19]):  # 조명
@@ -28,20 +16,22 @@ class ParserLight(SerialParser):
                         light_count = len(packet) - 10
                         for idx in range(light_count):
                             state = 0 if packet[8 + idx] == 0x02 else 1
-                            self.sig_parse_result.emit({
+                            result = {
                                 'device': 'light', 
                                 'index': idx,
                                 'room_index': room_idx,
                                 'state': state
-                            })
+                            }
+                            self.sig_parse_result.emit(result)
                     else:  # 상태 변경 명령 직후 응답
                         state = 0 if packet[8] == 0x02 else 1
-                        self.sig_parse_result.emit({
+                        result = {
                             'device': 'light', 
                             'index': dev_idx - 1,
                             'room_index': room_idx,
                             'state': state
-                        })
+                        }
+                        self.sig_parse_result.emit(result)
             elif packet[2:4] == bytearray([0x01, 0x1F]):  # 아울렛 (콘센트)
                 room_idx = packet[6] >> 4
                 if packet[4] == 0x01:  # 상태 쿼리
@@ -60,19 +50,21 @@ class ParserLight(SerialParser):
                             # 중간에 있는 패킷들은 전력량계 데이터같은데, 파싱 위한 레퍼런스가 없음
                             dev_packet = packet[8 + idx * 9: 8 + (idx + 1) * 9]
                             state = 0 if dev_packet[1] == 0x02 else 1
-                            self.sig_parse_result.emit({
+                            result = {
                                 'device': 'outlet',
                                 'index': idx,
                                 'room_index': room_idx,
                                 'state': state
-                            })
+                            }
+                            self.sig_parse_result.emit(result)
                     else:  # 상태 변경 명령 직후 응답
                         state = 0 if packet[8] == 0x02 else 1
-                        self.sig_parse_result.emit({
+                        result = {
                             'device': 'outlet',
                             'index': dev_idx - 1,
                             'room_index': room_idx,
                             'state': state
-                        })
+                        }
+                        self.sig_parse_result.emit(result)
         except Exception as e:
             writeLog('interpretPacket::Exception::{} ({})'.format(e, packet), self)

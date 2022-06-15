@@ -47,6 +47,13 @@ class ThreadCommandQueue(threading.Thread):
                     elif isinstance(dev, Outlet):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
+                    elif isinstance(dev, GasValve):
+                        if category == 'state':
+                            if target == 0:  # 밸브 여는것은 지원되지 않음!
+                                self.set_state_common(dev, target, parser)
+                            else:
+                                packet_query = dev.makePacketQueryState()
+                                parser.sendPacket(packet_query)
                 except Exception as e:
                     writeLog(str(e), self)
             else:

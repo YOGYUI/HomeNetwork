@@ -1,5 +1,6 @@
 from abc import abstractmethod, ABCMeta
-from typing import Union
+from typing import Union, List
+from functools import reduce
 from SerialComm import *
 
 
@@ -38,9 +39,27 @@ class SerialParser:
         self.buffer.extend(data)
         self.handlePacket()
 
-    @abstractmethod
     def handlePacket(self):
-        pass
+        idx = self.buffer.find(0xF7)
+        if idx > 0:
+            self.buffer = self.buffer[idx:]
+        if len(self.buffer) >= 3:
+            packet_length = self.buffer[1]
+            if len(self.buffer) >= packet_length:
+                if self.buffer[0] == 0xF7 and self.buffer[packet_length - 1] == 0xEE:
+                    packet = self.buffer[:packet_length]
+                    try:
+                        checksum_calc = self.calcXORChecksum(packet[:-2])
+                        checksum_recv = packet[-2]
+                        if checksum_calc == checksum_recv:
+                            self.interpretPacket(packet)
+                        else:
+                            writeLog('Checksum Error (calc={}, recv={}) ({})'.format(
+                                checksum_calc, checksum_recv, self.prettifyPacket(packet)), self)
+                        self.buffer = self.buffer[packet_length:]
+                    except IndexError:
+                        writeLog('Index Error (buffer={}, packet_len={}, packet={})'.format(
+                            self.prettifyPacket(self.buffer), packet_length, self.prettifyPacket(packet)), self)
     
     @abstractmethod
     def interpretPacket(self, packet: bytearray):
@@ -57,3 +76,7 @@ class SerialParser:
     @staticmethod
     def prettifyPacket(packet: bytearray) -> str:
         return ' '.join(['%02X' % x for x in packet])
+    
+    @staticmethod
+    def calcXORChecksum(data: Union[bytearray, bytes, List[int]]) -> int:
+        return reduce(lambda x, y: x ^ y, data, 0)

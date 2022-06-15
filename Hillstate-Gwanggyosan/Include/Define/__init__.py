@@ -8,3 +8,4 @@ del CURPATH
 from Device import Device
 from Light import Light
 from Outlet import Outlet
+from GasValve import GasValve

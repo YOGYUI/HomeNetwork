@@ -5,7 +5,8 @@
         <port>1234</port>
     </webserver>
     <serial>
-        <port_light>/dev/ttyUSB0</port_light>
+        <port_light>/dev/ttyUSB1</port_light>
+        <port_gas>/dev/ttyUSB0</port_gas>
     </serial>
     <mqtt>
         <host>mosquitto ip address</host>
@@ -189,4 +190,10 @@
             </outlets>
         </room6>
     </rooms>
+    <gasvalve>
+        <mqtt>
+            <publish>home/hillstate/gasvalve/state</publish>
+            <subscribe>home/hillstate/gasvalve/command</subscribe>
+        </mqtt>
+    </gasvalve>
 </config>

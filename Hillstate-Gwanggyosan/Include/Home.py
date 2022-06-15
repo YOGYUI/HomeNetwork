@@ -15,12 +15,15 @@ class Home:
     name: str = 'Home'
     device_list: List[Device]
     rooms: List[Room]
+    gasvalve: GasValve
 
     serial_baud: int = 9600
 
     thread_cmd_queue: Union[ThreadCommandQueue, None] = None
+    thread_parse_result_queue: Union[ThreadParseResultQueue, None] = None
     thread_timer: Union[ThreadTimer, None] = None
     queue_command: queue.Queue
+    queue_parse_result: queue.Queue
 
     mqtt_client: mqtt.Client
     mqtt_host: str = '127.0.0.1'
@@ -36,6 +39,7 @@ class Home:
         self.device_list = list()
         self.rooms = list()
         self.queue_command = queue.Queue()
+        self.queue_parse_result = queue.Queue()
         self.serial_list = list()
         self.parser_list = list()
 
@@ -45,6 +49,13 @@ class Home:
         self.parser_light = ParserLight(self.serial_light)
         self.parser_light.sig_parse_result.connect(self.onParsePacketResult)
         self.parser_list.append(self.parser_light)
+
+        self.serial_port_gas: str = ''
+        self.serial_gas = SerialComm('Gas')
+        self.serial_list.append(self.serial_gas)
+        self.parser_gas = ParserGas(self.serial_gas)
+        self.parser_gas.sig_parse_result.connect(self.onParsePacketResult)
+        self.parser_list.append(self.parser_gas)
 
         self.initialize(init_service, False)
     
@@ -66,15 +77,18 @@ class Home:
         xml_path = os.path.join(projpath, 'config.xml')
 
         self.initRoomsFromConfig(xml_path)
+        self.gasvalve = GasValve(name='Gas Valve', mqtt_client=self.mqtt_client)
 
         # append device list
         for room in self.rooms:
             self.device_list.extend(room.getDevices())
+        self.device_list.append(self.gasvalve)
         
         self.loadConfig(xml_path)
 
         if init_service:
             self.startThreadCommandQueue()
+            self.startThreadParseResultQueue()
             self.startThreadTimer()
             try:
                 self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
@@ -93,6 +107,7 @@ class Home:
         del self.mqtt_client
 
         self.stopThreadCommandQueue()
+        self.stopThreadParseResultQueue()
         self.stopThreadTimer()
 
         for parser in self.parser_list:
@@ -134,6 +149,7 @@ class Home:
 
     def initSerialConnection(self):
         self.serial_light.connect(self.serial_port_light, self.serial_baud)
+        self.serial_gas.connect(self.serial_port_gas, self.serial_baud)
 
     def loadConfig(self, filepath: str):
         if not os.path.isfile(filepath):
@@ -143,6 +159,7 @@ class Home:
         node = root.find('serial')
         try:
             self.serial_port_light = node.find('port_light').text
+            self.serial_port_gas = node.find('port_gas').text
         except Exception as e:
             writeLog(f"Failed to load serial port info ({e})", self)
 
@@ -184,6 +201,14 @@ class Home:
                     writeLog(f"Failed to find room{room.index} node", self)        
         except Exception as e:
             writeLog(f"Failed to load room config ({e})", self)
+        
+        node = root.find('gasvalve')
+        try:
+            mqtt_node = node.find('mqtt')
+            self.gasvalve.mqtt_publish_topic = mqtt_node.find('publish').text
+            self.gasvalve.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+        except Exception as e:
+            writeLog(f"Failed to load gas valve config ({e})", self)
 
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
@@ -206,6 +231,22 @@ class Home:
         del self.thread_cmd_queue
         self.thread_cmd_queue = None
     
+    def startThreadParseResultQueue(self):
+        if self.thread_parse_result_queue is None:
+            self.thread_parse_result_queue = ThreadParseResultQueue(self.queue_parse_result)
+            self.thread_parse_result_queue.sig_get.connect(self.handleSerialParseResult)
+            self.thread_parse_result_queue.sig_terminated.connect(self.onThreadParseResultQueueTerminated)
+            self.thread_parse_result_queue.setDaemon(True)
+            self.thread_parse_result_queue.start()
+    
+    def stopThreadParseResultQueue(self):
+        if self.thread_parse_result_queue is not None:
+            self.thread_parse_result_queue.stop()
+
+    def onThreadParseResultQueueTerminated(self):
+        del self.thread_parse_result_queue
+        self.thread_parse_result_queue = None
+
     def startThreadTimer(self):
         if self.thread_timer is None:
             self.thread_timer = ThreadTimer([self.serial_light])
@@ -230,23 +271,25 @@ class Home:
                 writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
 
     def onParsePacketResult(self, result: dict):
+        self.queue_parse_result.put(result)
+
+    def handleSerialParseResult(self, result: dict):
         try:
-            if result.get('device') == 'light':
+            dev_type = result.get('device')
+            if dev_type in ['light', 'outlet']:
                 room_idx = result.get('room_index')
                 dev_idx = result.get('index')
                 state = result.get('state')
                 room_obj = self.getRoomObjectByIndex(room_idx)
-                dev = room_obj.lights[dev_idx]
-                dev.setState(state)
-            elif result.get('device') == 'outlet':
-                room_idx = result.get('room_index')
-                dev_idx = result.get('index')
+                if dev_type == 'light':
+                    room_obj.lights[dev_idx].setState(state)
+                elif dev_type == 'outlet':
+                    room_obj.outlets[dev_idx].setState(state)
+            elif result.get('device') == 'gasvalve':
                 state = result.get('state')
-                room_obj = self.getRoomObjectByIndex(room_idx)
-                dev = room_obj.outlets[dev_idx]
-                dev.setState(state)
+                self.gasvalve.setState(state)
         except Exception as e:
-            writeLog('onParsePacketResult::Exception::{} ({})'.format(e, data), self)
+            writeLog('handleSerialParseResult::Exception::{} ({})'.format(e, result), self)
 
     def command(self, **kwargs):
         try:
@@ -255,6 +298,8 @@ class Home:
                 kwargs['parser'] = self.parser_light
             elif isinstance(dev, Outlet):
                 kwargs['parser'] = self.parser_light
+            elif isinstance(dev, GasValve):
+                kwargs['parser'] = self.parser_gas
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
@@ -334,6 +379,13 @@ class Home:
                         category='state',
                         target=msg_dict['state']
                     )
+        elif 'gasvalve/command' in topic:
+            if 'state' in msg_dict.keys():
+                self.command(
+                    device=self.gasvalve,
+                    category='state',
+                    target=msg_dict['state']
+                )
 
     def onMqttClientLog(self, _, userdata, level, buf):
         if self.enable_mqtt_console_log:

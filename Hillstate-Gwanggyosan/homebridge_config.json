@@ -192,6 +192,29 @@
         },
         {
             "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Countertop Light (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/light/state/6/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/light/command/6/2",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "history": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
             "type": "outlet",
             "name": "Living room Outlet1 (MQTT)",
             "url": "yogyui.iptime.org:30003",
@@ -412,25 +435,29 @@
         },
         {
             "accessory": "mqttthing",
-            "type": "switch",
-            "name": "Countertop Light (MQTT)",
-            "url": "mosquitto broker url",
-            "username": "mosquitto auth id",
-            "password": "mosquitto auth password",
+            "type": "valve",
+            "valveType": "faucet",
+            "name": "Gas Valve (MQTT)",
+            "url": "yogyui.iptime.org:30003",
+            "username": "yogyui",
+            "password": "Lsh312453124%",
             "topics": {
-                "getOn": {
-                    "topic": "home/hillstate/light/state/6/2",
+                "setActive": {
+                    "topic": "home/hillstate/gasvalve/command",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getActive": {
+                    "topic": "home/hillstate/gasvalve/state",
                     "apply": "return JSON.parse(message).state;"
                 },
-                "setOn": {
-                    "topic": "home/hillstate/light/command/6/2",
-                    "apply": "return JSON.stringify({state: message});"
+                "getInUse": {
+                    "topic": "home/hillstate/gasvalve/state",
+                    "apply": "return JSON.parse(message).state;"
                 }
             },
             "integerValue": true,
             "onValue": 1,
             "offValue": 0,
-            "history": true,
             "logMqtt": true
         }
     ],

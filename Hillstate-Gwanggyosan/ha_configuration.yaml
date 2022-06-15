@@ -214,6 +214,16 @@ switch:
     payload_off: '{ "state": 0 }'
     retain: false
     icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "가스 밸브"
+    unique_id: "kitchengasvalve"
+    state_topic: "home/hillstate/gasvalve/state"
+    command_topic: "home/hillstate/gasvalve/command"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:pipe-valve
 
 http:
   ssl_certificate: ssl/fullchain.pem

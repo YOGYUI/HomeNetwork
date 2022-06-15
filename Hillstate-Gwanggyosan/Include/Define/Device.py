@@ -46,7 +46,7 @@ class Device:
         self.state = state
         if not self.init:
             self.publish_mqtt()
-            self.init = False
+            self.init = True
         if self.state != self.state_prev:
             self.publish_mqtt()
         self.state_prev = self.state

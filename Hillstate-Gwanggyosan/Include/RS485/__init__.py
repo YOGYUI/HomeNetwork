@@ -8,3 +8,4 @@ del CURPATH
 from SerialComm import SerialComm
 from SerialParser import SerialParser
 from ParserLight import ParserLight
+from ParserGas import ParserGas
