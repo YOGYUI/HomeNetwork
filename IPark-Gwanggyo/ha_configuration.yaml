@@ -1,0 +1,406 @@
+
+# Configure a default setup of Home Assistant (frontend, api, etc)
+default_config:
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+mqtt:
+  broker: your mosquitto address
+  port: your mosquitto port
+  username: your mosquitto auth id
+  password: your mosquitto auth password
+
+logger:
+  default: warning
+  logs:
+    homeassistant.components.mqtt: warning
+
+light:
+  - platform: mqtt
+    name: "거실 천장 1"
+    unique_id: "livingroomlight1"
+    schema: template
+    state_topic: "home/ipark/livingroom/light/state/0"
+    command_topic: "home/ipark/livingroom/light/command/0"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "거실 천장 2"
+    unique_id: "livingroomlight2"
+    schema: template
+    state_topic: "home/ipark/livingroom/light/state/1"
+    command_topic: "home/ipark/livingroom/light/command/1"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "주방 싱크대"
+    unique_id: "kitchenlight1"
+    schema: template
+    state_topic: "home/ipark/light/state/1/0"
+    command_topic: "home/ipark/light/command/1/0"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "주방 조리대"
+    unique_id: "kitchenlight2"
+    schema: template
+    state_topic: "home/ipark/light/state/1/1"
+    command_topic: "home/ipark/light/command/1/1"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "식탁"
+    unique_id: "kitchenlight3"
+    schema: template
+    state_topic: "home/ipark/light/state/1/2"
+    command_topic: "home/ipark/light/command/1/2"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "서재"
+    unique_id: "kitchenlight4"
+    schema: template
+    state_topic: "home/ipark/light/state/1/3"
+    command_topic: "home/ipark/light/command/1/3"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "침실 천장 1"
+    unique_id: "bedroomlight1"
+    schema: template
+    state_topic: "home/ipark/light/state/2/0"
+    command_topic: "home/ipark/light/command/2/0"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "침실 천장 2"
+    unique_id: "bedroomlight2"
+    schema: template
+    state_topic: "home/ipark/light/state/2/1"
+    command_topic: "home/ipark/light/command/2/1"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "컴퓨터방 천장 1"
+    unique_id: "pcroomlight1"
+    schema: template
+    state_topic: "home/ipark/light/state/3/0"
+    command_topic: "home/ipark/light/command/3/0"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "컴퓨터방 천장 2"
+    unique_id: "pcroomlight2"
+    schema: template
+    state_topic: "home/ipark/light/state/3/1"
+    command_topic: "home/ipark/light/command/3/1"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+
+climate:
+  - platform: mqtt
+    name: "거실 난방"
+    unique_id: "livingroomthermo"
+    modes:
+      - "off"
+      - "heat"
+    mode_state_topic: "home/ipark/thermostat/state/1"
+    mode_state_template: "{{ value_json.state.lower() }}"
+    mode_command_topic: "home/ipark/thermostat/command/1"
+    mode_command_template: >-
+      {% set values = {'off': '"OFF"', 'heat': '"HEAT"'} %}
+      { "state": {{ values[value] if value in values.keys() else "OFF" }} }
+    temperature_state_topic: "home/ipark/thermostat/state/1"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/ipark/thermostat/command/1"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/ipark/thermostat/state/1"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    min_temp: 5
+    max_temp: 40
+    precision: 0.1
+  - platform: mqtt
+    name: "침실 난방"
+    unique_id: "bedroomthermo"
+    modes:
+      - "off"
+      - "heat"
+    mode_state_topic: "home/ipark/thermostat/state/2"
+    mode_state_template: "{{ value_json.state.lower() }}"
+    mode_command_topic: "home/ipark/thermostat/command/2"
+    mode_command_template: >-
+      {% set values = {'off': '"OFF"', 'heat': '"HEAT"'} %}
+      { "state": {{ values[value] if value in values.keys() else "OFF" }} }
+    temperature_state_topic: "home/ipark/thermostat/state/2"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/ipark/thermostat/command/2"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/ipark/thermostat/state/2"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    min_temp: 5
+    max_temp: 40
+    precision: 0.1
+  - platform: mqtt
+    name: "컴퓨터방 난방"
+    unique_id: "pcroomthermo"
+    modes:
+      - "off"
+      - "heat"
+    mode_state_topic: "home/ipark/thermostat/state/3"
+    mode_state_template: "{{ value_json.state.lower() }}"
+    mode_command_topic: "home/ipark/thermostat/command/3"
+    mode_command_template: >-
+      {% set values = {'off': '"OFF"', 'heat': '"HEAT"'} %}
+      { "state": {{ values[value] if value in values.keys() else "OFF" }} }
+    temperature_state_topic: "home/ipark/thermostat/state/3"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/ipark/thermostat/command/3"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/ipark/thermostat/state/3"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    min_temp: 5
+    max_temp: 40
+    precision: 0.1
+
+fan:
+  - platform: mqtt
+    name: "전열교환기"
+    unique_id: "ventilator"
+    state_topic: "home/ipark/ventilator/state"
+    state_value_template: "{% if value_json.state %} ON {% else %} OFF {% endif %}"
+    command_topic: "home/ipark/ventilator/command"
+    command_template: >- 
+      {% set values = {'OFF': 0, 'ON': 1} %}
+      { "state": {{ values[value] if value in values.keys() else 0 }} }
+    percentage_state_topic: "home/ipark/ventilator/state"
+    percentage_value_template: "{{ value_json.rotationspeed }}"
+    percentage_command_topic: "home/ipark/ventilator/command"
+    percentage_command_template: '{ "rotationspeed": {{ value }} }'
+    speed_range_min: 1
+    speed_range_max: 100
+
+sensor:
+  - platform: mqtt
+    name: "엘리베이터 도착"
+    unique_id: "elevatorarrived"
+    state_topic: "home/ipark/elevator/state/occupancy"
+    value_template: "{% if value_json.state %} 'ON' {% else %} 'OFF' {% endif %}"
+    icon: mdi:elevator-passenger
+  - platform: mqtt
+    name: "거실 콘센트 1"
+    unique_id: "livingroomoutletsensor1"
+    state_topic: "home/ipark/outlet/state/1/0"
+    unit_of_measurement: "W"
+    value_template: "{{ value_json.watts }}"
+    icon: mdi:lightning-bolt
+  - platform: mqtt
+    name: "거실 콘센트 2"
+    unique_id: "livingroomoutletsensor2"
+    state_topic: "home/ipark/outlet/state/1/1"
+    unit_of_measurement: "W"
+    value_template: "{{ value_json.watts }}"
+    icon: mdi:lightning-bolt
+  - platform: mqtt
+    name: "거실 콘센트 3"
+    unique_id: "livingroomoutletsensor3"
+    state_topic: "home/ipark/outlet/state/1/2"
+    unit_of_measurement: "W"
+    value_template: "{{ value_json.watts }}"
+    icon: mdi:lightning-bolt
+  - platform: mqtt
+    name: "침실 콘센트 1"
+    unique_id: "bedroomoutletsensor1"
+    state_topic: "home/ipark/outlet/state/2/0"
+    unit_of_measurement: "W"
+    value_template: "{{ value_json.watts }}"
+    icon: mdi:lightning-bolt
+  - platform: mqtt
+    name: "침실 콘센트 2"
+    unique_id: "bedroomoutletsensor2"
+    state_topic: "home/ipark/outlet/state/2/1"
+    unit_of_measurement: "W"
+    value_template: "{{ value_json.watts }}"
+    icon: mdi:lightning-bolt
+  - platform: mqtt
+    name: "컴퓨터방 콘센트 1"
+    unique_id: "pcroomoutletsensor1"
+    state_topic: "home/ipark/outlet/state/3/0"
+    unit_of_measurement: "W"
+    value_template: "{{ value_json.watts }}"
+    icon: mdi:lightning-bolt
+  - platform: mqtt
+    name: "컴퓨터방 콘센트 2"
+    unique_id: "pcroomoutletsensor2"
+    state_topic: "home/ipark/outlet/state/3/1"
+    unit_of_measurement: "W"
+    value_template: "{{ value_json.watts }}"
+    icon: mdi:lightning-bolt
+# - platform: mqtt
+#    name: "외부 공기질"
+#    unique_id: "outerairgrade"
+#    state_topic: "home/ipark/airquality/state"
+#    value_template: >-
+#      {% set values = {'1': "좋음", '2': "보통", '3': "나쁨", '4': "매우나쁨"} %}
+#      {{ values[value_json.grade] if value_json.grade in values.keys() else '?'' }}
+  - platform: mqtt
+    name: "외부 미세먼지 (PM2.5) 농도"
+    unique_id: "outerairpm25"
+    state_topic: "home/ipark/airquality/state"
+    unit_of_measurement: "µg/m³"
+    value_template: '{{ value_json.pm25 }}'
+  - platform: mqtt
+    name: "외부 미세먼지 (PM10) 농도"
+    unique_id: "outerairpm10"
+    state_topic: "home/ipark/airquality/state"
+    unit_of_measurement: "µg/m³"
+    value_template: '{{ value_json.pm10 }}'
+  - platform: mqtt
+    name: "외부 오존 농도"
+    unique_id: "outerairo3"
+    state_topic: "home/ipark/airquality/state"
+    unit_of_measurement: "ppm"
+    value_template: '{{ value_json.o3 }}'
+  - platform: mqtt
+    name: "외부 이산화질소 농도"
+    unique_id: "outerairno2"
+    state_topic: "home/ipark/airquality/state"
+    unit_of_measurement: "ppm"
+    value_template: '{{ value_json.no2 }}'
+  - platform: mqtt
+    name: "외부 아황산가스 농도"
+    unique_id: "outerairso2"
+    state_topic: "home/ipark/airquality/state"
+    unit_of_measurement: "ppm"
+    value_template: '{{ value_json.so2 }}'
+  - platform: mqtt
+    name: "외부 일산화탄소 농도"
+    unique_id: "outerairco"
+    state_topic: "home/ipark/airquality/state"
+    unit_of_measurement: "ppm"
+    value_template: '{{ value_json.co }}'
+
+switch:
+  - platform: mqtt
+    name: "가스 밸브"
+    unique_id: "kitchengasvalve"
+    state_topic: "home/ipark/gasvalve/state"
+    command_topic: "home/ipark/gasvalve/command"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:pipe-valve
+  - platform: mqtt
+    name: "거실 콘센트 1"
+    unique_id: "livingroomoutlet1"
+    state_topic: "home/ipark/outlet/state/1/0"
+    command_topic: "home/ipark/outlet/command/1/0"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "거실 콘센트 2"
+    unique_id: "livingroomoutlet2"
+    state_topic: "home/ipark/outlet/state/1/1"
+    command_topic: "home/ipark/outlet/command/1/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "침실 콘센트 1"
+    unique_id: "bedroomoutlet1"
+    state_topic: "home/ipark/outlet/state/2/0"
+    command_topic: "home/ipark/outlet/command/2/0"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "침실 콘센트 2"
+    unique_id: "bedroomoutlet2"
+    state_topic: "home/ipark/outlet/state/2/1"
+    command_topic: "home/ipark/outlet/command/2/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "컴퓨터방 콘센트 1"
+    unique_id: "pcroomoutlet1"
+    state_topic: "home/ipark/outlet/state/3/0"
+    command_topic: "home/ipark/outlet/command/3/0"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "컴퓨터방 콘센트 2"
+    unique_id: "pcroomoutlet2"
+    state_topic: "home/ipark/outlet/state/3/1"
+    command_topic: "home/ipark/outlet/command/3/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "엘리베이터 호출 (하행)"
+    unique_id: "callelevatordown"
+    state_topic: "home/ipark/elevator/state/occupancy"
+    command_topic: "home/ipark/elevator/command/down"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:elevator-passenger
+
+http:
+  ssl_certificate: ssl/fullchain.pem
+  ssl_key: ssl/privkey.pem
+
+google_assistant:
+  project_id: your google assistant project id
+  service_account: !include gcp_service_account.json
+  report_state: true
+  expose_by_default: true
+  exposed_domains:
+    - switch
+    - light
+    - sensor
+    - fan
+    - button
+    - climate
+    - binary sensor

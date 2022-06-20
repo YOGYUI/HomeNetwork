@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% from "render.html" import render_field %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>Outlet Status</h1>
+</div>
+
+<div class="col-md-6">
+    {{ wtf.quick_form(form, id="form") }}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+setInterval(function() {$.ajax({
+    url: '/api/outlet_info/update',
+    type: 'POST',
+    success: function(response) {
+        document.getElementById("outlet_1_1").value = response["room1_outlet1"] + ' W';
+        document.getElementById("outlet_1_2").value = response["room1_outlet2"] + ' W';
+        document.getElementById("outlet_1_3").value = response["room1_outlet3"] + ' W';
+        document.getElementById("outlet_2_1").value = response["room2_outlet1"] + ' W';
+        document.getElementById("outlet_2_2").value = response["room2_outlet2"] + ' W';
+        document.getElementById("outlet_3_1").value = response["room3_outlet1"] + ' W';
+        document.getElementById("outlet_3_2").value = response["room3_outlet2"] + ' W';
+    },
+    error: function(error) {
+         console.log(error);
+    }
+})}, 1000);
+</script>
+{% endblock %}
