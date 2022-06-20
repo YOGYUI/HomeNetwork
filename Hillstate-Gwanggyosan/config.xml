@@ -6,14 +6,14 @@
     </webserver>
     <serial>
         <port_light>/dev/ttyUSB1</port_light>
-        <port_gas>/dev/ttyUSB0</port_gas>
+        <port_various>/dev/ttyUSB0</port_various>
     </serial>
     <mqtt>
         <host>mosquitto ip address</host>
         <port>mosquitto port</port>
         <username>mosquitto auth id</username>
         <password>mosquitto auth password</password>
-        <console_log>1</console_log>
+        <console_log>0</console_log>
     </mqtt>
     <rooms>
         <room1>
@@ -58,6 +58,24 @@
                     </mqtt>
                 </outlet2>
             </outlets>
+            <thermostat>
+                <exist>1</exist>
+                <range_min>18</range_min>
+                <range_max>30</range_max>
+                <mqtt>
+                    <publish>home/hillstate/thermostat/state/1</publish>
+                    <subscribe>home/hillstate/thermostat/command/1</subscribe>
+                </mqtt>
+            </thermostat>
+            <airconditioner>
+                <exist>1</exist>
+                <range_min>18</range_min>
+                <range_max>30</range_max>
+                <mqtt>
+                    <publish>home/hillstate/airconditioner/state/1</publish>
+                    <subscribe>home/hillstate/airconditioner/command/1</subscribe>
+                </mqtt>
+            </airconditioner>
         </room1>
         <room2>
             <name>Bedroom</name>
@@ -94,6 +112,24 @@
                     </mqtt>
                 </outlet2>
             </outlets>
+            <thermostat>
+                <exist>1</exist>
+                <range_min>18</range_min>
+                <range_max>30</range_max>
+                <mqtt>
+                    <publish>home/hillstate/thermostat/state/2</publish>
+                    <subscribe>home/hillstate/thermostat/command/2</subscribe>
+                </mqtt>
+            </thermostat>
+            <airconditioner>
+                <exist>1</exist>
+                <range_min>18</range_min>
+                <range_max>30</range_max>
+                <mqtt>
+                    <publish>home/hillstate/airconditioner/state/2</publish>
+                    <subscribe>home/hillstate/airconditioner/command/2</subscribe>
+                </mqtt>
+            </airconditioner>
         </room2>
         <room3>
             <name>Library</name>
@@ -123,6 +159,24 @@
                     </mqtt>
                 </outlet2>
             </outlets>
+            <thermostat>
+                <exist>1</exist>
+                <range_min>18</range_min>
+                <range_max>30</range_max>
+                <mqtt>
+                    <publish>home/hillstate/thermostat/state/3</publish>
+                    <subscribe>home/hillstate/thermostat/command/3</subscribe>
+                </mqtt>
+            </thermostat>
+            <airconditioner>
+                <exist>1</exist>
+                <range_min>18</range_min>
+                <range_max>30</range_max>
+                <mqtt>
+                    <publish>home/hillstate/airconditioner/state/3</publish>
+                    <subscribe>home/hillstate/airconditioner/command/3</subscribe>
+                </mqtt>
+            </airconditioner>
         </room3>
         <room4>
             <name>PC Room</name>
@@ -152,6 +206,24 @@
                     </mqtt>
                 </outlet2>
             </outlets>
+            <thermostat>
+                <exist>1</exist>
+                <range_min>18</range_min>
+                <range_max>30</range_max>
+                <mqtt>
+                    <publish>home/hillstate/thermostat/state/4</publish>
+                    <subscribe>home/hillstate/thermostat/command/4</subscribe>
+                </mqtt>
+            </thermostat>
+            <airconditioner>
+                <exist>1</exist>
+                <range_min>18</range_min>
+                <range_max>30</range_max>
+                <mqtt>
+                    <publish>home/hillstate/airconditioner/state/4</publish>
+                    <subscribe>home/hillstate/airconditioner/command/4</subscribe>
+                </mqtt>
+            </airconditioner>
         </room4>
         <room6>
             <name>Kitchen</name>
@@ -188,6 +260,24 @@
                     </mqtt>
                 </outlet2>
             </outlets>
+            <thermostat>
+                <exist>0</exist>
+                <range_min>18</range_min>
+                <range_max>30</range_max>
+                <mqtt>
+                    <publish>home/hillstate/thermostat/state/6</publish>
+                    <subscribe>home/hillstate/thermostat/command/6</subscribe>
+                </mqtt>
+            </thermostat>
+            <airconditioner>
+                <exist>0</exist>
+                <range_min>18</range_min>
+                <range_max>30</range_max>
+                <mqtt>
+                    <publish>home/hillstate/airconditioner/state/6</publish>
+                    <subscribe>home/hillstate/airconditioner/command/6</subscribe>
+                </mqtt>
+            </airconditioner>
         </room6>
     </rooms>
     <gasvalve>
@@ -196,4 +286,10 @@
             <subscribe>home/hillstate/gasvalve/command</subscribe>
         </mqtt>
     </gasvalve>
+    <ventilator>
+        <mqtt>
+            <publish>home/hillstate/ventilator/state</publish>
+            <subscribe>home/hillstate/ventilator/command</subscribe>
+        </mqtt>
+    </ventilator>
 </config>

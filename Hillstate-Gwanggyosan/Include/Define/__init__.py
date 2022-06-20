@@ -9,3 +9,6 @@ from Device import Device
 from Light import Light
 from Outlet import Outlet
 from GasValve import GasValve
+from Thermostat import Thermostat
+from Ventilator import Ventilator
+from AirConditioner import AirConditioner

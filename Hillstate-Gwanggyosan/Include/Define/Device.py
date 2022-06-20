@@ -42,7 +42,7 @@ class Device:
         repr_txt += '>'
         return repr_txt
 
-    def setState(self, state: int):
+    def setState(self, state: int, **kwargs):
         self.state = state
         if not self.init:
             self.publish_mqtt()

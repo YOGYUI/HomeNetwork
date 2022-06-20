@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import math
 import queue
 import threading
 from typing import Union
@@ -49,11 +50,34 @@ class ThreadCommandQueue(threading.Thread):
                             self.set_state_common(dev, target, parser)
                     elif isinstance(dev, GasValve):
                         if category == 'state':
-                            if target == 0:  # 밸브 여는것은 지원되지 않음!
+                            if target == 0:  
                                 self.set_state_common(dev, target, parser)
-                            else:
+                            else:  # 밸브 여는것은 지원되지 않음!
                                 packet_query = dev.makePacketQueryState()
                                 parser.sendPacket(packet_query)
+                    elif isinstance(dev, Thermostat):
+                        if category == 'state':
+                            if target == 'OFF':
+                                self.set_state_common(dev, 0, parser)
+                            elif target == 'HEAT':
+                                self.set_state_common(dev, 1, parser)
+                        elif category == 'temperature':
+                            self.set_temperature(dev, target, parser)
+                    elif isinstance(dev, Ventilator):
+                        if category == 'state':
+                            self.set_state_common(dev, target, parser)
+                        elif category == 'rotationspeed':
+                            self.set_rotation_speed(dev, target, parser)
+                    elif isinstance(dev, AirConditioner):
+                        if category == 'active':
+                            self.set_state_common(dev, target, parser)
+                            if target:
+                                self.set_airconditioner_mode(dev, 1, parser)  # 최초 가동 시 모드를 '냉방'으로 바꿔준다
+                                # self.set_rotation_speed(dev, 1, parser)  # 최초 가동 시 풍량을 '자동'으로 바꿔준다
+                        elif category == 'temperature':
+                            self.set_temperature(dev, target, parser)
+                        elif category == 'rotationspeed':
+                            self.set_rotation_speed(dev, target, parser)
                 except Exception as e:
                     writeLog(str(e), self)
             else:
@@ -78,6 +102,84 @@ class ThreadCommandQueue(threading.Thread):
                 break
             parser.sendPacket(packet_query)
             time.sleep(0.2)
-        writeLog('set_state_common::send # = {}'.format(cnt), self)
-        time.sleep(self._delay_response)
+        if cnt > 0:
+            writeLog('set_state_common::send # = {}'.format(cnt), self)
+            time.sleep(self._delay_response)
+        dev.publish_mqtt()
+
+    def set_temperature(self, dev: Thermostat, target: float, parser: SerialParser):
+        # 힐스테이트는 온도값 범위가 정수형이므로 올림처리해준다
+        target_temp = math.ceil(target)
+        cnt = 0
+        packet_command = dev.makePacketSetTemperature(target_temp)
+        packet_query = dev.makePacketQueryState()
+        for _ in range(self._retry_cnt):
+            if dev.temp_config == target_temp:
+                break
+            parser.sendPacket(packet_command)
+            cnt += 1
+            time.sleep(0.2)
+            if dev.temp_config == target_temp:
+                break
+            parser.sendPacket(packet_query)
+            time.sleep(0.2)
+        if cnt > 0:
+            writeLog('set_temperature::send # = {}'.format(cnt), self)
+            time.sleep(self._delay_response)
+        dev.publish_mqtt()
+
+    def set_rotation_speed(self, dev: Union[Ventilator, AirConditioner], target: int, parser: SerialParser):
+        if isinstance(dev, Ventilator):
+            # Speed 값 변환 (100단계의 풍량을 세단계로 나누어 1, 3, 7 중 하나로)
+            if target <= 30:
+                conv = 0x01
+            elif target <= 60:
+                conv = 0x03
+            else:
+                conv = 0x07
+        else:
+            # Speed 값 변환
+            if target <= 25:
+                conv = 0x01
+            elif target <= 50:
+                conv = 0x02
+            elif target <= 75:
+                conv = 0x03
+            else:
+                conv = 0x04
+        cnt = 0
+        packet_command = dev.makePacketSetRotationSpeed(conv)
+        packet_query = dev.makePacketQueryState()
+        for _ in range(self._retry_cnt):
+            if dev.rotation_speed == conv:
+                break
+            parser.sendPacket(packet_command)
+            cnt += 1
+            time.sleep(0.2)
+            if dev.rotation_speed == conv:
+                break
+            parser.sendPacket(packet_query)
+            time.sleep(0.2)
+        if cnt > 0:
+            writeLog('set_rotation_speed::send # = {}'.format(cnt), self)
+            time.sleep(self._delay_response)
+        dev.publish_mqtt()
+
+    def set_airconditioner_mode(self, dev: AirConditioner, target: int, parser: SerialParser):
+        cnt = 0
+        packet_command = dev.makePacketSetMode(target)
+        packet_query = dev.makePacketQueryState()
+        for _ in range(self._retry_cnt):
+            if dev.mode == target:
+                break
+            parser.sendPacket(packet_command)
+            cnt += 1
+            time.sleep(0.2)
+            if dev.mode == target:
+                break
+            parser.sendPacket(packet_query)
+            time.sleep(0.2)
+        if cnt > 0:
+            writeLog('set_airconditioner_mode::send # = {}'.format(cnt), self)
+            time.sleep(self._delay_response)
         dev.publish_mqtt()

@@ -16,6 +16,7 @@ class Home:
     device_list: List[Device]
     rooms: List[Room]
     gasvalve: GasValve
+    ventilator: Ventilator
 
     serial_baud: int = 9600
 
@@ -50,12 +51,12 @@ class Home:
         self.parser_light.sig_parse_result.connect(self.onParsePacketResult)
         self.parser_list.append(self.parser_light)
 
-        self.serial_port_gas: str = ''
-        self.serial_gas = SerialComm('Gas')
-        self.serial_list.append(self.serial_gas)
-        self.parser_gas = ParserGas(self.serial_gas)
-        self.parser_gas.sig_parse_result.connect(self.onParsePacketResult)
-        self.parser_list.append(self.parser_gas)
+        self.serial_port_various: str = ''
+        self.serial_various = SerialComm('Various')
+        self.serial_list.append(self.serial_various)
+        self.parser_various = ParserVarious(self.serial_various)
+        self.parser_various.sig_parse_result.connect(self.onParsePacketResult)
+        self.parser_list.append(self.parser_various)
 
         self.initialize(init_service, False)
     
@@ -78,11 +79,13 @@ class Home:
 
         self.initRoomsFromConfig(xml_path)
         self.gasvalve = GasValve(name='Gas Valve', mqtt_client=self.mqtt_client)
+        self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
 
         # append device list
         for room in self.rooms:
             self.device_list.extend(room.getDevices())
         self.device_list.append(self.gasvalve)
+        self.device_list.append(self.ventilator)
         
         self.loadConfig(xml_path)
 
@@ -135,21 +138,29 @@ class Home:
                 light_count = len(list(tag_lights))
                 tag_outlets = child.find('outlets')
                 outlet_count = len(list(tag_outlets))
+                tag_thermostat = child.find('thermostat')
+                tag_has_thermostat = tag_thermostat.find('exist')
+                has_thermostat = bool(int(tag_has_thermostat.text))
+                tag_airconditioner = child.find('airconditioner')
+                tag_has_airconditioner = tag_airconditioner.find('exist')
+                has_airconditioner = bool(int(tag_has_airconditioner.text))
                 room = Room(
                     name=name,
                     index=index,
                     light_count=light_count,
                     outlet_count=outlet_count,
+                    has_thermostat=has_thermostat,
+                    has_airconditioner=has_airconditioner,
                     mqtt_client=self.mqtt_client
                 )
                 self.rooms.append(room)
-            except Exception:
-                pass
+            except Exception as e:
+                writeLog(f"Failed to initializing room <{child.tag}> ({e})", self)
         writeLog(f'Initializing Room Finished ({len(self.rooms)})', self)
 
     def initSerialConnection(self):
         self.serial_light.connect(self.serial_port_light, self.serial_baud)
-        self.serial_gas.connect(self.serial_port_gas, self.serial_baud)
+        self.serial_various.connect(self.serial_port_various, self.serial_baud)
 
     def loadConfig(self, filepath: str):
         if not os.path.isfile(filepath):
@@ -159,7 +170,7 @@ class Home:
         node = root.find('serial')
         try:
             self.serial_port_light = node.find('port_light').text
-            self.serial_port_gas = node.find('port_gas').text
+            self.serial_port_various = node.find('port_various').text
         except Exception as e:
             writeLog(f"Failed to load serial port info ({e})", self)
 
@@ -197,6 +208,28 @@ class Home:
                                 mqtt_node = outlet_node.find('mqtt')
                                 room.outlets[j].mqtt_publish_topic = mqtt_node.find('publish').text
                                 room.outlets[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                    thermostat_node = room_node.find('thermostat')
+                    if thermostat_node is not None:
+                        range_min_node = thermostat_node.find('range_min')
+                        range_min = int(range_min_node.text)
+                        range_max_node = thermostat_node.find('range_max')
+                        range_max = int(range_max_node.text)
+                        mqtt_node = thermostat_node.find('mqtt')
+                        if room.has_thermostat:
+                            room.thermostat.setTemperatureRange(range_min, range_max)
+                            room.thermostat.mqtt_publish_topic = mqtt_node.find('publish').text
+                            room.thermostat.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                    airconditioner_node = room_node.find('airconditioner')
+                    if airconditioner_node is not None:
+                        range_min_node = airconditioner_node.find('range_min')
+                        range_min = int(range_min_node.text)
+                        range_max_node = airconditioner_node.find('range_max')
+                        range_max = int(range_max_node.text)
+                        mqtt_node = airconditioner_node.find('mqtt')
+                        if room.has_airconditioner:
+                            room.airconditioner.setTemperatureRange(range_min, range_max)
+                            room.airconditioner.mqtt_publish_topic = mqtt_node.find('publish').text
+                            room.airconditioner.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
                 else:
                     writeLog(f"Failed to find room{room.index} node", self)        
         except Exception as e:
@@ -209,6 +242,14 @@ class Home:
             self.gasvalve.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
         except Exception as e:
             writeLog(f"Failed to load gas valve config ({e})", self)
+        
+        node = root.find('ventilator')
+        try:
+            mqtt_node = node.find('mqtt')
+            self.ventilator.mqtt_publish_topic = mqtt_node.find('publish').text
+            self.ventilator.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+        except Exception as e:
+            writeLog(f"Failed to load ventilator config ({e})", self)        
 
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
@@ -285,9 +326,41 @@ class Home:
                     room_obj.lights[dev_idx].setState(state)
                 elif dev_type == 'outlet':
                     room_obj.outlets[dev_idx].setState(state)
-            elif result.get('device') == 'gasvalve':
+            elif dev_type == 'gasvalve':
                 state = result.get('state')
                 self.gasvalve.setState(state)
+            elif dev_type == 'thermostat':
+                room_idx = result.get('room_index')
+                room_obj = self.getRoomObjectByIndex(room_idx)
+                if room_obj.has_thermostat:
+                    state = result.get('state')
+                    temp_current = result.get('temp_current')
+                    temp_config = result.get('temp_config')
+                    room_obj.thermostat.setState(
+                        state, 
+                        temp_current=temp_current, 
+                        temp_config=temp_config
+                    )
+            elif dev_type == 'ventilator':
+                state = result.get('state')
+                rotation_speed = result.get('rotation_speed')
+                self.ventilator.setState(state, rotation_speed=rotation_speed)
+            elif dev_type == 'airconditioner':
+                room_idx = result.get('room_index')
+                room_obj = self.getRoomObjectByIndex(room_idx)
+                if room_obj.has_airconditioner:
+                    state = result.get('state')
+                    temp_current = result.get('temp_current')
+                    temp_config = result.get('temp_config')
+                    mode = result.get('mode')
+                    rotation_speed = result.get('rotation_speed')
+                    room_obj.airconditioner.setState(
+                        state,
+                        temp_current=temp_current, 
+                        temp_config=temp_config,
+                        mode=mode,
+                        rotation_speed=rotation_speed
+                    )
         except Exception as e:
             writeLog('handleSerialParseResult::Exception::{} ({})'.format(e, result), self)
 
@@ -299,7 +372,13 @@ class Home:
             elif isinstance(dev, Outlet):
                 kwargs['parser'] = self.parser_light
             elif isinstance(dev, GasValve):
-                kwargs['parser'] = self.parser_gas
+                kwargs['parser'] = self.parser_various
+            elif isinstance(dev, Thermostat):
+                kwargs['parser'] = self.parser_various
+            elif isinstance(dev, Ventilator):
+                kwargs['parser'] = self.parser_various
+            elif isinstance(dev, AirConditioner):
+                kwargs['parser'] = self.parser_various
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
@@ -339,7 +418,7 @@ class Home:
     def onMqttClientMessage(self, _, userdata, message):
         """
         Homebridge Publish, App Subscribe
-        사용자에 의한 명령 토픽 핸들링
+        사용자에 의한 명령 MQTT 토픽 핸들링
         """
         if self.enable_mqtt_console_log:
             writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
@@ -367,7 +446,7 @@ class Home:
                         category='state',
                         target=msg_dict['state']
                     )
-        elif 'outlet/command' in topic:
+        if 'outlet/command' in topic:
             splt = topic.split('/')
             room_idx = int(splt[-2])
             dev_idx = int(splt[-1]) - 1
@@ -379,13 +458,77 @@ class Home:
                         category='state',
                         target=msg_dict['state']
                     )
-        elif 'gasvalve/command' in topic:
+        if 'gasvalve/command' in topic:
             if 'state' in msg_dict.keys():
                 self.command(
                     device=self.gasvalve,
                     category='state',
                     target=msg_dict['state']
                 )
+        if 'thermostat/command' in topic:
+            splt = topic.split('/')
+            room_idx = int(splt[-1])
+            room = self.getRoomObjectByIndex(room_idx)
+            if room is not None and room.has_thermostat:
+                if 'state' in msg_dict.keys():
+                    self.command(
+                        device=room.thermostat,
+                        category='state',
+                        target=msg_dict['state']
+                    )
+                if 'targetTemperature' in msg_dict.keys():
+                    self.command(
+                        device=room.thermostat,
+                        category='temperature',
+                        target=msg_dict['targetTemperature']
+                    )
+        if 'ventilator/command' in topic:
+            if 'state' in msg_dict.keys():
+                self.command(
+                    device=self.ventilator,
+                    category='state',
+                    target=msg_dict['state']
+                )
+            if 'rotationspeed' in msg_dict.keys():
+                if self.ventilator.state == 1:
+                    # 전원이 켜져있을 경우에만 풍량설정 가능하도록..
+                    # 최초 전원 ON시 풍량 '약'으로 설정!
+                    self.command(
+                        device=self.ventilator,
+                        category='rotationspeed',
+                        target=msg_dict['rotationspeed']
+                    )
+        if 'airconditioner/command' in topic:
+            splt = topic.split('/')
+            room_idx = int(splt[-1])
+            room = self.getRoomObjectByIndex(room_idx)
+            if room is not None and room.has_airconditioner:
+                if 'active' in msg_dict.keys():
+                    self.command(
+                        device=room.airconditioner,
+                        category='active',
+                        target=msg_dict['active']
+                    )
+                if 'targetTemperature' in msg_dict.keys():
+                    self.command(
+                        device=room.airconditioner,
+                        category='temperature',
+                        target=msg_dict['targetTemperature']
+                    )
+                if 'rotationspeed' in msg_dict.keys():
+                    self.command(
+                        device=room.airconditioner,
+                        category='rotationspeed',
+                        target=msg_dict['rotationspeed']
+                    )
+                if 'rotationspeed_name' in msg_dict.keys():  # for HA
+                    speed_dict = {'Max': 100, 'Medium': 75, 'Min': 50, 'Auto': 25}
+                    target = speed_dict[msg_dict['rotationspeed_name']]
+                    self.command(
+                        device=room.airconditioner,
+                        category='rotationspeed',
+                        target=target
+                    )
 
     def onMqttClientLog(self, _, userdata, level, buf):
         if self.enable_mqtt_console_log:

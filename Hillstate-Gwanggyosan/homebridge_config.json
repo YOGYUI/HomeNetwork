@@ -459,6 +459,415 @@
             "onValue": 1,
             "offValue": 0,
             "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "thermostat",
+            "name": "Livingroom Thermostat (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getCurrentHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/state/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setTargetHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/command/1",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getTargetHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/state/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/hillstate/thermostat/state/1",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "setTargetTemperature": {
+                    "topic": "home/hillstate/thermostat/command/1",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                },
+                "getTargetTemperature": {
+                    "topic": "home/hillstate/thermostat/state/1",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                }
+            },
+            "minTemperature": 18,
+            "maxTemperature": 30,
+            "restrictHeatingCoolingState": [
+                0,
+                1
+            ],
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "thermostat",
+            "name": "Bedroom Thermostat (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getCurrentHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/state/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setTargetHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/command/2",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getTargetHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/state/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/hillstate/thermostat/state/2",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "setTargetTemperature": {
+                    "topic": "home/hillstate/thermostat/command/2",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                },
+                "getTargetTemperature": {
+                    "topic": "home/hillstate/thermostat/state/2",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                }
+            },
+            "minTemperature": 18,
+            "maxTemperature": 30,
+            "restrictHeatingCoolingState": [
+                0,
+                1
+            ],
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "thermostat",
+            "name": "Library Thermostat (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getCurrentHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/state/3",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setTargetHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/command/3",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getTargetHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/state/3",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/hillstate/thermostat/state/3",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "setTargetTemperature": {
+                    "topic": "home/hillstate/thermostat/command/3",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                },
+                "getTargetTemperature": {
+                    "topic": "home/hillstate/thermostat/state/3",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                }
+            },
+            "minTemperature": 18,
+            "maxTemperature": 30,
+            "restrictHeatingCoolingState": [
+                0,
+                1
+            ],
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "thermostat",
+            "name": "PC Room Thermostat (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getCurrentHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/state/4",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setTargetHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/command/4",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getTargetHeatingCoolingState": {
+                    "topic": "home/hillstate/thermostat/state/4",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/hillstate/thermostat/state/4",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "setTargetTemperature": {
+                    "topic": "home/hillstate/thermostat/command/4",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                },
+                "getTargetTemperature": {
+                    "topic": "home/hillstate/thermostat/state/4",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                }
+            },
+            "minTemperature": 18,
+            "maxTemperature": 30,
+            "restrictHeatingCoolingState": [
+                0,
+                1
+            ],
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "fan",
+            "name": "Ventilator (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "caption": "Ventilator(MQTT)",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/ventilator/state",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/ventilator/command",
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getRotationSpeed": {
+                    "topic": "home/hillstate/ventilator/state",
+                    "apply": "return JSON.parse(message).rotationspeed;"
+                },
+                "setRotationSpeed": {
+                    "topic": "home/hillstate/ventilator/command",
+                    "apply": "return JSON.stringify({rotationspeed: message});"
+                }
+            },
+            "integerValue": true,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "heaterCooler",
+            "name": "Livingroom AirConditioner (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getActive": {
+                    "topic": "home/hillstate/airconditioner/state/1",
+                    "apply": "return JSON.parse(message).active;"
+                },
+                "setActive": {
+                    "topic": "home/hillstate/airconditioner/command/1",
+                    "apply": "return JSON.stringify({active: message});"
+                },
+                "getCurrentHeaterCoolerState": {
+                    "topic": "home/hillstate/airconditioner/state/1",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getRotationSpeed": {
+                    "topic": "home/hillstate/airconditioner/state/1",
+                    "apply": "return JSON.parse(message).rotationspeed;"
+                },
+                "setRotationSpeed": {
+                    "topic": "home/hillstate/airconditioner/command/1",
+                    "apply": "return JSON.stringify({rotationspeed: message});"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/hillstate/airconditioner/state/1",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "getCoolingThresholdTemperature": {
+                    "topic": "home/hillstate/airconditioner/state/1",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                },
+                "setCoolingThresholdTemperature": {
+                    "topic": "home/hillstate/airconditioner/command/1",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                }
+            },
+            "integerValue": true,
+            "minTemperature": 18,
+            "maxTemperature": 30,
+            "targetHeaterCoolerValues": [
+                0,
+                1,
+                2
+            ],
+            "restrictHeaterCoolerState": [
+                2
+            ],
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "heaterCooler",
+            "name": "Bedroom AirConditioner (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getActive": {
+                    "topic": "home/hillstate/airconditioner/state/2",
+                    "apply": "return JSON.parse(message).active;"
+                },
+                "setActive": {
+                    "topic": "home/hillstate/airconditioner/command/2",
+                    "apply": "return JSON.stringify({active: message});"
+                },
+                "getCurrentHeaterCoolerState": {
+                    "topic": "home/hillstate/airconditioner/state/2",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getRotationSpeed": {
+                    "topic": "home/hillstate/airconditioner/state/2",
+                    "apply": "return JSON.parse(message).rotationspeed;"
+                },
+                "setRotationSpeed": {
+                    "topic": "home/hillstate/airconditioner/command/2",
+                    "apply": "return JSON.stringify({rotationspeed: message});"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/hillstate/airconditioner/state/2",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "getCoolingThresholdTemperature": {
+                    "topic": "home/hillstate/airconditioner/state/2",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                },
+                "setCoolingThresholdTemperature": {
+                    "topic": "home/hillstate/airconditioner/command/2",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                }
+            },
+            "integerValue": true,
+            "minTemperature": 18,
+            "maxTemperature": 30,
+            "targetHeaterCoolerValues": [
+                0,
+                1,
+                2
+            ],
+            "restrictHeaterCoolerState": [
+                2
+            ],
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "heaterCooler",
+            "name": "Library AirConditioner (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getActive": {
+                    "topic": "home/hillstate/airconditioner/state/3",
+                    "apply": "return JSON.parse(message).active;"
+                },
+                "setActive": {
+                    "topic": "home/hillstate/airconditioner/command/3",
+                    "apply": "return JSON.stringify({active: message});"
+                },
+                "getCurrentHeaterCoolerState": {
+                    "topic": "home/hillstate/airconditioner/state/3",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getRotationSpeed": {
+                    "topic": "home/hillstate/airconditioner/state/3",
+                    "apply": "return JSON.parse(message).rotationspeed;"
+                },
+                "setRotationSpeed": {
+                    "topic": "home/hillstate/airconditioner/command/3",
+                    "apply": "return JSON.stringify({rotationspeed: message});"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/hillstate/airconditioner/state/3",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "getCoolingThresholdTemperature": {
+                    "topic": "home/hillstate/airconditioner/state/3",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                },
+                "setCoolingThresholdTemperature": {
+                    "topic": "home/hillstate/airconditioner/command/3",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                }
+            },
+            "integerValue": true,
+            "minTemperature": 18,
+            "maxTemperature": 30,
+            "targetHeaterCoolerValues": [
+                0,
+                1,
+                2
+            ],
+            "restrictHeaterCoolerState": [
+                2
+            ],
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "heaterCooler",
+            "name": "PC Room AirConditioner (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getActive": {
+                    "topic": "home/hillstate/airconditioner/state/4",
+                    "apply": "return JSON.parse(message).active;"
+                },
+                "setActive": {
+                    "topic": "home/hillstate/airconditioner/command/4",
+                    "apply": "return JSON.stringify({active: message});"
+                },
+                "getCurrentHeaterCoolerState": {
+                    "topic": "home/hillstate/airconditioner/state/4",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getRotationSpeed": {
+                    "topic": "home/hillstate/airconditioner/state/4",
+                    "apply": "return JSON.parse(message).rotationspeed;"
+                },
+                "setRotationSpeed": {
+                    "topic": "home/hillstate/airconditioner/command/4",
+                    "apply": "return JSON.stringify({rotationspeed: message});"
+                },
+                "getCurrentTemperature": {
+                    "topic": "home/hillstate/airconditioner/state/4",
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "getCoolingThresholdTemperature": {
+                    "topic": "home/hillstate/airconditioner/state/4",
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                },
+                "setCoolingThresholdTemperature": {
+                    "topic": "home/hillstate/airconditioner/command/4",
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                }
+            },
+            "integerValue": true,
+            "minTemperature": 18,
+            "maxTemperature": 30,
+            "targetHeaterCoolerValues": [
+                0,
+                1,
+                2
+            ],
+            "restrictHeaterCoolerState": [
+                2
+            ],
+            "logMqtt": true
         }
     ],
     "platforms": [
