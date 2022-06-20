@@ -1,0 +1,72 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}YOGYUI 힐스테이트 광교산{% endblock %}
+
+{% block head %}
+{{ super() }}
+<!--<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">-->
+<!--<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">-->
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }} " type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+{% endblock %}
+
+{% block navbar %}
+<div class="navbar navbar-inverse" role="navigation">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <h1 class="navbar-brand" id="bannerlabel">
+                <a class="navbar-brand" title="홈" href="{{ url_for('main.index') }}">홈</a>
+            </h1>
+        </div>
+        <div class="navbar-collapse collapse">
+            {% if session['o365_user_info'] %}
+            {% endif %}
+            <ul class="nav navbar-nav">
+                <li><a href="{{ url_for('api.light_ctrl') }}">조명</a></li>
+                <li><a href="{{ url_for('api.outlet_ctrl') }}">콘센트</a></li>
+            </ul>
+
+            <ul class="nav navbar-nav navbar-right">
+                <!--
+                {% if session['o365_user_info'] %}
+                <button class="btn" onclick="window.location.href='{{ url_for('auth.o365_sign_out') }}'">
+                    <span class="label">SIGN OUT</span>
+                </button>
+                {% endif %}
+                -->
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        {% for message in get_flashed_messages() %}
+        <div class="alert alert-warning">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            {{ message }}
+        </div>
+        {% endfor %}
+
+        {% block page_content %}
+        {% endblock %}
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>Designed by <a href="https://yogyui.tistory.com">YOGYUI</a></p>
+        </div>
+    </footer>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{{ moment.include_moment() }}
+{% endblock %}
