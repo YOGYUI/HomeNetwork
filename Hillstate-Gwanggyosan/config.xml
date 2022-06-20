@@ -13,7 +13,7 @@
         <port>mosquitto port</port>
         <username>mosquitto auth id</username>
         <password>mosquitto auth password</password>
-        <console_log>1</console_log>
+        <console_log>0</console_log>
     </mqtt>
     <rooms>
         <room1>
