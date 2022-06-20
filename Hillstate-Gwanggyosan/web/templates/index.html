@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block page_content %}
+<div class="page-header">
+    <!--
+    {% if session['o365_user_info'] %}
+    {% else %}
+    {% endif %}
+    -->
+    <h1>YOGYUI 힐스테이트 광교산 홈네트워크</h1>
+</div>
+<div class="col-md-6">
+    <!--
+    {% if not session['o365_user_info'] %}
+    <button class="btn" onclick="window.location.href='{{ o365_sign_in_url }}'">
+        <span class="label">SIGN IN</span>
+    </button>
+    {% else %}
+    <button class="btn" onclick="window.location.href='{{ url_for('auth.o365_sign_out') }}'">
+        <span class="label">SIGN OUT</span>
+    </button>
+    {% endif %}
+    -->
+    <h3><a href="{{ url_for('api.light_ctrl') }}">조명</a></h3>
+    <h3><a href="{{ url_for('api.outlet_ctrl') }}">콘센트</a></h3>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% endblock %}
