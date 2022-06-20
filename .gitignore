@@ -1,0 +1,5 @@
+/.idea
+*.pyc
+IPark-Gwanggyo/test/crc8list.pkl
+IPark-Gwanggyo/config.xml
+IPark-Gwanggyo/uwsgi.ini

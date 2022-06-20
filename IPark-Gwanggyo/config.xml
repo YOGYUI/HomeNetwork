@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<config>
+    <webserver>
+        <host>0.0.0.0</host>
+        <port>31245</port>
+    </webserver>
+    <serial>
+        <port_energy>/dev/rs485_energy</port_energy>
+        <port_control>/dev/rs485_control</port_control>
+        <port_smart1>/dev/rs485_smart1</port_smart1>
+        <port_smart2>/dev/rs485_smart2</port_smart2>
+    </serial>
+    <mqtt>
+        <host>yogyui.iptime.org</host>
+        <port>30003</port>
+        <username>yogyui</username>
+        <password>Lsh312453124%</password>
+        <console_log>0</console_log>
+    </mqtt>
+    <rooms>
+        <room1>
+            <name>Kitchen</name>
+            <index>1</index>
+            <light0>
+                <on>02 31 0D 01 D0 01 81 00 00 00 00 04 76</on>
+                <off>02 31 0D 01 D7 01 01 00 00 00 00 00 F5</off>
+                <get>02 31 07 11 9B 01 C0</get>
+                <mqtt>
+                    <publish>home/ipark/light/state/1/0</publish>
+                    <subscribe>home/ipark/light/command/1/0</subscribe>
+                </mqtt>
+            </light0>
+            <light1>
+                <on>02 31 0D 01 58 01 82 00 00 00 00 04 E9</on>
+                <off>02 31 0D 01 5F 01 02 00 00 00 00 00 6A</off>
+                <get>02 31 07 11 9B 01 C0</get>
+                <mqtt>
+                    <publish>home/ipark/light/state/1/1</publish>
+                    <subscribe>home/ipark/light/command/1/1</subscribe>
+                </mqtt>
+            </light1>
+            <light2>
+                <on>02 31 0D 01 5C 01 84 00 00 00 00 04 EF</on>
+                <off>02 31 0D 01 63 01 04 00 00 00 00 00 6C</off>
+                <get>02 31 07 11 9B 01 C0</get>
+                <mqtt>
+                    <publish>home/ipark/light/state/1/2</publish>
+                    <subscribe>home/ipark/light/command/1/2</subscribe>
+                </mqtt>
+            </light2>
+            <light3>
+                <on>02 31 0D 01 2B 01 88 00 00 00 00 04 94</on>
+                <off>02 31 0D 01 33 01 08 00 00 00 00 00 20</off>
+                <get>02 31 07 11 9B 01 C0</get>
+                <mqtt>
+                    <publish>home/ipark/light/state/1/3</publish>
+                    <subscribe>home/ipark/light/command/1/3</subscribe>
+                </mqtt>
+            </light3>
+            <thermostat>
+                <on>02 28 0E 12 E9 01 01 00 00 00 00 00 00 E3</on>
+                <off>02 28 0E 12 F7 01 02 00 00 00 00 00 00 C8</off>
+                <get>02 28 07 11 CC 01 F4</get>
+                <mqtt>
+                    <publish>home/ipark/thermostat/state/1</publish>
+                    <subscribe>home/ipark/thermostat/command/1</subscribe>
+                </mqtt>
+            </thermostat>
+			<outlet0>
+                <on>02 31 0D 01 FC 01 00 81 00 00 00 09 4F</on>
+                <off>02 31 0D 01 D8 01 00 01 00 00 00 00 EC</off>
+                <get>02 31 07 11 9B 01 C0</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/1/0</publish>
+                    <subscribe>home/ipark/outlet/command/1/0</subscribe>
+                </mqtt>
+            </outlet0>
+            <outlet1>
+                <on>02 31 0D 01 D5 01 00 82 00 00 00 12 62</on>
+                <off>02 31 0D 01 0A 01 00 02 00 00 00 00 3F</off>
+                <get>02 31 07 11 9B 01 C0</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/1/1</publish>
+                    <subscribe>home/ipark/outlet/command/1/1</subscribe>
+                </mqtt>
+            </outlet1>
+            <outlet2>
+                <on></on>
+                <off></off>
+                <get>02 31 07 11 9B 01 C0</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/1/2</publish>
+                    <subscribe>home/ipark/outlet/command/1/2</subscribe>
+                </mqtt>
+            </outlet2>
+        </room1>
+        <room2>
+            <name>Bedroom</name>
+            <index>2</index>
+            <light0>
+                <on>02 31 0D 01 8C 02 81 00 00 00 00 04 3F</on>
+                <off>02 31 0D 01 93 02 01 00 00 00 00 00 B8</off>
+                <get>02 31 07 11 93 02 B5</get>
+                <mqtt>
+                    <publish>home/ipark/light/state/2/0</publish>
+                    <subscribe>home/ipark/light/command/2/0</subscribe>
+                </mqtt>
+            </light0>
+            <light1>
+                <on>02 31 0D 01 7B 02 82 00 00 00 00 04 CB</on>
+                <off>02 31 0D 01 84 02 02 00 00 00 00 00 C4</off>
+                <get>02 31 07 11 93 02 B5</get>
+                <mqtt>
+                    <publish>home/ipark/light/state/2/1</publish>
+                    <subscribe>home/ipark/light/command/2/1</subscribe>
+                </mqtt>
+            </light1>
+            <thermostat>
+                <on>02 28 0E 12 D3 02 01 00 00 00 00 00 00 EE</on>
+                <off>02 28 0E 12 DD 02 02 00 00 00 00 00 00 F5</off>
+                <get>02 28 07 11 D0 02 ED</get>
+                <mqtt>
+                    <publish>home/ipark/thermostat/state/2</publish>
+                    <subscribe>home/ipark/thermostat/command/2</subscribe>
+                </mqtt>
+            </thermostat>
+			<outlet0>
+                <on>02 31 0D 01 B3 02 00 81 00 00 00 09 11</on>
+                <off>02 31 0D 01 05 02 00 01 00 00 00 00 40</off>
+                <get>02 31 07 11 93 02 B5</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/2/0</publish>
+                    <subscribe>home/ipark/outlet/command/2/0</subscribe>
+                </mqtt>
+            </outlet0>
+            <outlet1>
+                <on>02 31 0D 01 65 02 00 82 00 00 00 12 CF</on>
+                <off>02 31 0D 01 81 02 00 02 00 00 00 00 C1</off>
+                <get>02 31 07 11 93 02 B5</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/2/1</publish>
+                    <subscribe>home/ipark/outlet/command/2/1</subscribe>
+                </mqtt>
+            </outlet1>
+        </room2>
+        <room3>
+            <name>Computer</name>
+            <index>3</index>
+            <light0>
+                <on>02 31 0D 01 3B 03 81 00 00 00 00 04 97</on>
+                <off>02 31 0D 01 43 03 01 00 00 00 00 00 8B</off>
+                <get>02 31 07 11 94 03 B1</get>
+                <mqtt>
+                    <publish>home/ipark/light/state/3/0</publish>
+                    <subscribe>home/ipark/light/command/3/0</subscribe>
+                </mqtt>
+            </light0>
+            <light1>
+                <on>02 31 0D 01 76 03 82 00 00 00 00 04 D5</on>
+                <off>02 31 0D 01 7E 03 02 00 00 00 00 00 49</off>
+                <get>02 31 07 11 94 03 B1</get>
+                <mqtt>
+                    <publish>home/ipark/light/state/3/1</publish>
+                    <subscribe>home/ipark/light/command/3/1</subscribe>
+                </mqtt>
+            </light1>
+            <thermostat>
+                <on>02 28 0E 12 7E 03 01 00 00 00 00 00 00 58</on>
+                <off>02 28 0E 12 87 03 02 00 00 00 00 00 00 BA</off>
+                <get>02 28 07 11 D4 03 EA</get>
+                <mqtt>
+                    <publish>home/ipark/thermostat/state/3</publish>
+                    <subscribe>home/ipark/thermostat/command/3</subscribe>
+                </mqtt>
+            </thermostat>
+			<outlet0>
+                <on>02 31 0D 01 B1 03 00 81 00 00 00 09 1C</on>
+                <off>02 31 0D 01 44 03 00 01 00 00 00 00 82</off>
+                <get>02 28 07 11 D4 03 EA</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/3/0</publish>
+                    <subscribe>home/ipark/outlet/command/3/0</subscribe>
+                </mqtt>
+            </outlet0>
+            <outlet1>
+                <on>02 31 0D 01 E8 03 00 82 00 00 00 12 4D</on>
+                <off>02 31 0D 01 6E 03 00 02 00 00 00 00 55</off>
+                <get>02 28 07 11 D4 03 EA</get>
+                <mqtt>
+                    <publish>home/ipark/outlet/state/3/1</publish>
+                    <subscribe>home/ipark/outlet/command/3/1</subscribe>
+                </mqtt>
+            </outlet1>
+        </room3>
+    </rooms>
+    <gasvalve>
+        <off>02 31 02 3C 00 00 00 00 00 11</off>
+        <get>02 31 00 38 00 00 00 00 00 13</get>
+        <mqtt>
+            <publish>home/ipark/gasvalve/state</publish>
+            <subscribe>home/ipark/gasvalve/command</subscribe>
+        </mqtt>
+    </gasvalve>
+    <ventilator>
+        <on>02 61 01 E3 00 01 01 00 00 89</on>
+        <off>02 61 01 4C 00 00 01 00 00 2F</off>
+        <get>02 61 00 F1 00 00 00 00 00 9A</get>
+        <speed>
+            02 61 03 EB 00 00 01 00 00 8A
+            02 61 03 94 00 00 02 00 00 00
+            02 61 03 9F 00 00 03 00 00 FC
+        </speed>
+        <mqtt>
+            <publish>home/ipark/ventilator/state</publish>
+            <subscribe>home/ipark/ventilator/command</subscribe>
+        </mqtt>
+    </ventilator>
+    <elevator>
+        <myfloor>15</myfloor>
+        <mqtt>
+            <publish>home/ipark/elevator/state</publish>
+            <subscribe>
+                home/ipark/elevator/command/up
+                home/ipark/elevator/command/down
+            </subscribe>
+        </mqtt>
+    </elevator>
+    <thermo_temp_packet>
+        02 28 0E 12 FE 01 00 05 00 00 00 00 00 D0
+        02 28 0E 12 11 01 00 45 00 00 00 00 00 69
+        02 28 0E 12 42 01 00 06 00 00 00 00 00 83
+        02 28 0E 12 5F 01 00 46 00 00 00 00 00 30
+        02 28 0E 12 70 01 00 07 00 00 00 00 00 54
+        02 28 0E 12 82 01 00 47 00 00 00 00 00 02
+        02 28 0E 12 95 01 00 08 00 00 00 00 00 B0
+        02 28 0E 12 A4 01 00 48 00 00 00 00 00 E3
+        02 28 0E 12 B2 01 00 09 00 00 00 00 00 88
+        02 28 0E 12 00 01 00 49 00 00 00 00 00 76
+        02 28 0E 12 11 01 00 0A 00 00 00 00 00 32
+        02 28 0E 12 23 01 00 4A 00 00 00 00 00 58
+        02 28 0E 12 34 01 00 0B 00 00 00 00 00 14
+        02 28 0E 12 42 01 00 4B 00 00 00 00 00 36
+        02 28 0E 12 54 01 00 0C 00 00 00 00 00 6F
+        02 28 0E 12 62 01 00 4C 00 00 00 00 00 1D
+        02 28 0E 12 70 01 00 0D 00 00 00 00 00 4A
+        02 28 0E 12 82 01 00 4D 00 00 00 00 00 FC
+        02 28 0E 12 93 01 00 0E 00 00 00 00 00 AC
+        02 28 0E 12 A4 01 00 4E 00 00 00 00 00 E1
+        02 28 0E 12 B7 01 00 0F 00 00 00 00 00 91
+        02 28 0E 12 C6 01 00 4F 00 00 00 00 00 BE
+        02 28 0E 12 D8 01 00 10 00 00 00 00 00 E7
+        02 28 0E 12 FF 01 00 50 00 00 00 00 00 A2
+        02 28 0E 12 16 01 00 11 00 00 00 00 00 3C
+        02 28 0E 12 2D 01 00 51 00 00 00 00 00 51
+        02 28 0E 12 44 01 00 12 00 00 00 00 00 6D
+        02 28 0E 12 56 01 00 52 00 00 00 00 00 3B
+        02 28 0E 12 6A 01 00 13 00 00 00 00 00 76
+        02 28 0E 12 7D 01 00 53 00 00 00 00 00 1F
+        02 28 0E 12 8E 01 00 14 00 00 00 00 00 B1
+        02 28 0E 12 9F 01 00 54 00 00 00 00 00 FE
+        02 28 0E 12 AC 01 00 15 00 00 00 00 00 8E
+        02 28 0E 12 BE 01 00 55 00 00 00 00 00 E0
+        02 28 0E 12 CB 01 00 16 00 00 00 00 00 1C
+        02 28 0E 12 D9 01 00 56 00 00 00 00 00 BE
+        02 28 0E 12 EB 01 00 17 00 00 00 00 00 FD
+        02 28 0E 12 F9 01 00 57 00 00 00 00 00 9F
+        02 28 0E 12 07 01 00 18 00 00 00 00 00 32
+        02 28 0E 12 15 01 00 58 00 00 00 00 00 80
+        02 28 0E 12 23 01 00 19 00 00 00 00 00 07
+        02 28 0E 12 31 01 00 59 00 00 00 00 00 65
+        02 28 0E 12 43 01 00 1A 00 00 00 00 00 68
+        02 28 0E 12 50 01 00 5A 00 00 00 00 00 39
+        02 28 0E 12 62 01 00 1B 00 00 00 00 00 46
+        02 28 0E 12 73 01 00 5B 00 00 00 00 00 19
+        02 28 0E 12 84 01 00 1C 00 00 00 00 00 AF
+        02 28 0E 12 91 01 00 5C 00 00 00 00 00 00
+        02 28 0E 12 A3 01 00 1D 00 00 00 00 00 8B
+        02 28 0E 12 B4 01 00 5D 00 00 00 00 00 DE
+        02 28 0E 12 CB 01 00 1E 00 00 00 00 00 24
+        02 28 0E 12 DA 01 00 5E 00 00 00 00 00 B3
+        02 28 0E 12 EC 01 00 1F 00 00 00 00 00 C8
+        02 28 0E 12 FD 01 00 5F 00 00 00 00 00 9B
+        02 28 0E 12 0A 01 00 20 00 00 00 00 00 69
+        02 28 0E 12 18 01 00 60 00 00 00 00 00 57
+        02 28 0E 12 2D 01 00 21 00 00 00 00 00 41
+        02 28 0E 12 47 01 00 61 00 00 00 00 00 1B
+        02 28 0E 12 5A 01 00 22 00 00 00 00 00 57
+        02 28 0E 12 6D 01 00 62 00 00 00 00 00 3E
+        02 28 0E 12 7E 01 00 23 00 00 00 00 00 72
+        02 28 0E 12 95 01 00 63 00 00 00 00 00 C7
+        02 28 0E 12 A8 01 00 24 00 00 00 00 00 8B
+        02 28 0E 12 BB 01 00 64 00 00 00 00 00 FA
+        02 28 0E 12 CC 01 00 25 00 00 00 00 00 DE
+        02 28 0E 12 DF 01 00 65 00 00 00 00 00 8F
+        02 28 0E 12 F0 01 00 26 00 00 00 00 00 F5
+        02 28 0E 12 01 01 00 66 00 00 00 00 00 56
+        02 28 0E 12 14 01 00 27 00 00 00 00 00 08
+        02 28 0E 12 27 01 00 67 00 00 00 00 00 79
+        02 28 0E 12 38 01 00 28 00 00 00 00 00 3F
+        02 28 0E 12 32 02 00 05 00 00 00 00 00 0F
+        02 28 0E 12 45 02 00 45 00 00 00 00 00 36
+        02 28 0E 12 54 02 00 06 00 00 00 00 00 6A
+        02 28 0E 12 62 02 00 46 00 00 00 00 00 20
+        02 28 0E 12 72 02 00 07 00 00 00 00 00 51
+        02 28 0E 12 81 02 00 47 00 00 00 00 00 04
+        02 28 0E 12 8E 02 00 08 00 00 00 00 00 CE
+        02 28 0E 12 9B 02 00 48 00 00 00 00 00 ED
+        02 28 0E 12 A8 02 00 09 00 00 00 00 00 9D
+        02 28 0E 12 B7 02 00 49 00 00 00 00 00 D0
+        02 28 0E 12 D4 02 00 0A 00 00 00 00 00 EE
+        02 28 0E 12 E3 02 00 4A 00 00 00 00 00 A3
+        02 28 0E 12 F0 02 00 0B 00 00 00 00 00 D3
+        02 28 0E 12 FD 02 00 4B 00 00 00 00 00 8C
+        02 28 0E 12 0A 02 00 0C 00 00 00 00 00 4E
+        02 28 0E 12 17 02 00 4C 00 00 00 00 00 75
+        02 28 0E 12 24 02 00 0D 00 00 00 00 00 25
+        02 28 0E 12 33 02 00 4D 00 00 00 00 00 50
+        02 28 0E 12 3E 02 00 0E 00 00 00 00 00 24
+        02 28 0E 12 4C 02 00 4E 00 00 00 00 00 3A
+        02 28 0E 12 59 02 00 0F 00 00 00 00 00 84
+        02 28 0E 12 66 02 00 4F 00 00 00 00 00 1D
+        02 28 0E 12 73 02 00 10 00 00 00 00 00 5D
+        02 28 0E 12 80 02 00 50 00 00 00 00 00 EC
+        02 28 0E 12 8F 02 00 11 00 00 00 00 00 B0
+        02 28 0E 12 9E 02 00 51 00 00 00 00 00 E7
+        02 28 0E 12 AB 02 00 12 00 00 00 00 00 93
+        02 28 0E 12 B8 02 00 52 00 00 00 00 00 E2
+        02 28 0E 12 C7 02 00 13 00 00 00 00 00 E6
+        02 28 0E 12 D6 02 00 53 00 00 00 00 00 C1
+        02 28 0E 12 E3 02 00 14 00 00 00 00 00 C9
+        02 28 0E 12 F2 02 00 54 00 00 00 00 00 9E
+        02 28 0E 12 01 02 00 15 00 00 00 00 00 32
+        02 28 0E 12 0E 02 00 55 00 00 00 00 00 1B
+        02 28 0E 12 1B 02 00 16 00 00 00 00 00 3F
+        02 28 0E 12 28 02 00 56 00 00 00 00 00 4E
+        02 28 0E 12 37 02 00 17 00 00 00 00 00 1A
+        02 28 0E 12 42 02 00 57 00 00 00 00 00 31
+        02 28 0E 12 50 02 00 18 00 00 00 00 00 84
+        02 28 0E 12 67 02 00 58 00 00 00 00 00 11
+        02 28 0E 12 92 02 00 19 00 00 00 00 00 BB
+        02 28 0E 12 A1 02 00 59 00 00 00 00 00 C6
+        02 28 0E 12 B2 02 00 1A 00 00 00 00 00 9C
+        02 28 0E 12 BF 02 00 5A 00 00 00 00 00 D7
+        02 28 0E 12 CD 02 00 1B 00 00 00 00 00 EC
+        02 28 0E 12 DB 02 00 5B 00 00 00 00 00 BA
+        02 28 0E 12 EA 02 00 1C 00 00 00 00 00 FE
+        02 28 0E 12 F9 02 00 5C 00 00 00 00 00 93
+        02 28 0E 12 06 02 00 1D 00 00 00 00 00 2B
+        02 28 0E 12 14 02 00 5D 00 00 00 00 00 85
+        02 28 0E 12 30 02 00 1E 00 00 00 00 00 1E
+        02 28 0E 12 47 02 00 5E 00 00 00 00 00 33
+        02 28 0E 12 55 02 00 1F 00 00 00 00 00 80
+        02 28 0E 12 75 02 00 5F 00 00 00 00 00 20
+        02 28 0E 12 86 02 00 20 00 00 00 00 00 9E
+        02 28 0E 12 93 02 00 60 00 00 00 00 00 CD
+        02 28 0E 12 A5 02 00 21 00 00 00 00 00 BA
+        02 28 0E 12 B6 02 00 61 00 00 00 00 00 EF
+        02 28 0E 12 C3 02 00 22 00 00 00 00 00 DB
+        02 28 0E 12 D1 02 00 62 00 00 00 00 00 91
+        02 28 0E 12 E4 02 00 23 00 00 00 00 00 F7
+        02 28 0E 12 F3 02 00 63 00 00 00 00 00 AA
+        02 28 0E 12 03 02 00 24 00 00 00 00 00 19
+        02 28 0E 12 12 02 00 64 00 00 00 00 00 4E
+        02 28 0E 12 21 02 00 25 00 00 00 00 00 42
+        02 28 0E 12 30 02 00 65 00 00 00 00 00 69
+        02 28 0E 12 41 02 00 26 00 00 00 00 00 65
+        02 28 0E 12 4E 02 00 66 00 00 00 00 00 EC
+        02 28 0E 12 5C 02 00 27 00 00 00 00 00 53
+        02 28 0E 12 6B 02 00 67 00 00 00 00 00 3E
+        02 28 0E 12 7A 02 00 28 00 00 00 00 00 82
+        02 28 0E 12 CB 03 00 05 00 00 00 00 00 01
+        02 28 0E 12 DC 03 00 45 00 00 00 00 00 B4
+        02 28 0E 12 ED 03 00 06 00 00 00 00 00 E0
+        02 28 0E 12 FE 03 00 46 00 00 00 00 00 9D
+        02 28 0E 12 0F 03 00 07 00 00 00 00 00 43
+        02 28 0E 12 1C 03 00 47 00 00 00 00 00 72
+        02 28 0E 12 2A 03 00 08 00 00 00 00 00 33
+        02 28 0E 12 38 03 00 48 00 00 00 00 00 4D
+        02 28 0E 12 4A 03 00 09 00 00 00 00 00 92
+        02 28 0E 12 5B 03 00 49 00 00 00 00 00 2D
+        02 28 0E 12 6C 03 00 0A 00 00 00 00 00 57
+        02 28 0E 12 7D 03 00 4A 00 00 00 00 00 0C
+        02 28 0E 12 8E 03 00 0B 00 00 00 00 00 D0
+        02 28 0E 12 9F 03 00 4B 00 00 00 00 00 E7
+        02 28 0E 12 B0 03 00 0C 00 00 00 00 00 91
+        02 28 0E 12 C1 03 00 4C 00 00 00 00 00 BA
+        02 28 0E 12 D2 03 00 0D 00 00 00 00 00 E6
+        02 28 0E 12 E3 03 00 4D 00 00 00 00 00 A1
+        02 28 0E 12 F6 03 00 0E 00 00 00 00 00 CD
+        02 28 0E 12 05 03 00 4E 00 00 00 00 00 80
+        02 28 0E 12 13 03 00 0F 00 00 00 00 00 2F
+        02 28 0E 12 21 03 00 4F 00 00 00 00 00 5D
+        02 28 0E 12 2F 03 00 10 00 00 00 00 00 10
+        02 28 0E 12 3D 03 00 50 00 00 00 00 00 62
+        02 28 0E 12 4F 03 00 11 00 00 00 00 00 71
+        02 28 0E 12 62 03 00 51 00 00 00 00 00 12
+        02 28 0E 12 73 03 00 12 00 00 00 00 00 5A
+        02 28 0E 12 84 03 00 52 00 00 00 00 00 E7
+        02 28 0E 12 93 03 00 13 00 00 00 00 00 BB
+        02 28 0E 12 A5 03 00 53 00 00 00 00 00 CD
+        02 28 0E 12 B6 03 00 14 00 00 00 00 00 A3
+        02 28 0E 12 C7 03 00 54 00 00 00 00 00 AC
+        02 28 0E 12 D4 03 00 15 00 00 00 00 00 FC
+        02 28 0E 12 E2 03 00 55 00 00 00 00 00 8E
+        02 28 0E 12 F0 03 00 16 00 00 00 00 00 D7
+        02 28 0E 12 FE 03 00 56 00 00 00 00 00 8D
+        02 28 0E 12 0C 03 00 17 00 00 00 00 00 32
+        02 28 0E 12 1C 03 00 57 00 00 00 00 00 82
+        02 28 0E 12 2D 03 00 18 00 00 00 00 00 0A
+        02 28 0E 12 3E 03 00 58 00 00 00 00 00 4F
+        02 28 0E 12 4F 03 00 19 00 00 00 00 00 69
+        02 28 0E 12 5E 03 00 59 00 00 00 00 00 2E
+        02 28 0E 12 70 03 00 1A 00 00 00 00 00 63
+        02 28 0E 12 83 03 00 5A 00 00 00 00 00 F2
+        02 28 0E 12 96 03 00 1B 00 00 00 00 00 B8
+        02 28 0E 12 A7 03 00 5B 00 00 00 00 00 CF
+        02 28 0E 12 B8 03 00 1C 00 00 00 00 00 99
+        02 28 0E 12 CB 03 00 5C 00 00 00 00 00 A8
+        02 28 0E 12 DE 03 00 1D 00 00 00 00 00 F2
+        02 28 0E 12 EF 03 00 5D 00 00 00 00 00 8D
+        02 28 0E 12 01 03 00 1E 00 00 00 00 00 2C
+        02 28 0E 12 16 03 00 5E 00 00 00 00 00 7D
+        02 28 0E 12 27 03 00 1F 00 00 00 00 00 13
+        02 28 0E 12 39 03 00 5F 00 00 00 00 00 55
+        02 28 0E 12 4E 03 00 20 00 00 00 00 00 A7
+        02 28 0E 12 5B 03 00 60 00 00 00 00 00 14
+        02 28 0E 12 6B 03 00 21 00 00 00 00 00 85
+        02 28 0E 12 7A 03 00 61 00 00 00 00 00 3A
+        02 28 0E 12 87 03 00 22 00 00 00 00 00 96
+        02 28 0E 12 98 03 00 62 00 00 00 00 00 D3
+        02 28 0E 12 A5 03 00 23 00 00 00 00 00 BD
+        02 28 0E 12 B5 03 00 63 00 00 00 00 00 ED
+        02 28 0E 12 C4 03 00 24 00 00 00 00 00 DD
+        02 28 0E 12 D3 03 00 64 00 00 00 00 00 88
+        02 28 0E 12 E2 03 00 25 00 00 00 00 00 FE
+        02 28 0E 12 F0 03 00 65 00 00 00 00 00 A8
+        02 28 0E 12 FE 03 00 26 00 00 00 00 00 FD
+        02 28 0E 12 0C 03 00 66 00 00 00 00 00 63
+        02 28 0E 12 19 03 00 27 00 00 00 00 00 1D
+        02 28 0E 12 27 03 00 67 00 00 00 00 00 7B
+        02 28 0E 12 3E 03 00 28 00 00 00 00 00 3F
+    </thermo_temp_packet>
+    <airquality>
+        <apikey>SV5xOdOCXxDs5yZxOsanMwoY9Jeht7UPM%2BnKqBY3tFIpAivokjm4XMm7Dr9QvXMgWXdwkxIeFRDHpgQaSQtmig%3D%3D</apikey>
+        <obsname>광교동</obsname>
+        <mqtt>
+            <publish>home/ipark/airquality/state</publish>
+            <subscribe>home/ipark/airquality/command</subscribe>
+        </mqtt>
+    </airquality>
+    <doorlock>
+        <enable>1</enable>
+        <port>23</port>
+        <repeat>2</repeat>
+        <interval>200</interval>
+        <mqtt>
+            <publish>home/ipark/doorlock/state</publish>
+            <subscribe>home/ipark/doorlock/command</subscribe>
+        </mqtt>
+    </doorlock>
+</config>

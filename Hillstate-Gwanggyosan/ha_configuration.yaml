@@ -1,0 +1,467 @@
+
+# Configure a default setup of Home Assistant (frontend, api, etc)
+default_config:
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+mqtt:
+  broker: your mosquitto address
+  port: your mosquitto port
+  username: your mosquitto auth id
+  password: your mosquitto auth password
+
+logger:
+  default: warning
+  logs:
+    homeassistant.components.mqtt: warning
+
+light:
+  - platform: mqtt
+    name: "거실 천장 1"
+    unique_id: "livingroomlight1"
+    schema: template
+    state_topic: "home/hillstate/light/state/1/1"
+    command_topic: "home/hillstate/light/command/1/1"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "거실 천장 2"
+    unique_id: "livingroomlight2"
+    schema: template
+    state_topic: "home/hillstate/light/state/1/2"
+    command_topic: "home/hillstate/light/command/1/2"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "복도 천장"
+    unique_id: "hallwaylight"
+    schema: template
+    state_topic: "home/hillstate/light/state/1/3"
+    command_topic: "home/hillstate/light/command/1/3"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "침실 천장"
+    unique_id: "bedroomlight"
+    schema: template
+    state_topic: "home/hillstate/light/state/2/1"
+    command_topic: "home/hillstate/light/command/2/1"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "실외기실 천장"
+    unique_id: "outdoorunitlight"
+    schema: template
+    state_topic: "home/hillstate/light/state/2/2"
+    command_topic: "home/hillstate/light/command/2/2"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "서재 천장"
+    unique_id: "librarylight"
+    schema: template
+    state_topic: "home/hillstate/light/state/3/1"
+    command_topic: "home/hillstate/light/command/3/1"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "컴퓨터방 천장"
+    unique_id: "pcroomlight"
+    schema: template
+    state_topic: "home/hillstate/light/state/4/1"
+    command_topic: "home/hillstate/light/command/4/1"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "식탁 천장"
+    unique_id: "tablelight"
+    schema: template
+    state_topic: "home/hillstate/light/state/6/1"
+    command_topic: "home/hillstate/light/command/6/1"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+  - platform: mqtt
+    name: "조리대 천장"
+    unique_id: "countertoplight"
+    schema: template
+    state_topic: "home/hillstate/light/state/6/2"
+    command_topic: "home/hillstate/light/command/6/2"
+    state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
+    command_on_template: '{"state": 1}'
+    command_off_template: '{"state": 0}'
+    optimistic: false
+
+switch:
+  - platform: mqtt
+    name: "거실 콘센트 1"
+    unique_id: "livingroom_outlet_1"
+    state_topic: "home/hillstate/outlet/state/1/1"
+    command_topic: "home/hillstate/outlet/command/1/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "거실 콘센트 2"
+    unique_id: "livingroom_outlet_2"
+    state_topic: "home/hillstate/outlet/state/1/2"
+    command_topic: "home/hillstate/outlet/command/1/2"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "침실 콘센트 1"
+    unique_id: "bedroom_outlet_1"
+    state_topic: "home/hillstate/outlet/state/2/1"
+    command_topic: "home/hillstate/outlet/command/2/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "침실 콘센트 2"
+    unique_id: "bedroom_outlet_2"
+    state_topic: "home/hillstate/outlet/state/2/2"
+    command_topic: "home/hillstate/outlet/command/2/2"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "서재 콘센트 1"
+    unique_id: "library_outlet_1"
+    state_topic: "home/hillstate/outlet/state/3/1"
+    command_topic: "home/hillstate/outlet/command/3/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "서재 콘센트 2"
+    unique_id: "library_outlet_2"
+    state_topic: "home/hillstate/outlet/state/3/2"
+    command_topic: "home/hillstate/outlet/command/3/2"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "컴퓨터방 콘센트 1"
+    unique_id: "pcroom_outlet_1"
+    state_topic: "home/hillstate/outlet/state/4/1"
+    command_topic: "home/hillstate/outlet/command/4/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "컴퓨터방 콘센트 2"
+    unique_id: "pcroom_outlet_2"
+    state_topic: "home/hillstate/outlet/state/4/2"
+    command_topic: "home/hillstate/outlet/command/4/2"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "주방 콘센트 1"
+    unique_id: "kitchen_outlet_1"
+    state_topic: "home/hillstate/outlet/state/6/1"
+    command_topic: "home/hillstate/outlet/command/6/1"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "주방 콘센트 2"
+    unique_id: "kitchen_outlet_2"
+    state_topic: "home/hillstate/outlet/state/6/2"
+    command_topic: "home/hillstate/outlet/command/6/2"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:power-socket-de
+  - platform: mqtt
+    name: "가스 밸브"
+    unique_id: "kitchengasvalve"
+    state_topic: "home/hillstate/gasvalve/state"
+    command_topic: "home/hillstate/gasvalve/command"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 1 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:pipe-valve
+
+climate:
+  - platform: mqtt
+    name: "거실 난방"
+    unique_id: "livingroom_thermostat"
+    modes:
+      - "off"
+      - "heat"
+    mode_state_topic: "home/hillstate/thermostat/state/1"
+    mode_state_template: "{{ value_json.state.lower() }}"
+    mode_command_topic: "home/hillstate/thermostat/command/1"
+    mode_command_template: >-
+      {% set values = {'off': '"OFF"', 'heat': '"HEAT"'} %}
+      { "state": {{ values[value] if value in values.keys() else "OFF" }} }
+    temperature_state_topic: "home/hillstate/thermostat/state/1"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/hillstate/thermostat/command/1"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/hillstate/thermostat/state/1"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    min_temp: 18
+    max_temp: 30
+    precision: 1
+  - platform: mqtt
+    name: "침실 난방"
+    unique_id: "bedroom_thermostat"
+    modes:
+      - "off"
+      - "heat"
+    mode_state_topic: "home/hillstate/thermostat/state/2"
+    mode_state_template: "{{ value_json.state.lower() }}"
+    mode_command_topic: "home/hillstate/thermostat/command/2"
+    mode_command_template: >-
+      {% set values = {'off': '"OFF"', 'heat': '"HEAT"'} %}
+      { "state": {{ values[value] if value in values.keys() else "OFF" }} }
+    temperature_state_topic: "home/hillstate/thermostat/state/2"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/hillstate/thermostat/command/2"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/hillstate/thermostat/state/2"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    min_temp: 18
+    max_temp: 30
+    precision: 1
+  - platform: mqtt
+    name: "서재 난방"
+    unique_id: "library_thermostat"
+    modes:
+      - "off"
+      - "heat"
+    mode_state_topic: "home/hillstate/thermostat/state/3"
+    mode_state_template: "{{ value_json.state.lower() }}"
+    mode_command_topic: "home/hillstate/thermostat/command/3"
+    mode_command_template: >-
+      {% set values = {'off': '"OFF"', 'heat': '"HEAT"'} %}
+      { "state": {{ values[value] if value in values.keys() else "OFF" }} }
+    temperature_state_topic: "home/hillstate/thermostat/state/3"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/hillstate/thermostat/command/3"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/hillstate/thermostat/state/3"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    min_temp: 18
+    max_temp: 30
+    precision: 1
+  - platform: mqtt
+    name: "컴퓨터방 난방"
+    unique_id: "pcroom_thermostat"
+    modes:
+      - "off"
+      - "heat"
+    mode_state_topic: "home/hillstate/thermostat/state/4"
+    mode_state_template: "{{ value_json.state.lower() }}"
+    mode_command_topic: "home/hillstate/thermostat/command/4"
+    mode_command_template: >-
+      {% set values = {'off': '"OFF"', 'heat': '"HEAT"'} %}
+      { "state": {{ values[value] if value in values.keys() else "OFF" }} }
+    temperature_state_topic: "home/hillstate/thermostat/state/4"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/hillstate/thermostat/command/4"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/hillstate/thermostat/state/4"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    min_temp: 18
+    max_temp: 30
+    precision: 1
+  - platform: mqtt
+    name: "거실 에어컨"
+    unique_id: "livingroom_airconditioner"
+    modes:
+      - "off"
+      - "cool"
+    fan_modes:
+      - "Max"
+      - "Medium"
+      - "Min"
+      - "Auto"
+    mode_state_topic: "home/hillstate/airconditioner/state/1"
+    mode_state_template: '{% if value_json.active %} cool {% else %} off {% endif %}'
+    mode_command_topic: "home/hillstate/airconditioner/command/1"
+    mode_command_template: >-
+      {% set values = {'off': 0, 'cool': 1} %}
+      { "active": {{ values[value] if value in values.keys() else 0 }} }
+    temperature_state_topic: "home/hillstate/airconditioner/state/1"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/hillstate/airconditioner/command/1"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/hillstate/airconditioner/state/1"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    fan_mode_command_topic: "home/hillstate/airconditioner/command/1"
+    fan_mode_command_template: '{ "rotationspeed_name": "{{ value }}" }'
+    fan_mode_state_topic: "home/hillstate/airconditioner/state/1"
+    fan_mode_state_template: "{{ value_json.rotationspeed_name }}"
+    min_temp: 18
+    max_temp: 30
+    precision: 1
+  - platform: mqtt
+    name: "침실 에어컨"
+    unique_id: "bedroom_airconditioner"
+    modes:
+      - "off"
+      - "cool"
+    fan_modes:
+      - "Max"
+      - "Medium"
+      - "Min"
+      - "Auto"
+    mode_state_topic: "home/hillstate/airconditioner/state/2"
+    mode_state_template: '{% if value_json.active %} cool {% else %} off {% endif %}'
+    mode_command_topic: "home/hillstate/airconditioner/command/2"
+    mode_command_template: >-
+      {% set values = {'off': 0, 'cool': 1} %}
+      { "active": {{ values[value] if value in values.keys() else 0 }} }
+    temperature_state_topic: "home/hillstate/airconditioner/state/2"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/hillstate/airconditioner/command/2"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/hillstate/airconditioner/state/2"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    fan_mode_command_topic: "home/hillstate/airconditioner/command/2"
+    fan_mode_command_template: '{ "rotationspeed_name": "{{ value }}" }'
+    fan_mode_state_topic: "home/hillstate/airconditioner/state/2"
+    fan_mode_state_template: "{{ value_json.rotationspeed_name }}"
+    min_temp: 18
+    max_temp: 30
+    precision: 1
+  - platform: mqtt
+    name: "서재 에어컨"
+    unique_id: "library_airconditioner"
+    modes:
+      - "off"
+      - "cool"
+    fan_modes:
+      - "Max"
+      - "Medium"
+      - "Min"
+      - "Auto"
+    mode_state_topic: "home/hillstate/airconditioner/state/3"
+    mode_state_template: '{% if value_json.active %} cool {% else %} off {% endif %}'
+    mode_command_topic: "home/hillstate/airconditioner/command/3"
+    mode_command_template: >-
+      {% set values = {'off': 0, 'cool': 1} %}
+      { "active": {{ values[value] if value in values.keys() else 0 }} }
+    temperature_state_topic: "home/hillstate/airconditioner/state/3"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/hillstate/airconditioner/command/3"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/hillstate/airconditioner/state/3"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    fan_mode_command_topic: "home/hillstate/airconditioner/command/3"
+    fan_mode_command_template: '{ "rotationspeed_name": "{{ value }}" }'
+    fan_mode_state_topic: "home/hillstate/airconditioner/state/3"
+    fan_mode_state_template: "{{ value_json.rotationspeed_name }}"
+    min_temp: 18
+    max_temp: 30
+    precision: 1
+  - platform: mqtt
+    name: "컴퓨터방 에어컨"
+    unique_id: "pcroom_airconditioner"
+    modes:
+      - "off"
+      - "cool"
+    fan_modes:
+      - "Max"
+      - "Medium"
+      - "Min"
+      - "Auto"
+    mode_state_topic: "home/hillstate/airconditioner/state/4"
+    mode_state_template: '{% if value_json.active %} cool {% else %} off {% endif %}'
+    mode_command_topic: "home/hillstate/airconditioner/command/4"
+    mode_command_template: >-
+      {% set values = {'off': 0, 'cool': 1} %}
+      { "active": {{ values[value] if value in values.keys() else 0 }} }
+    temperature_state_topic: "home/hillstate/airconditioner/state/4"
+    temperature_state_template: "{{ value_json.targetTemperature }}"
+    temperature_command_topic: "home/hillstate/airconditioner/command/4"
+    temperature_command_template: '{ "targetTemperature": {{ value }} }'
+    current_temperature_topic: "home/hillstate/airconditioner/state/4"
+    current_temperature_template: "{{ value_json.currentTemperature }}"
+    fan_mode_command_topic: "home/hillstate/airconditioner/command/4"
+    fan_mode_command_template: '{ "rotationspeed_name": "{{ value }}" }'
+    fan_mode_state_topic: "home/hillstate/airconditioner/state/4"
+    fan_mode_state_template: "{{ value_json.rotationspeed_name }}"
+    min_temp: 18
+    max_temp: 30
+    precision: 1
+
+fan:
+  - platform: mqtt
+    name: "전열교환기"
+    unique_id: "ventilator"
+    state_topic: "home/hillstate/ventilator/state"
+    state_value_template: "{% if value_json.state %} ON {% else %} OFF {% endif %}"
+    command_topic: "home/hillstate/ventilator/command"
+    command_template: >- 
+      {% set values = {'OFF': 0, 'ON': 1} %}
+      { "state": {{ values[value] if value in values.keys() else 0 }} }
+    percentage_state_topic: "home/hillstate/ventilator/state"
+    percentage_value_template: "{{ value_json.rotationspeed }}"
+    percentage_command_topic: "home/hillstate/ventilator/command"
+    percentage_command_template: '{ "rotationspeed": {{ value }} }'
+    speed_range_min: 1
+    speed_range_max: 100
+
+http:
+  ssl_certificate: ssl/fullchain.pem
+  ssl_key: ssl/privkey.pem
+
+google_assistant:
+  project_id: your google assistant project id
+  service_account: !include gcp_service_account.json
+  report_state: true
+  expose_by_default: true
+  exposed_domains:
+    - switch
+    - light
+    - sensor
+    - fan
+    - button
+    - climate
+    - binary sensor
