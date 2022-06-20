@@ -78,6 +78,8 @@ class ThreadCommandQueue(threading.Thread):
                             self.set_temperature(dev, target, parser)
                         elif category == 'rotationspeed':
                             self.set_rotation_speed(dev, target, parser)
+                    elif isinstance(dev, Elevator):
+                        pass
                 except Exception as e:
                     writeLog(str(e), self)
             else:
@@ -91,17 +93,15 @@ class ThreadCommandQueue(threading.Thread):
     def set_state_common(self, dev: Device, target: int, parser: SerialParser):
         cnt = 0
         packet_command = dev.makePacketSetState(bool(target))
-        packet_query = dev.makePacketQueryState()
-        for _ in range(self._retry_cnt):
+        while cnt < self._retry_cnt:
             if dev.state == target:
                 break
+            if parser.isSerialLineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
             parser.sendPacket(packet_command)
             cnt += 1
-            time.sleep(0.2)
-            if dev.state == target:
-                break
-            parser.sendPacket(packet_query)
-            time.sleep(0.2)
+            time.sleep(0.2)  # wait for parsing response
         if cnt > 0:
             writeLog('set_state_common::send # = {}'.format(cnt), self)
             time.sleep(self._delay_response)
@@ -112,17 +112,15 @@ class ThreadCommandQueue(threading.Thread):
         target_temp = math.ceil(target)
         cnt = 0
         packet_command = dev.makePacketSetTemperature(target_temp)
-        packet_query = dev.makePacketQueryState()
-        for _ in range(self._retry_cnt):
+        while cnt < self._retry_cnt:
             if dev.temp_config == target_temp:
                 break
+            if parser.isSerialLineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
             parser.sendPacket(packet_command)
             cnt += 1
-            time.sleep(0.2)
-            if dev.temp_config == target_temp:
-                break
-            parser.sendPacket(packet_query)
-            time.sleep(0.2)
+            time.sleep(0.2)  # wait for parsing response
         if cnt > 0:
             writeLog('set_temperature::send # = {}'.format(cnt), self)
             time.sleep(self._delay_response)
@@ -149,17 +147,15 @@ class ThreadCommandQueue(threading.Thread):
                 conv = 0x04
         cnt = 0
         packet_command = dev.makePacketSetRotationSpeed(conv)
-        packet_query = dev.makePacketQueryState()
-        for _ in range(self._retry_cnt):
+        while cnt < self._retry_cnt:
             if dev.rotation_speed == conv:
                 break
+            if parser.isSerialLineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
             parser.sendPacket(packet_command)
             cnt += 1
-            time.sleep(0.2)
-            if dev.rotation_speed == conv:
-                break
-            parser.sendPacket(packet_query)
-            time.sleep(0.2)
+            time.sleep(0.2)  # wait for parsing response
         if cnt > 0:
             writeLog('set_rotation_speed::send # = {}'.format(cnt), self)
             time.sleep(self._delay_response)
@@ -168,17 +164,15 @@ class ThreadCommandQueue(threading.Thread):
     def set_airconditioner_mode(self, dev: AirConditioner, target: int, parser: SerialParser):
         cnt = 0
         packet_command = dev.makePacketSetMode(target)
-        packet_query = dev.makePacketQueryState()
-        for _ in range(self._retry_cnt):
+        while cnt < self._retry_cnt:
             if dev.mode == target:
                 break
+            if parser.isSerialLineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
             parser.sendPacket(packet_command)
             cnt += 1
-            time.sleep(0.2)
-            if dev.mode == target:
-                break
-            parser.sendPacket(packet_query)
-            time.sleep(0.2)
+            time.sleep(0.2)  # wait for parsing response
         if cnt > 0:
             writeLog('set_airconditioner_mode::send # = {}'.format(cnt), self)
             time.sleep(self._delay_response)

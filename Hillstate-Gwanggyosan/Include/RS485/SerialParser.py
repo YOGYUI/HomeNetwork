@@ -12,6 +12,7 @@ class SerialParser:
     chunk_cnt: int = 0
     max_chunk_cnt: int = 1e6
     max_buffer_size: int = 200
+    line_busy: bool = False
 
     def __init__(self, ser: SerialComm):
         self.buffer = bytearray()
@@ -34,6 +35,7 @@ class SerialParser:
         writeLog("Send >> {}".format(msg), self)
 
     def onRecvData(self, data: bytes):
+        self.line_busy = True
         if len(self.buffer) > self.max_buffer_size:
             self.buffer.clear()
         self.buffer.extend(data)
@@ -47,6 +49,7 @@ class SerialParser:
             packet_length = self.buffer[1]
             if len(self.buffer) >= packet_length:
                 if self.buffer[0] == 0xF7 and self.buffer[packet_length - 1] == 0xEE:
+                    self.line_busy = False
                     packet = self.buffer[:packet_length]
                     try:
                         checksum_calc = self.calcXORChecksum(packet[:-2])
@@ -72,6 +75,9 @@ class SerialParser:
         while self.chunk_cnt < count:
             pass
         self.enable_console_log = False
+
+    def isSerialLineBusy(self) -> bool:
+        return self.line_busy
 
     @staticmethod
     def prettifyPacket(packet: bytearray) -> str:

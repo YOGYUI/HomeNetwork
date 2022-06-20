@@ -4,14 +4,16 @@ from SerialParser import *
 class ParserVarious(SerialParser):    
     def interpretPacket(self, packet: bytearray):
         try:
-            if packet[3] == 0x1B:  # 가스차단기
-                self.handleGasValve(packet)
-            elif packet[3] == 0x18:  # 난방
+            if packet[3] == 0x18:  # 난방
                 self.handleThermostat(packet)
-            elif packet[3] == 0x2B:  # 환기 (전열교환기)
-                self.handleVentilator(packet)
+            elif packet[3] == 0x1B:  # 가스차단기
+                self.handleGasValve(packet)
             elif packet[3] == 0x1C:  # 시스템에어컨
                 self.handleAirconditioner(packet)
+            elif packet[3] == 0x2B:  # 환기 (전열교환기)
+                self.handleVentilator(packet)
+            elif packet[3] == 0x34:
+                self.handleElevator(packet)
             else:
                 if packet[4] == 0x02:
                     print(self.prettifyPacket(packet))
@@ -106,3 +108,6 @@ class ParserVarious(SerialParser):
                 'rotation_speed': rotation_speed
             }
             self.sig_parse_result.emit(result)
+
+    def handleElevator(self, packet: bytearray):
+        print(self.prettifyPacket(packet))

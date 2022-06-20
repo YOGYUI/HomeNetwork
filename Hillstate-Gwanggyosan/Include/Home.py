@@ -17,6 +17,7 @@ class Home:
     rooms: List[Room]
     gasvalve: GasValve
     ventilator: Ventilator
+    elevator: Elevator
 
     serial_baud: int = 9600
 
@@ -80,12 +81,14 @@ class Home:
         self.initRoomsFromConfig(xml_path)
         self.gasvalve = GasValve(name='Gas Valve', mqtt_client=self.mqtt_client)
         self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
+        self.elevator = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
 
         # append device list
         for room in self.rooms:
             self.device_list.extend(room.getDevices())
         self.device_list.append(self.gasvalve)
         self.device_list.append(self.ventilator)
+        self.device_list.append(self.elevator)
         
         self.loadConfig(xml_path)
 
@@ -249,7 +252,15 @@ class Home:
             self.ventilator.mqtt_publish_topic = mqtt_node.find('publish').text
             self.ventilator.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
         except Exception as e:
-            writeLog(f"Failed to load ventilator config ({e})", self)        
+            writeLog(f"Failed to load ventilator config ({e})", self)      
+
+        node = root.find('elevator')
+        try:
+            mqtt_node = node.find('mqtt')
+            self.elevator.mqtt_publish_topic = mqtt_node.find('publish').text
+            self.elevator.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+        except Exception as e:
+            writeLog(f"Failed to load elevator config ({e})", self)  
 
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
@@ -290,7 +301,7 @@ class Home:
 
     def startThreadTimer(self):
         if self.thread_timer is None:
-            self.thread_timer = ThreadTimer([self.serial_light])
+            self.thread_timer = ThreadTimer(self.serial_list)
             self.thread_timer.sig_terminated.connect(self.onThreadTimerTerminated)
             self.thread_timer.sig_publish_regular.connect(self.publish_all)
             self.thread_timer.setDaemon(True)
@@ -361,6 +372,8 @@ class Home:
                         mode=mode,
                         rotation_speed=rotation_speed
                     )
+                elif dev_type == 'elevator':
+                    pass
         except Exception as e:
             writeLog('handleSerialParseResult::Exception::{} ({})'.format(e, result), self)
 
@@ -378,6 +391,8 @@ class Home:
             elif isinstance(dev, Ventilator):
                 kwargs['parser'] = self.parser_various
             elif isinstance(dev, AirConditioner):
+                kwargs['parser'] = self.parser_various
+            elif isinstance(dev, Elevator):
                 kwargs['parser'] = self.parser_various
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
@@ -434,6 +449,12 @@ class Home:
             if 'reboot' in msg_dict.keys():
                 import os
                 os.system('sudo reboot')
+            if 'publish_interval' in msg_dict.keys():
+                try:
+                    interval = msg_dict['publish_interval']
+                    self.thread_timer.setMqttPublishInterval(interval)
+                except Exception:
+                    pass
         if 'light/command' in topic:
             splt = topic.split('/')
             room_idx = int(splt[-2])
@@ -529,6 +550,8 @@ class Home:
                         category='rotationspeed',
                         target=target
                     )
+        if 'elevator/command' in topic:
+            pass
 
     def onMqttClientLog(self, _, userdata, level, buf):
         if self.enable_mqtt_console_log:
