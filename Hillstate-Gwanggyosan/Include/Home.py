@@ -2,7 +2,6 @@ import time
 import json
 import queue
 from typing import List, Union
-from matplotlib.colors import LightSource
 import paho.mqtt.client as mqtt
 import xml.etree.ElementTree as ET
 from Define import *
@@ -372,8 +371,15 @@ class Home:
                         mode=mode,
                         rotation_speed=rotation_speed
                     )
-                elif dev_type == 'elevator':
-                    pass
+            elif dev_type == 'elevator':
+                state = result.get('state')
+                arrived = result.get('arrived')
+                current_floor = result.get('current_floor')
+                self.elevator.setState(
+                    state, 
+                    arrived=arrived,
+                    current_floor=current_floor
+                )
         except Exception as e:
             writeLog('handleSerialParseResult::Exception::{} ({})'.format(e, result), self)
 
@@ -440,118 +446,21 @@ class Home:
         topic = message.topic
         msg_dict = json.loads(message.payload.decode("utf-8"))
         if 'system/command' == topic:
-            if 'query_all' in msg_dict.keys():
-                writeLog('Got query all command', self)
-                self.publish_all()
-            if 'restart' in msg_dict.keys():
-                writeLog('Got restart command', self)
-                self.restart()
-            if 'reboot' in msg_dict.keys():
-                import os
-                os.system('sudo reboot')
-            if 'publish_interval' in msg_dict.keys():
-                try:
-                    interval = msg_dict['publish_interval']
-                    self.thread_timer.setMqttPublishInterval(interval)
-                except Exception:
-                    pass
+            self.onMqttCommandSystem(topic, msg_dict)
         if 'light/command' in topic:
-            splt = topic.split('/')
-            room_idx = int(splt[-2])
-            dev_idx = int(splt[-1]) - 1
-            room = self.getRoomObjectByIndex(room_idx)
-            if room is not None:
-                if 'state' in msg_dict.keys():
-                    self.command(
-                        device=room.lights[dev_idx],
-                        category='state',
-                        target=msg_dict['state']
-                    )
+            self.onMqttCommandLight(topic, msg_dict)
         if 'outlet/command' in topic:
-            splt = topic.split('/')
-            room_idx = int(splt[-2])
-            dev_idx = int(splt[-1]) - 1
-            room = self.getRoomObjectByIndex(room_idx)
-            if room is not None:
-                if 'state' in msg_dict.keys():
-                    self.command(
-                        device=room.outlets[dev_idx],
-                        category='state',
-                        target=msg_dict['state']
-                    )
+            self.onMqttCommandOutlet(topic, msg_dict)
         if 'gasvalve/command' in topic:
-            if 'state' in msg_dict.keys():
-                self.command(
-                    device=self.gasvalve,
-                    category='state',
-                    target=msg_dict['state']
-                )
+            self.onMqttCommandGasvalve(topic, msg_dict)
         if 'thermostat/command' in topic:
-            splt = topic.split('/')
-            room_idx = int(splt[-1])
-            room = self.getRoomObjectByIndex(room_idx)
-            if room is not None and room.has_thermostat:
-                if 'state' in msg_dict.keys():
-                    self.command(
-                        device=room.thermostat,
-                        category='state',
-                        target=msg_dict['state']
-                    )
-                if 'targetTemperature' in msg_dict.keys():
-                    self.command(
-                        device=room.thermostat,
-                        category='temperature',
-                        target=msg_dict['targetTemperature']
-                    )
+            self.onMqttCommandThermostat(topic, msg_dict)
         if 'ventilator/command' in topic:
-            if 'state' in msg_dict.keys():
-                self.command(
-                    device=self.ventilator,
-                    category='state',
-                    target=msg_dict['state']
-                )
-            if 'rotationspeed' in msg_dict.keys():
-                if self.ventilator.state == 1:
-                    # 전원이 켜져있을 경우에만 풍량설정 가능하도록..
-                    # 최초 전원 ON시 풍량 '약'으로 설정!
-                    self.command(
-                        device=self.ventilator,
-                        category='rotationspeed',
-                        target=msg_dict['rotationspeed']
-                    )
+            self.onMqttCommandVentilator(topic, msg_dict)
         if 'airconditioner/command' in topic:
-            splt = topic.split('/')
-            room_idx = int(splt[-1])
-            room = self.getRoomObjectByIndex(room_idx)
-            if room is not None and room.has_airconditioner:
-                if 'active' in msg_dict.keys():
-                    self.command(
-                        device=room.airconditioner,
-                        category='active',
-                        target=msg_dict['active']
-                    )
-                if 'targetTemperature' in msg_dict.keys():
-                    self.command(
-                        device=room.airconditioner,
-                        category='temperature',
-                        target=msg_dict['targetTemperature']
-                    )
-                if 'rotationspeed' in msg_dict.keys():
-                    self.command(
-                        device=room.airconditioner,
-                        category='rotationspeed',
-                        target=msg_dict['rotationspeed']
-                    )
-                if 'rotationspeed_name' in msg_dict.keys():  # for HA
-                    speed_dict = {'Max': 100, 'Medium': 75, 'Min': 50, 'Auto': 25}
-                    target = speed_dict[msg_dict['rotationspeed_name']]
-                    self.command(
-                        device=room.airconditioner,
-                        category='rotationspeed',
-                        target=target
-                    )
+            self.onMqttCommandAirconditioner(topic, msg_dict)
         if 'elevator/command' in topic:
-            pass
+            self.onMqttCommandElevator(topic, msg_dict)
 
     def onMqttClientLog(self, _, userdata, level, buf):
         if self.enable_mqtt_console_log:
@@ -564,6 +473,140 @@ class Home:
     def onMqttClientUnsubscribe(self, _, userdata, mid):
         if self.enable_mqtt_console_log:
             writeLog('Mqtt Client Unsubscribe: {}, {}'.format(userdata, mid), self)
+
+    def onMqttCommandSystem(self, topic: str, message: dict):
+        if 'query_all' in message.keys():
+            writeLog('Got query all command', self)
+            self.publish_all()
+        if 'restart' in message.keys():
+            writeLog('Got restart command', self)
+            self.restart()
+        if 'reboot' in message.keys():
+            import os
+            os.system('sudo reboot')
+        if 'publish_interval' in message.keys():
+            try:
+                interval = message['publish_interval']
+                self.thread_timer.setMqttPublishInterval(interval)
+            except Exception:
+                pass
+        if 'send_packet' in message.keys():
+            try:
+                ser_idx = message.get('index')
+                packet_str = message.get('packet')
+                packet = bytearray([int(x, 16) for x in packet_str.split(' ')])
+                self.serial_list[ser_idx].sendData(packet)
+            except Exception:
+                pass
+
+    def onMqttCommandLight(self, topic: str, message: dict):
+        splt = topic.split('/')
+        room_idx = int(splt[-2])
+        dev_idx = int(splt[-1]) - 1
+        room = self.getRoomObjectByIndex(room_idx)
+        if room is not None:
+            if 'state' in message.keys():
+                self.command(
+                    device=room.lights[dev_idx],
+                    category='state',
+                    target=message['state']
+                )
+
+    def onMqttCommandOutlet(self, topic: str, message: dict):
+        splt = topic.split('/')
+        room_idx = int(splt[-2])
+        dev_idx = int(splt[-1]) - 1
+        room = self.getRoomObjectByIndex(room_idx)
+        if room is not None:
+            if 'state' in message.keys():
+                self.command(
+                    device=room.outlets[dev_idx],
+                    category='state',
+                    target=message['state']
+                )
+
+    def onMqttCommandGasvalve(self, topic: str, message: dict):
+        if 'state' in message.keys():
+            self.command(
+                device=self.gasvalve,
+                category='state',
+                target=message['state']
+            )
+
+    def onMqttCommandThermostat(self, topic: str, message: dict):
+        splt = topic.split('/')
+        room_idx = int(splt[-1])
+        room = self.getRoomObjectByIndex(room_idx)
+        if room is not None and room.has_thermostat:
+            if 'state' in message.keys():
+                self.command(
+                    device=room.thermostat,
+                    category='state',
+                    target=message['state']
+                )
+            if 'targetTemperature' in message.keys():
+                self.command(
+                    device=room.thermostat,
+                    category='temperature',
+                    target=message['targetTemperature']
+                )
+
+    def onMqttCommandVentilator(self, topic: str, message: dict):
+        if 'state' in message.keys():
+            self.command(
+                device=self.ventilator,
+                category='state',
+                target=message['state']
+            )
+        if 'rotationspeed' in message.keys():
+            if self.ventilator.state == 1:
+                # 전원이 켜져있을 경우에만 풍량설정 가능하도록..
+                # 최초 전원 ON시 풍량 '약'으로 설정!
+                self.command(
+                    device=self.ventilator,
+                    category='rotationspeed',
+                    target=message['rotationspeed']
+                )
+
+    def onMqttCommandAirconditioner(self, topic: str, message: dict):
+        splt = topic.split('/')
+        room_idx = int(splt[-1])
+        room = self.getRoomObjectByIndex(room_idx)
+        if room is not None and room.has_airconditioner:
+            if 'active' in message.keys():
+                self.command(
+                    device=room.airconditioner,
+                    category='active',
+                    target=message['active']
+                )
+            if 'targetTemperature' in message.keys():
+                self.command(
+                    device=room.airconditioner,
+                    category='temperature',
+                    target=message['targetTemperature']
+                )
+            if 'rotationspeed' in message.keys():
+                self.command(
+                    device=room.airconditioner,
+                    category='rotationspeed',
+                    target=message['rotationspeed']
+                )
+            if 'rotationspeed_name' in message.keys():  # for HA
+                speed_dict = {'Max': 100, 'Medium': 75, 'Min': 50, 'Auto': 25}
+                target = speed_dict[message['rotationspeed_name']]
+                self.command(
+                    device=room.airconditioner,
+                    category='rotationspeed',
+                    target=target
+                )
+
+    def onMqttCommandElevator(self, topic: str, message: dict):
+        if 'state' in message.keys():
+            self.command(
+                device=self.elevator,
+                category='state',
+                target=message['state']
+            )
 
 
 home_: Union[Home, None] = None

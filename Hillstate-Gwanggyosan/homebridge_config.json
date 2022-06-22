@@ -868,6 +868,46 @@
                 2
             ],
             "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "switch",
+            "name": "Elevator Call (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOn": {
+                    "topic": "home/hillstate/elevator/state",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": "home/hillstate/elevator/command",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "occupancySensor",
+            "name": "Elevator Arrived (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getOccupancyDetected": {
+                    "topic": "home/hillstate/elevator/state",
+                    "apply": "return JSON.parse(message).arrived;"
+                }
+            },
+            "integerValue": true,
+            "onValue": 1,
+            "offValue": 0,
+            "logMqtt": true
         }
     ],
     "platforms": [

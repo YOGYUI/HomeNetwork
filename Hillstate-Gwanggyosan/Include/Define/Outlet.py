@@ -29,7 +29,7 @@ class Outlet(Device):
         packet.append(0xEE)
         return packet
 
-    def makePacketSetState(self, state: bool):
+    def makePacketSetState(self, state: bool) -> bytearray:
         # F7 0B 01 1F 02 40 XX YY 00 ZZ EE
         # XX: 상위 4비트 = Room Index, 하위 4비트 = Device Index (1-based)
         # YY: 02 = OFF, 01 = ON

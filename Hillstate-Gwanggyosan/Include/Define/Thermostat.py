@@ -66,7 +66,7 @@ class Thermostat(Device):
         packet.append(0xEE)
         return packet
 
-    def makePacketSetState(self, state: bool):
+    def makePacketSetState(self, state: bool) -> bytearray:
         # F7 0B 01 18 02 46 XX YY 00 ZZ EE
         # XX: 상위 4비트 = 1, 하위 4비트 = Room Index
         # YY: 0x01=On, 0x04=Off
@@ -81,7 +81,7 @@ class Thermostat(Device):
         packet.append(0xEE)
         return packet
         
-    def makePacketSetTemperature(self, temperature: int):
+    def makePacketSetTemperature(self, temperature: int) -> bytearray:
         # F7 0B 01 18 02 45 XX YY 00 ZZ EE
         # XX: 상위 4비트 = 1, 하위 4비트 = Room Index
         # YY: 온도 설정값

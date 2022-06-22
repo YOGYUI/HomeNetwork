@@ -12,7 +12,7 @@ class ParserVarious(SerialParser):
                 self.handleAirconditioner(packet)
             elif packet[3] == 0x2B:  # 환기 (전열교환기)
                 self.handleVentilator(packet)
-            elif packet[3] == 0x34:
+            elif packet[3] == 0x34:  # 시스템에어컨
                 self.handleElevator(packet)
             else:
                 if packet[4] == 0x02:
@@ -110,4 +110,41 @@ class ParserVarious(SerialParser):
             self.sig_parse_result.emit(result)
 
     def handleElevator(self, packet: bytearray):
-        print(self.prettifyPacket(packet))
+        if packet[4] == 0x01:  # 상태 쿼리 (월패드 -> 복도 미니패드)
+            # F7 0D 01 34 01 41 10 00 XX YY ZZ ** EE
+            # XX: 00=Idle, 01=Arrived, A6=?, B6=?
+            # YY: ?
+            # ZZ: ?
+            # **: Checksum (XOR SUM)
+            flag_moving = (packet[8] & 0x0F)  # 0 = idle, 1 = arrived, 6 = moving(called)
+            arrived = 0
+            current_floor = '??'
+            if flag_moving == 1:
+                arrived = 1
+                print('arrived, %02X %02X %02X' % (packet[8], packet[9], packet[10]))
+            elif flag_moving == 6:
+                state = 1
+                if packet[10] == 0x06:  # 호출된 엘리베이터의 현재 층수
+                    current_floor = '{:02X}'.format(packet[9])
+                elif packet[10] == 0x07:  # 호출되지 않은 엘리베이터의 현재 층수
+                    pass
+                print('moving, %02X %02X %02X' % (packet[8], packet[9], packet[10]))
+            elif flag_moving == 0:
+                pass
+            else:
+                print(f'unknown: {self.prettifyPacket(packet)}')
+            result = {
+                'device': 'elevator',
+                'arrived': arrived,
+                'current_floor': current_floor
+            }
+            self.sig_parse_result.emit(result)
+        elif packet[4] == 0x02:
+            pass
+        elif packet[4] == 0x04:  # 상태 응답 (복도 미니패드 -> 월패드)
+            state = 1 if packet[8] == 0x06 else 0
+            result = {
+                'device': 'elevator',
+                'state': state
+            }
+            self.sig_parse_result.emit(result)

@@ -50,7 +50,7 @@ class ThreadCommandQueue(threading.Thread):
                             self.set_state_common(dev, target, parser)
                     elif isinstance(dev, GasValve):
                         if category == 'state':
-                            if target == 0:  
+                            if target == 0:
                                 self.set_state_common(dev, target, parser)
                             else:  # 밸브 여는것은 지원되지 않음!
                                 packet_query = dev.makePacketQueryState()
@@ -79,7 +79,9 @@ class ThreadCommandQueue(threading.Thread):
                         elif category == 'rotationspeed':
                             self.set_rotation_speed(dev, target, parser)
                     elif isinstance(dev, Elevator):
-                        pass
+                        if category == 'state':
+                            if target == 1:  # 엘리베이터 '호출'만 지원됨 (스위치 끄는 동작은 지원 X)
+                                self.set_state_common(dev, target, parser)
                 except Exception as e:
                     writeLog(str(e), self)
             else:
