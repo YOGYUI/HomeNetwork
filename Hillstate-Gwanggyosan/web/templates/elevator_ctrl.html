@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>엘리베이터</h1>
+</div>
+<div>
+    <h1>[ Current Time] </h1>
+    <h1 id="time">
+        {% if time %}
+            {{ time }}
+        {% endif %}
+    </h1>
+
+    <h1>[ State ]</h1>
+    <h1 id="state">
+        {% if state %}
+            {{ state }}
+        {% endif %}
+    </h1>
+
+    <h1>[ Floor ]</h1>
+    <h1 id="floor1">
+        {% if floor1 %}
+            {{ floor1 }}
+        {% endif %}
+    </h1>
+    <h1 id="floor2">
+        {% if floor2 %}
+            {{ floor2 }}
+        {% endif %}
+    </h1>
+
+    <form method="post" action="/api/elevator_ctrl" enctype="text/plain">
+        <input type="submit" value="CALL" name="command" style="font-size: 6em;">
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+setInterval(function() { $.ajax({
+    url: '/api/elevator_ctrl/update',
+    type: 'POST',
+    success: function(response) {
+        $("#time").html(response["time"]);
+        $("#state").html(response["state"]);
+        $("#floor1").html(response["floor1"]);
+        $("#floor2").html(response["floor2"]);
+    },
+    error: function(error) {
+        console.log(error);
+    }
+})}, 250);
+</script>
+{% endblock %}

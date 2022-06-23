@@ -373,12 +373,10 @@ class Home:
                     )
             elif dev_type == 'elevator':
                 state = result.get('state')
-                arrived = result.get('arrived')
-                current_floor = result.get('current_floor')
+                floor = result.get('floor')  # 0 = idle, 1 = arrived, 5 = moving(up), 6 = moving(down)
                 self.elevator.setState(
                     state, 
-                    arrived=arrived,
-                    current_floor=current_floor
+                    floor=floor
                 )
         except Exception as e:
             writeLog('handleSerialParseResult::Exception::{} ({})'.format(e, result), self)

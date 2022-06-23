@@ -3,14 +3,15 @@ from Device import *
 
 
 class Elevator(Device):
-    arrived: int = 0
-    arrived_prev: int = 0
-    enable_publish_arrived: bool = True
-    time_last_arrived: float = 0.
-    current_floor: str = '??'
+    time_arrived: float = 0.
+    time_threshold_arrived_change: float = 10.
+    floor_list: List[str]
+    moving_list: List[bool]
 
-    def __init__(self, name: str = 'Elevator', **kwargs):
+    def __init__(self, name: str = 'Elevator', count: int = 2, **kwargs):
         super().__init__(name, **kwargs)
+        self.floor_list = ['??'] * count
+        self.moving_list = [False] * count
     
     def __repr__(self):
         repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
@@ -19,44 +20,55 @@ class Elevator(Device):
     
     def publish_mqtt(self):
         obj = {"state": self.state}
-        if self.enable_publish_arrived:
-            obj["arrived"] = self.arrived
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
     
     def setState(self, state: int, **kwargs):
-        self.state = state  # 0 = idle, 1 = moving
+        self.state = state  # 0 = idle, 1 = arrived, 5 = moving(up), 6 = moving(down)
         if not self.init:
             self.publish_mqtt()
             self.init = True
         if self.state != self.state_prev:
-            self.publish_mqtt()
-        self.state_prev = self.state
-        # 도착여부 플래그
-        arrived = kwargs.get('arrived')
-        if arrived is not None:
-            self.arrived = arrived
-            if self.arrived != self.arrived_prev:
-                if self.arrived == 1:  # 도착 시 즉시 publish (trigger occupancy sensor)
-                    self.enable_publish_arrived = True
-                    self.time_last_arrived = time.perf_counter()
+            if self.state == 1:
+                self.time_arrived = time.perf_counter()
+                self.publish_mqtt()
+                self.state_prev = self.state
+            else:
+                if self.state_prev == 1:
+                    # 도착 후 상태가 다시 idle로 바뀔 때 시간차가 적으면 occupancy sensor가 즉시 off가 되어
+                    # notification이 제대로 되지 않는 문제가 있어, 상태 변화 딜레이를 줘야한다
+                    time_elapsed_last_arrived = time.perf_counter() - self.time_arrived
+                    if time_elapsed_last_arrived > self.time_threshold_arrived_change:
+                        self.publish_mqtt()
+                        self.state_prev = self.state
+                else:
                     self.publish_mqtt()
-            if not self.arrived:
-                # arrived=0이더라도, occupancy sensor의 on 상태가 10초가량 유지되도록
-                # (regular publish 할 때 무작정 off시키지 않도록)
-                time_elapsed_last_arrived = time.perf_counter() - self.time_last_arrived
-                self.enable_publish_arrived = True if time_elapsed_last_arrived > 10 else False
-            self.arrived_prev = self.arrived
-        # 현재 층수
-        current_floor = kwargs.get('current_floor')
-        if current_floor is not None:
-            self.current_floor = current_floor
+                    self.state_prev = self.state
+        if 'floor' in kwargs.keys():
+            floor = kwargs.get('floor')
+            try:
+                for i in range(len(self.floor_list)):
+                    if floor[i] != '??':
+                        self.floor_list[i] = floor[i]
+            except Exception:
+                pass
     
-    def makePacketSetState(self, state: bool) -> bytearray:
-        # F7 0B 01 34 02 41 10 06 00 9C EE
+    def makePacketCallDownside(self) -> bytearray:
+        # 하행 호출
+        # F7 0B 01 34 02 41 10 06 00 XX EE
         packet = bytearray([0xF7, 0x0B, 0x01, 0x34])
         packet.append(0x02)
         packet.extend([0x41, 0x10, 0x06, 0x00])
+        packet.append(self.calcXORChecksum(packet))
+        packet.append(0xEE)
+        return packet
+
+    def makePacketCallUpside(self) -> bytearray:
+        # 상행 호출
+        # F7 0B 01 34 02 41 10 05 00 XX EE
+        packet = bytearray([0xF7, 0x0B, 0x01, 0x34])
+        packet.append(0x02)
+        packet.extend([0x41, 0x10, 0x05, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
         return packet

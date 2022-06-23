@@ -80,8 +80,7 @@ class ThreadCommandQueue(threading.Thread):
                             self.set_rotation_speed(dev, target, parser)
                     elif isinstance(dev, Elevator):
                         if category == 'state':
-                            if target == 1:  # 엘리베이터 '호출'만 지원됨 (스위치 끄는 동작은 지원 X)
-                                self.set_state_common(dev, target, parser)
+                            self.set_elevator_call(dev, target, parser)
                 except Exception as e:
                     writeLog(str(e), self)
             else:
@@ -177,5 +176,27 @@ class ThreadCommandQueue(threading.Thread):
             time.sleep(0.2)  # wait for parsing response
         if cnt > 0:
             writeLog('set_airconditioner_mode::send # = {}'.format(cnt), self)
+            time.sleep(self._delay_response)
+        dev.publish_mqtt()
+    
+    def set_elevator_call(self, dev: Elevator, target: int, parser: SerialParser):
+        cnt = 0
+        if target == 5:
+            packet_command = dev.makePacketCallUpside()
+        elif target == 6:
+            packet_command = dev.makePacketCallDownside()
+        else:
+            return
+        while cnt < self._retry_cnt:
+            if dev.state == target:
+                break
+            if parser.isSerialLineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
+            parser.sendPacket(packet_command)
+            cnt += 1
+            time.sleep(0.2)  # wait for parsing response
+        if cnt > 0:
+            writeLog('set_elevator_call({})::send # = {}'.format(target, cnt), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()

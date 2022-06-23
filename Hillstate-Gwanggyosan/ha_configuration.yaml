@@ -224,6 +224,16 @@ switch:
     payload_off: '{ "state": 0 }'
     retain: false
     icon: mdi:pipe-valve
+  - platform: mqtt
+    name: "엘리베이터 호출"
+    unique_id: "elevator_call"
+    state_topic: "home/hillstate/elevator/state"
+    command_topic: "home/hillstate/elevator/command"
+    value_template: '{ "state": {{ value_json.state }} }'
+    payload_on: '{ "state": 6 }'
+    payload_off: '{ "state": 0 }'
+    retain: false
+    icon: mdi:elevator
 
 climate:
   - platform: mqtt
@@ -447,6 +457,21 @@ fan:
     percentage_command_template: '{ "rotationspeed": {{ value }} }'
     speed_range_min: 1
     speed_range_max: 100
+
+sensor:
+  - platform: mqtt
+    name: "엘리베이터 도착"
+    unique_id: "elevator_arrived"
+    state_topic: "home/hillstate/elevator/state"
+    value_template: >- 
+      {% if value_json.state == 0 %}
+      IDLE
+      {% elif value_json.state == 1 %}
+      ARRIVED
+      {% else %}
+      MOVING
+      {% endif %}
+    icon: mdi:elevator-passenger
 
 http:
   ssl_certificate: ssl/fullchain.pem
