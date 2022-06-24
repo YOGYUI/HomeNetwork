@@ -26,7 +26,7 @@ class Ventilator(Device):
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
     
-    def setState(self, state: int, **kwargs):
+    def updateState(self, state: int, **kwargs):
         self.state = state
         if not self.init:
             self.publish_mqtt()
@@ -51,7 +51,7 @@ class Ventilator(Device):
         packet.append(0xEE)
         return packet
 
-    def makePacketSetState(self, state: bool):
+    def makePacketSetState(self, state: bool) -> bytearray:
         # F7 0B 01 2B 02 40 11 XX 00 YY EE
         # XX: 0x01=On, 0x02=Off
         # YY: Checksum (XOR SUM)
@@ -66,7 +66,7 @@ class Ventilator(Device):
         packet.append(0xEE)
         return packet
 
-    def makePacketSetRotationSpeed(self, rotation_speed: int):
+    def makePacketSetRotationSpeed(self, rotation_speed: int) -> bytearray:
         # F7 0B 01 2B 02 42 11 XX 00 YY EE
         # XX: 풍량 (0x01=약, 0x03=중, 0x07=강)
         # YY: Checksum (XOR SUM)

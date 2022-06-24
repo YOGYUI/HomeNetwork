@@ -292,4 +292,10 @@
             <subscribe>home/hillstate/ventilator/command</subscribe>
         </mqtt>
     </ventilator>
+    <elevator>
+        <mqtt>
+            <publish>home/hillstate/elevator/state</publish>
+            <subscribe>home/hillstate/elevator/command</subscribe>
+        </mqtt>
+    </elevator>
 </config>

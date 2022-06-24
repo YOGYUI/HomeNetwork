@@ -56,7 +56,7 @@ class SerialComm:
                 self.clearQueues()
                 self.startThreads()
                 self.sig_connected.emit()
-                writeLog('Connected to <{}> (baud: {})'.format(port, baudrate), self)
+                writeLog(f'"{self._name}" Connected to <{port}> (baud: {baudrate})', self)
                 return True
             return False
         except Exception as e:
@@ -69,7 +69,7 @@ class SerialComm:
                 self.stopThreads()
                 self._serial.close()
                 self.sig_disconnected.emit()
-                writeLog('Disconnected', self)
+                writeLog(f'"{self._name}" Disconnected', self)
         except Exception as e:
             writeLog('Exception::{}'.format(e), self)
             self.sig_exception.emit(str(e))    

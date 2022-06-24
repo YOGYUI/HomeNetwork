@@ -12,3 +12,4 @@ from GasValve import GasValve
 from Thermostat import Thermostat
 from Ventilator import Ventilator
 from AirConditioner import AirConditioner
+from Elevator import Elevator

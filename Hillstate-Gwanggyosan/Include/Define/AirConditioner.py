@@ -56,7 +56,7 @@ class AirConditioner(Device):
         self.temp_current = max(range_min, min(range_max, self.temp_current))
         self.temp_config = max(range_min, min(range_max, self.temp_config))
     
-    def setState(self, state: int, **kwargs):
+    def updateState(self, state: int, **kwargs):
         self.state = state
         if not self.init:
             self.publish_mqtt()
@@ -95,7 +95,7 @@ class AirConditioner(Device):
                 self.publish_mqtt()
             self.rotation_speed_prev = self.rotation_speed
 
-    def makePacketSetState(self, state: bool):
+    def makePacketSetState(self, state: bool) -> bytearray:
         # F7 0B 01 1C 02 40 XX YY 00 ZZ EE
         # XX: 상위 4비트=공간 인덱스, 하위 4비트=1
         # YY: 0x01=On, 0x02=Off
@@ -110,7 +110,7 @@ class AirConditioner(Device):
         packet.append(0xEE)
         return packet
 
-    def makePacketSetTemperature(self, temperature: int):
+    def makePacketSetTemperature(self, temperature: int) -> bytearray:
         # F7 0B 01 1C 02 45 XX YY 00 ZZ EE
         # XX: 상위 4비트=공간 인덱스, 하위 4비트=1
         # YY: 온도 설정값
@@ -122,7 +122,7 @@ class AirConditioner(Device):
         packet.append(0xEE)
         return packet
 
-    def makePacketSetRotationSpeed(self, rotation_speed: int):
+    def makePacketSetRotationSpeed(self, rotation_speed: int) -> bytearray:
         # F7 0B 01 1C 02 5D XX YY 00 ZZ EE
         # XX: 상위 4비트=공간 인덱스, 하위 4비트=1
         # YY: 0x01=자동, 0x02=미풍, 0x03=약풍, 0x04=강풍
@@ -134,7 +134,7 @@ class AirConditioner(Device):
         packet.append(0xEE)
         return packet
 
-    def makePacketSetMode(self, mode: int):
+    def makePacketSetMode(self, mode: int) -> bytearray:
         # F7 0B 01 1C 02 5C XX YY 00 ZZ EE
         # XX: 상위 4비트=공간 인덱스, 하위 4비트=1
         # YY: 0x0=자동, 0x01=냉방, 0x03=제습, 0x04=공기청정

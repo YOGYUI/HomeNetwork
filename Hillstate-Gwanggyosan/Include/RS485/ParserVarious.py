@@ -4,14 +4,16 @@ from SerialParser import *
 class ParserVarious(SerialParser):    
     def interpretPacket(self, packet: bytearray):
         try:
-            if packet[3] == 0x1B:  # 가스차단기
-                self.handleGasValve(packet)
-            elif packet[3] == 0x18:  # 난방
+            if packet[3] == 0x18:  # 난방
                 self.handleThermostat(packet)
-            elif packet[3] == 0x2B:  # 환기 (전열교환기)
-                self.handleVentilator(packet)
+            elif packet[3] == 0x1B:  # 가스차단기
+                self.handleGasValve(packet)
             elif packet[3] == 0x1C:  # 시스템에어컨
                 self.handleAirconditioner(packet)
+            elif packet[3] == 0x2B:  # 환기 (전열교환기)
+                self.handleVentilator(packet)
+            elif packet[3] == 0x34:  # 엘리베이터
+                self.handleElevator(packet)
             else:
                 if packet[4] == 0x02:
                     print(self.prettifyPacket(packet))
@@ -104,5 +106,36 @@ class ParserVarious(SerialParser):
                 'temp_config': temp_config,
                 'mode': mode,
                 'rotation_speed': rotation_speed
+            }
+            self.sig_parse_result.emit(result)
+
+    def handleElevator(self, packet: bytearray):
+        if packet[4] == 0x01:  # 상태 쿼리 (월패드 -> 복도 미니패드)
+            # F7 0D 01 34 01 41 10 00 XX YY ZZ ** EE
+            # XX: 00=Idle, 01=Arrived, 하위4비트가 6이면 하행 호출중, 5이면 상행 호출 중, 
+            #     상위4비트는 엘리베이터 구분인가? (불확실함)
+            # YY: 엘리베이터 층수
+            # ZZ: 엘리베이터가 움직이는지 여부인가? (불확실함)
+            # **: Checksum (XOR SUM)
+            state = packet[8] & 0x0F  # 0 = idle, 1 = arrived, 5 = moving(up), 6 = moving(down)
+            elevator_index = (packet[8] & 0xF0) >> 4  # 0x0A or 0x0B
+            floor = ['??', '??']
+            if elevator_index == 0x0A:
+                floor[0] = '{:02X}'.format(packet[9])
+            elif elevator_index == 0x0B:
+                floor[1] = '{:02X}'.format(packet[9])
+            result = {
+                'device': 'elevator',
+                'state': state,
+                'floor': floor
+            }
+            self.sig_parse_result.emit(result)
+        elif packet[4] == 0x02:
+            pass
+        elif packet[4] == 0x04:  # 상태 응답 (복도 미니패드 -> 월패드)
+            state = packet[8] & 0x0F  # 0 = idle, 1 = arrived, 5 = moving(up), 6 = moving(down)
+            result = {
+                'device': 'elevator',
+                'state': state
             }
             self.sig_parse_result.emit(result)
