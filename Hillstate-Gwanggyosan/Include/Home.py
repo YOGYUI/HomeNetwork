@@ -44,18 +44,20 @@ class Home:
         self.serial_list = list()
         self.parser_list = list()
 
+        # 조명 + 아울렛 포트
         self.serial_port_light: str = ''
         self.serial_light = SerialComm('Light')
         self.serial_list.append(self.serial_light)
         self.parser_light = ParserLight(self.serial_light)
-        self.parser_light.sig_parse_result.connect(self.onParsePacketResult)
+        self.parser_light.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_light)
 
+        # 가스밸스, 환기, 난방, 시스템에어컨, 엘리베이터 포트
         self.serial_port_various: str = ''
         self.serial_various = SerialComm('Various')
         self.serial_list.append(self.serial_various)
         self.parser_various = ParserVarious(self.serial_various)
-        self.parser_various.sig_parse_result.connect(self.onParsePacketResult)
+        self.parser_various.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_various)
 
         self.initialize(init_service, False)
@@ -188,55 +190,9 @@ class Home:
             writeLog(f"Failed to load mqtt config ({e})", self)
         
         node = root.find('rooms')
-        try:
-            for room in self.rooms:
-                room_node = node.find('room{}'.format(room.index))
-                if room_node is not None:
-                    lights_node = room_node.find('lights')
-                    if lights_node is not None:
-                        for j in range(room.light_count):
-                            light_node = lights_node.find(f'light{j + 1}')
-                            if light_node is not None:
-                                room.lights[j].name = light_node.find('name').text
-                                mqtt_node = light_node.find('mqtt')
-                                room.lights[j].mqtt_publish_topic = mqtt_node.find('publish').text
-                                room.lights[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
-                    outlets_node = room_node.find('outlets')
-                    if outlets_node is not None:
-                        for j in range(room.outlet_count):
-                            outlet_node = outlets_node.find(f'outlet{j + 1}')
-                            if outlet_node is not None:
-                                room.outlets[j].name = outlet_node.find('name').text
-                                mqtt_node = outlet_node.find('mqtt')
-                                room.outlets[j].mqtt_publish_topic = mqtt_node.find('publish').text
-                                room.outlets[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
-                    thermostat_node = room_node.find('thermostat')
-                    if thermostat_node is not None:
-                        range_min_node = thermostat_node.find('range_min')
-                        range_min = int(range_min_node.text)
-                        range_max_node = thermostat_node.find('range_max')
-                        range_max = int(range_max_node.text)
-                        mqtt_node = thermostat_node.find('mqtt')
-                        if room.has_thermostat:
-                            room.thermostat.setTemperatureRange(range_min, range_max)
-                            room.thermostat.mqtt_publish_topic = mqtt_node.find('publish').text
-                            room.thermostat.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
-                    airconditioner_node = room_node.find('airconditioner')
-                    if airconditioner_node is not None:
-                        range_min_node = airconditioner_node.find('range_min')
-                        range_min = int(range_min_node.text)
-                        range_max_node = airconditioner_node.find('range_max')
-                        range_max = int(range_max_node.text)
-                        mqtt_node = airconditioner_node.find('mqtt')
-                        if room.has_airconditioner:
-                            room.airconditioner.setTemperatureRange(range_min, range_max)
-                            room.airconditioner.mqtt_publish_topic = mqtt_node.find('publish').text
-                            room.airconditioner.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
-                else:
-                    writeLog(f"Failed to find room{room.index} node", self)        
-        except Exception as e:
-            writeLog(f"Failed to load room config ({e})", self)
-        
+        for room in self.rooms:
+            room.loadConfig(node)
+
         node = root.find('gasvalve')
         try:
             mqtt_node = node.find('mqtt')
@@ -321,9 +277,6 @@ class Home:
             except ValueError as e:
                 writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
 
-    def onParsePacketResult(self, result: dict):
-        self.queue_parse_result.put(result)
-
     def handleSerialParseResult(self, result: dict):
         try:
             dev_type = result.get('device')
@@ -333,12 +286,12 @@ class Home:
                 state = result.get('state')
                 room_obj = self.getRoomObjectByIndex(room_idx)
                 if dev_type == 'light':
-                    room_obj.lights[dev_idx].setState(state)
+                    room_obj.lights[dev_idx].updateState(state)
                 elif dev_type == 'outlet':
-                    room_obj.outlets[dev_idx].setState(state)
+                    room_obj.outlets[dev_idx].updateState(state)
             elif dev_type == 'gasvalve':
                 state = result.get('state')
-                self.gasvalve.setState(state)
+                self.gasvalve.updateState(state)
             elif dev_type == 'thermostat':
                 room_idx = result.get('room_index')
                 room_obj = self.getRoomObjectByIndex(room_idx)
@@ -346,7 +299,7 @@ class Home:
                     state = result.get('state')
                     temp_current = result.get('temp_current')
                     temp_config = result.get('temp_config')
-                    room_obj.thermostat.setState(
+                    room_obj.thermostat.updateState(
                         state, 
                         temp_current=temp_current, 
                         temp_config=temp_config
@@ -354,7 +307,7 @@ class Home:
             elif dev_type == 'ventilator':
                 state = result.get('state')
                 rotation_speed = result.get('rotation_speed')
-                self.ventilator.setState(state, rotation_speed=rotation_speed)
+                self.ventilator.updateState(state, rotation_speed=rotation_speed)
             elif dev_type == 'airconditioner':
                 room_idx = result.get('room_index')
                 room_obj = self.getRoomObjectByIndex(room_idx)
@@ -364,7 +317,7 @@ class Home:
                     temp_config = result.get('temp_config')
                     mode = result.get('mode')
                     rotation_speed = result.get('rotation_speed')
-                    room_obj.airconditioner.setState(
+                    room_obj.airconditioner.updateState(
                         state,
                         temp_current=temp_current, 
                         temp_config=temp_config,
@@ -374,7 +327,7 @@ class Home:
             elif dev_type == 'elevator':
                 state = result.get('state')
                 floor = result.get('floor')  # 0 = idle, 1 = arrived, 5 = moving(up), 6 = moving(down)
-                self.elevator.setState(
+                self.elevator.updateState(
                     state, 
                     floor=floor
                 )
@@ -496,6 +449,8 @@ class Home:
                 self.serial_list[ser_idx].sendData(packet)
             except Exception:
                 pass
+        if 'clear_console' in message.keys():
+            os.system('clear')
 
     def onMqttCommandLight(self, topic: str, message: dict):
         splt = topic.split('/')

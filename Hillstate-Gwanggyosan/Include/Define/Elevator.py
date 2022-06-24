@@ -23,7 +23,7 @@ class Elevator(Device):
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
     
-    def setState(self, state: int, **kwargs):
+    def updateState(self, state: int, **kwargs):
         self.state = state  # 0 = idle, 1 = arrived, 5 = moving(up), 6 = moving(down)
         if not self.init:
             self.publish_mqtt()

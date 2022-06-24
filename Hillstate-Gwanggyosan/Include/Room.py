@@ -1,4 +1,5 @@
 from typing import List, Union
+import xml.etree.ElementTree as ET
 from Define import *
 from Common import writeLog
 
@@ -73,6 +74,55 @@ class Room:
         if self.has_airconditioner:
             devices.append(self.airconditioner)
         return devices
+
+    def loadConfig(self, node: ET.Element):
+        try:
+            room_node = node.find('room{}'.format(self.index))
+            if room_node is not None:
+                lights_node = room_node.find('lights')
+                if lights_node is not None:
+                    for j in range(self.light_count):
+                        light_node = lights_node.find(f'light{j + 1}')
+                        if light_node is not None:
+                            self.lights[j].name = light_node.find('name').text
+                            mqtt_node = light_node.find('mqtt')
+                            self.lights[j].mqtt_publish_topic = mqtt_node.find('publish').text
+                            self.lights[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                outlets_node = room_node.find('outlets')
+                if outlets_node is not None:
+                    for j in range(self.outlet_count):
+                        outlet_node = outlets_node.find(f'outlet{j + 1}')
+                        if outlet_node is not None:
+                            self.outlets[j].name = outlet_node.find('name').text
+                            mqtt_node = outlet_node.find('mqtt')
+                            self.outlets[j].mqtt_publish_topic = mqtt_node.find('publish').text
+                            self.outlets[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                thermostat_node = room_node.find('thermostat')
+                if thermostat_node is not None:
+                    range_min_node = thermostat_node.find('range_min')
+                    range_min = int(range_min_node.text)
+                    range_max_node = thermostat_node.find('range_max')
+                    range_max = int(range_max_node.text)
+                    mqtt_node = thermostat_node.find('mqtt')
+                    if self.has_thermostat:
+                        self.thermostat.setTemperatureRange(range_min, range_max)
+                        self.thermostat.mqtt_publish_topic = mqtt_node.find('publish').text
+                        self.thermostat.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                airconditioner_node = room_node.find('airconditioner')
+                if airconditioner_node is not None:
+                    range_min_node = airconditioner_node.find('range_min')
+                    range_min = int(range_min_node.text)
+                    range_max_node = airconditioner_node.find('range_max')
+                    range_max = int(range_max_node.text)
+                    mqtt_node = airconditioner_node.find('mqtt')
+                    if self.has_airconditioner:
+                        self.airconditioner.setTemperatureRange(range_min, range_max)
+                        self.airconditioner.mqtt_publish_topic = mqtt_node.find('publish').text
+                        self.airconditioner.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+            else:
+                writeLog(f"Failed to find room{self.index} node", self)        
+        except Exception as e:
+            writeLog(f"Failed to load config ({e})", self)
 
     @property
     def light_count(self):

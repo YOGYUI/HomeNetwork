@@ -56,7 +56,7 @@ class AirConditioner(Device):
         self.temp_current = max(range_min, min(range_max, self.temp_current))
         self.temp_config = max(range_min, min(range_max, self.temp_config))
     
-    def setState(self, state: int, **kwargs):
+    def updateState(self, state: int, **kwargs):
         self.state = state
         if not self.init:
             self.publish_mqtt()
