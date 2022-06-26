@@ -81,6 +81,10 @@ class ThreadCommandQueue(threading.Thread):
                     elif isinstance(dev, Elevator):
                         if category == 'state':
                             self.set_elevator_call(dev, target, parser)
+                    elif isinstance(dev, DoorLock):
+                        if category == 'state':
+                            if target == 'Unsecured':
+                                self.set_doorlock_open(dev, parser)
                 except Exception as e:
                     writeLog(str(e), self)
             else:
@@ -200,3 +204,6 @@ class ThreadCommandQueue(threading.Thread):
             writeLog('set_elevator_call({})::send # = {}'.format(target, cnt), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
+
+    def set_doorlock_open(self, dev: DoorLock, parser: SerialParser):
+        dev.open()

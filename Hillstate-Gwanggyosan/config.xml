@@ -298,4 +298,11 @@
             <subscribe>home/hillstate/elevator/command</subscribe>
         </mqtt>
     </elevator>
+    <doorlock>
+        <gpio>23</gpio>
+        <mqtt>
+            <publish>home/hillstate/doorlock/state</publish>
+            <subscribe>home/hillstate/doorlock/command</subscribe>
+        </mqtt>
+    </doorlock>
 </config>
