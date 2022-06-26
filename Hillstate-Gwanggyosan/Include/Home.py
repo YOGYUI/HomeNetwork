@@ -219,17 +219,19 @@ class Home:
             self.elevator.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
         except Exception as e:
             writeLog(f"Failed to load elevator config ({e})", self)  
-        
+
         node = root.find('doorlock')
         try:
+            enable_node = node.find('enable')
+            enable = bool(int(enable_node.text))
             gpio_node = node.find('gpio')
             gpio_port = int(gpio_node.text)
-            self.doorlock.setParams(gpio_port=gpio_port)
+            self.doorlock.setParams(enable, gpio_port)
             mqtt_node = node.find('mqtt')
             self.doorlock.mqtt_publish_topic = mqtt_node.find('publish').text
             self.doorlock.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
         except Exception as e:
-            writeLog(f"Failed to load doorlock config ({e})", self)  
+            writeLog(f"Failed to load doorlock config ({e})", self)
 
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))

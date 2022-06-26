@@ -299,6 +299,7 @@
         </mqtt>
     </elevator>
     <doorlock>
+        <enable>1</enable>
         <gpio>23</gpio>
         <mqtt>
             <publish>home/hillstate/doorlock/state</publish>
