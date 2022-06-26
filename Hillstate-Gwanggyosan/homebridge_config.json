@@ -908,6 +908,35 @@
             "onValue": 1,
             "offValue": 0,
             "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "lockMechanism",
+            "name": "Doorlock (MQTT)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getLockCurrentState": {
+                    "topic": "home/hillstate/doorlock/state",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getLockTargetState": {
+                    "topic": "home/hillstate/doorlock/state",
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setLockTargetState": {
+                    "topic": "home/hillstate/doorlock/command",
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            },
+            "lockValues": [
+                "Unsecured",
+                "Secured",
+                "Jammed",
+                "Unknown"
+            ],
+            "logMqtt": true
         }
     ],
     "platforms": [

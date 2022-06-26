@@ -10,13 +10,30 @@ class ParserVarious(SerialParser):
                 self.handleGasValve(packet)
             elif packet[3] == 0x1C:  # 시스템에어컨
                 self.handleAirconditioner(packet)
+            elif packet[3] == 0x2A:  # 다기능스위치
+                pass
             elif packet[3] == 0x2B:  # 환기 (전열교환기)
                 self.handleVentilator(packet)
             elif packet[3] == 0x34:  # 엘리베이터
                 self.handleElevator(packet)
+            elif packet[3] == 0x43:  # ??
+                # writeLog(f'Unknown packet (43): {self.prettifyPacket(packet)}', self)
+                if packet == bytearray([0xF7, 0x0B, 0x01, 0x43, 0x01, 0x11, 0x11, 0x00, 0x00, 0xBF, 0xEE]):
+                    pass
+                elif packet[4] == 0x04:
+                    # writeLog(f'{self.prettifyPacket(packet[7:12])} ({int.from_bytes(packet[7:12], byteorder="big")}, {packet[10]}, {packet[11]})')
+                    pass
+                else:
+                    writeLog(f'Unknown packet (43): {self.prettifyPacket(packet)}', self)
+            elif packet[3] == 0x48:  # ??
+                if packet == bytearray([0xF7, 0x0D, 0x01, 0x48, 0x01, 0x40, 0x10, 0x00, 0x71, 0x11, 0x02, 0x80, 0xEE]):
+                    pass
+                elif packet == bytearray([0xF7, 0x0D, 0x01, 0x48, 0x04, 0x40, 0x10, 0x00, 0x71, 0x11, 0x02, 0x85, 0xEE]):
+                    pass
+                else:
+                    writeLog(f'Unknown packet (48): {self.prettifyPacket(packet)}', self)
             else:
-                if packet[4] == 0x02:
-                    print(self.prettifyPacket(packet))
+                writeLog(f'Unknown packet (??): {self.prettifyPacket(packet)}', self)
         except Exception as e:
             writeLog('interpretPacket::Exception::{} ({})'.format(e, packet), self)
 

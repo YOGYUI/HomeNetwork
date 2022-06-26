@@ -458,6 +458,21 @@ fan:
     speed_range_min: 1
     speed_range_max: 100
 
+lock:
+  - platform: mqtt
+    name: "현관 도어락"
+    unique_id: "doorlock_frontdoor"
+    state_topic: "home/hillstate/doorlock/state"
+    command_topic: "home/hillstate/doorlock/command"
+    value_template: '{{ value_json.state }}'
+    payload_lock: '{ "state": "Secured" }'
+    payload_unlock: '{ "state": "Unsecured" }'
+    state_locked: "Secured"
+    state_unlocked: "Unsecured"
+    optimistic: false
+    retain: false
+    icon: mdi:door-closed-lock
+
 sensor:
   - platform: mqtt
     name: "엘리베이터 도착"
