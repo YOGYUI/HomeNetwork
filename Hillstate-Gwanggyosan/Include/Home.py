@@ -432,28 +432,31 @@ class Home:
         Homebridge Publish, App Subscribe
         사용자에 의한 명령 MQTT 토픽 핸들링
         """
-        if self.enable_mqtt_console_log:
-            writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
-        topic = message.topic
-        msg_dict = json.loads(message.payload.decode("utf-8"))
-        if 'system/command' == topic:
-            self.onMqttCommandSystem(topic, msg_dict)
-        if 'light/command' in topic:
-            self.onMqttCommandLight(topic, msg_dict)
-        if 'outlet/command' in topic:
-            self.onMqttCommandOutlet(topic, msg_dict)
-        if 'gasvalve/command' in topic:
-            self.onMqttCommandGasvalve(topic, msg_dict)
-        if 'thermostat/command' in topic:
-            self.onMqttCommandThermostat(topic, msg_dict)
-        if 'ventilator/command' in topic:
-            self.onMqttCommandVentilator(topic, msg_dict)
-        if 'airconditioner/command' in topic:
-            self.onMqttCommandAirconditioner(topic, msg_dict)
-        if 'elevator/command' in topic:
-            self.onMqttCommandElevator(topic, msg_dict)
-        if 'doorlock/command' in topic:
-            self.onMqttCommandDookLock(topic, msg_dict)
+        try:
+            if self.enable_mqtt_console_log:
+                writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
+            topic = message.topic
+            msg_dict = json.loads(message.payload.decode("utf-8"))
+            if 'system/command' == topic:
+                self.onMqttCommandSystem(topic, msg_dict)
+            if 'light/command' in topic:
+                self.onMqttCommandLight(topic, msg_dict)
+            if 'outlet/command' in topic:
+                self.onMqttCommandOutlet(topic, msg_dict)
+            if 'gasvalve/command' in topic:
+                self.onMqttCommandGasvalve(topic, msg_dict)
+            if 'thermostat/command' in topic:
+                self.onMqttCommandThermostat(topic, msg_dict)
+            if 'ventilator/command' in topic:
+                self.onMqttCommandVentilator(topic, msg_dict)
+            if 'airconditioner/command' in topic:
+                self.onMqttCommandAirconditioner(topic, msg_dict)
+            if 'elevator/command' in topic:
+                self.onMqttCommandElevator(topic, msg_dict)
+            if 'doorlock/command' in topic:
+                self.onMqttCommandDookLock(topic, msg_dict)
+        except Exception as e:
+            writeLog(f"onMqttClientMessage Exception ({e}).. topic='{message.topic}', payload='{message.payload}'", self)
 
     def onMqttClientLog(self, _, userdata, level, buf):
         if self.enable_mqtt_console_log:
