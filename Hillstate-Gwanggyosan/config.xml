@@ -4,10 +4,26 @@
         <host>0.0.0.0</host>
         <port>1234</port>
     </webserver>
-    <serial>
-        <port_light>/dev/ttyUSB1</port_light>
-        <port_various>/dev/ttyUSB0</port_various>
-    </serial>
+    <rs485>
+        <light>
+            <usb2serial>
+                <port>/dev/ttyUSB1</port>
+            </usb2serial>
+            <wifi>
+                <ipaddr></ipaddr>
+                <port></port>
+            </wifi>
+        </light>
+        <various>
+            <usb2serial>
+                <port>/dev/ttyUSB0</port>
+            </usb2serial>
+            <wifi>
+                <ipaddr></ipaddr>
+                <port></port>
+            </wifi>
+        </various>
+    </rs485>
     <mqtt>
         <host>mosquitto ip address</host>
         <port>mosquitto port</port>
@@ -306,4 +322,12 @@
             <subscribe>home/hillstate/doorlock/command</subscribe>
         </mqtt>
     </doorlock>
+    <airquality>
+        <apikey>Your API Key from data.go.kr</apikey>
+        <obsname>수지</obsname>
+        <mqtt>
+            <publish>home/hillstate/airquality/state</publish>
+            <subscribe>home/hillstate/airquality/command</subscribe>
+        </mqtt>
+    </airquality>
 </config>

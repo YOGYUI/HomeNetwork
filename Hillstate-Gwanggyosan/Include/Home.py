@@ -18,6 +18,7 @@ class Home:
     ventilator: Ventilator
     elevator: Elevator
     doorlock: DoorLock
+    airquality: AirqualitySensor
 
     serial_baud: int = 9600
 
@@ -85,6 +86,7 @@ class Home:
         self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
         self.elevator = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
         self.doorlock = DoorLock(name="DoorLock", mqtt_client=self.mqtt_client)
+        self.airquality = AirqualitySensor(mqtt_client=self.mqtt_client)
 
         # append device list
         for room in self.rooms:
@@ -93,6 +95,7 @@ class Home:
         self.device_list.append(self.ventilator)
         self.device_list.append(self.elevator)
         self.device_list.append(self.doorlock)
+        self.device_list.append(self.airquality)
         
         self.loadConfig(xml_path)
 
@@ -174,12 +177,19 @@ class Home:
             return
         root = ET.parse(filepath).getroot()
 
-        node = root.find('serial')
+        node = root.find('rs485')
         try:
-            self.serial_port_light = node.find('port_light').text
-            self.serial_port_various = node.find('port_various').text
+            light_node = node.find('light')
+            usb2serial_node = light_node.find('usb2serial')
+            self.serial_port_light = usb2serial_node.find('port').text
         except Exception as e:
-            writeLog(f"Failed to load serial port info ({e})", self)
+            writeLog(f"Failed to load 'light' serial port info ({e})", self)
+        try:
+            various_node = node.find('various')
+            usb2serial_node = various_node.find('usb2serial')
+            self.serial_port_various = usb2serial_node.find('port').text
+        except Exception as e:
+            writeLog(f"Failed to load 'various' serial port info ({e})", self)
 
         node = root.find('mqtt')
         try:
@@ -232,6 +242,16 @@ class Home:
             self.doorlock.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
         except Exception as e:
             writeLog(f"Failed to load doorlock config ({e})", self)
+        
+        node = root.find('airquality')
+        try:
+            mqtt_node = node.find('mqtt')
+            self.airquality.mqtt_publish_topic = mqtt_node.find('publish').text
+            apikey = node.find('apikey').text
+            obsname = node.find('obsname').text
+            self.airquality.setApiParams(apikey, obsname)
+        except Exception as e:
+            writeLog(f"Failed to load airquality sensor config ({e})", self)
 
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
