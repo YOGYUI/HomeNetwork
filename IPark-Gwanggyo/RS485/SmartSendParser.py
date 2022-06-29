@@ -1,17 +1,17 @@
 import os
 import pickle
-from Parser import Parser
-from SerialComm import SerialComm
+from PacketParser import PacketParser
+from RS485Comm import *
 from typing import List
 
 
-class SmartSendParser(Parser):
+class SmartSendParser(PacketParser):
     timestamp: int = 0
     elevator_up_packets: List[str]
     elevator_down_packets: List[str]
 
-    def __init__(self, ser: SerialComm):
-        super().__init__(ser)
+    def __init__(self, rs485: RS485Comm):
+        super().__init__(rs485)
         # packets in here
         curpath = os.path.dirname(os.path.abspath(__file__))
         picklepath = os.path.join(curpath, 'smart_elevator_up_packets.pkl')

@@ -95,7 +95,8 @@ class ThreadCommandQueue(threading.Thread):
     def stop(self):
         self._keepAlive = False
 
-    def getSendParams(self, parser: PacketParser) -> tuple:
+    @staticmethod
+    def getSendParams(parser: PacketParser) -> tuple:
         interval = 0.2
         retry_cnt = 10
         if parser.getRS485HwType() == RS485HwType.Socket:

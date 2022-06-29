@@ -10,7 +10,7 @@ app.app_context().push()
 app.wsgi_app = DebuggedApplication(app.wsgi_app, app_debug)
 app.debug = app_debug
 home = get_home('IPark-Gwanggyo (Bestin)')
-home.initSerialConnection()
+home.initRS485Connection()
 
 
 def onExitApp():

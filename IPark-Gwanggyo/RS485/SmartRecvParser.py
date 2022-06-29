@@ -1,9 +1,9 @@
-from Parser import Parser
+from PacketParser import PacketParser
 from Define import Callback
-from SerialComm import SerialComm
+from RS485Comm import *
 
 
-class SmartRecvParser(Parser):
+class SmartRecvParser(PacketParser):
     year: int = 0
     month: int = 0
     day: int = 0
@@ -16,8 +16,8 @@ class SmartRecvParser(Parser):
     flag_send_up_packet: bool = False
     flag_send_down_packet: bool = False
 
-    def __init__(self, ser: SerialComm):
-        super().__init__(ser)
+    def __init__(self, rs485: RS485Comm):
+        super().__init__(rs485)
         self.sig_call_elevator = Callback(int, int)  # up(1)/down(0) flag, timestamp
 
     def handlePacket(self):

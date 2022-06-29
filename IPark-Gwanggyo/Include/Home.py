@@ -1,12 +1,19 @@
+import os
+import sys
 import time
 import json
 import queue
-import ctypes
 from typing import List, Union
 import paho.mqtt.client as mqtt
 import xml.etree.ElementTree as ET
+CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/Include
+PROJPATH = os.path.dirname(CURPATH)  # {$PROJECT}
+RS485PATH = os.path.join(PROJPATH, 'RS485')  # {$PROJECT}/RS485
+sys.path.extend([CURPATH, PROJPATH, RS485PATH])
+sys.path = list(set(sys.path))
+del CURPATH, PROJPATH, RS485PATH
+from RS485 import *
 from Include import *
-from Serial485 import *
 
 
 class Home:
@@ -19,12 +26,6 @@ class Home:
     elevator: Elevator
     airquality: AirqualitySensor
     doorlock: Doorlock
-
-    serial_baud: int = 9600
-    serial_485_energy_port: str = ''
-    serial_485_control_port: str = ''
-    serial_485_smart_port_recv: str = ''
-    serial_485_smart_port_send: str = ''
 
     thread_command: Union[ThreadCommand, None] = None
     thread_monitoring: Union[ThreadMonitoring, None] = None
@@ -53,8 +54,8 @@ class Home:
     packets_smart_recv: List[bytearray]
     packets_smart_send: List[bytearray]
 
-    serial_list: List[SerialComm]
-    parser_list: List[Parser]
+    rs485_list: List[RS485Comm]
+    parser_list: List[PacketParser]
 
     def __init__(self, name: str = 'Home', init_service: bool = True):
         self.name = name
@@ -66,37 +67,41 @@ class Home:
         self.packets_control = list()
         self.packets_smart_recv = list()
         self.packets_smart_send = list()
-        self.serial_list = list()
+        self.rs485_list = list()
         self.parser_list = list()
 
-        self.serial_485_energy = SerialComm('Energy')
-        self.serial_list.append(self.serial_485_energy)
-        self.parser_energy = EnergyParser(self.serial_485_energy)
+        self.rs485_energy_config = RS485Config()
+        self.rs485_energy = RS485Comm('Energy')
+        self.rs485_list.append(self.rs485_energy)
+        self.parser_energy = EnergyParser(self.rs485_energy)
         self.parser_energy.sig_parse.connect(self.onParserEnergyResult)
         self.parser_list.append(self.parser_energy)
 
-        self.serial_485_control = SerialComm('Control')
-        self.serial_list.append(self.serial_485_control)
-        self.parser_control = ControlParser(self.serial_485_control)
+        self.rs485_control_config = RS485Config()
+        self.rs485_control = RS485Comm('Control')
+        self.rs485_list.append(self.rs485_control)
+        self.parser_control = ControlParser(self.rs485_control)
         self.parser_control.sig_parse.connect(self.onParserControlResult)
         self.parser_list.append(self.parser_control)
 
-        self.serial_485_smart_recv = SerialComm('Smart(Recv)')
-        self.serial_list.append(self.serial_485_smart_recv)
-        self.parser_smart_recv = SmartRecvParser(self.serial_485_smart_recv)
+        self.rs485_smart_recv_config = RS485Config()
+        self.rs485_smart_recv = RS485Comm('Smart(Recv)')
+        self.rs485_list.append(self.rs485_smart_recv)
+        self.parser_smart_recv = SmartRecvParser(self.rs485_smart_recv)
         self.parser_smart_recv.sig_parse.connect(self.onParserSmartRecvResult)
         self.parser_smart_recv.sig_call_elevator.connect(self.callElevatorByParser)
         self.parser_list.append(self.parser_smart_recv)
 
-        self.serial_485_smart_send = SerialComm('Smart(Send)')
-        self.serial_list.append(self.serial_485_smart_send)
-        self.parser_smart_send = SmartSendParser(self.serial_485_smart_send)
+        self.rs485_smart_send_config = RS485Config()
+        self.rs485_smart_send = RS485Comm('Smart(Send)')
+        self.rs485_list.append(self.rs485_smart_send)
+        self.parser_smart_send = SmartSendParser(self.rs485_smart_send)
         self.parser_smart_send.sig_parse.connect(self.onParserSmartSendResult)
         self.parser_list.append(self.parser_smart_send)
 
         self.initialize(init_service, False)
 
-    def initialize(self, init_service: bool, serial_conn: bool):
+    def initialize(self, init_service: bool, connect_rs485: bool):
         self.device_list.clear()
         self.rooms.clear()
 
@@ -147,8 +152,8 @@ class Home:
                 writeLog('MQTT Connection Error: {}'.format(e), self)
             self.mqtt_client.loop_start()
         
-        if serial_conn:
-            self.initSerialConnection();
+        if connect_rs485:
+            self.initRS485Connection()
 
         writeLog(f'Initialized <{self.name}>', self)
 
@@ -162,8 +167,8 @@ class Home:
 
         for parser in self.parser_list:
             parser.release()
-        for serial in self.serial_list:
-            serial.release()
+        for rs485 in self.rs485_list:
+            rs485.release()
         writeLog(f'Released', self)
 
     def restart(self):
@@ -203,26 +208,116 @@ class Home:
             writeLog(str(room), self)
         """
 
-    def initSerialConnection(self):
-        self.serial_485_energy.connect(self.serial_485_energy_port, self.serial_baud)
-        self.serial_485_control.connect(self.serial_485_control_port, self.serial_baud)
-        self.serial_485_smart_recv.connect(self.serial_485_smart_port_recv, self.serial_baud)
-        self.serial_485_smart_send.connect(self.serial_485_smart_port_send, self.serial_baud)
+    def initRS485Connection(self):
+        self.rs485_energy.setType(self.rs485_energy_config.comm_type)
+        if self.rs485_energy_config.comm_type == RS485HwType.Serial:
+            port = self.rs485_energy_config.serial_port
+            baud = self.rs485_energy_config.serial_baud
+            self.rs485_energy.connect(port, baud)
+        elif self.rs485_energy_config.comm_type == RS485HwType.Socket:
+            ipaddr = self.rs485_energy_config.socket_ipaddr
+            port = self.rs485_energy_config.socket_port
+            self.rs485_energy.connect(ipaddr, port)
+
+        self.rs485_control.setType(self.rs485_control_config.comm_type)
+        if self.rs485_control_config.comm_type == RS485HwType.Serial:
+            port = self.rs485_control_config.serial_port
+            baud = self.rs485_control_config.serial_baud
+            self.rs485_control.connect(port, baud)
+        elif self.rs485_control_config.comm_type == RS485HwType.Socket:
+            ipaddr = self.rs485_control_config.socket_ipaddr
+            port = self.rs485_control_config.socket_port
+            self.rs485_control.connect(ipaddr, port)
+
+        self.rs485_smart_recv.setType(self.rs485_smart_recv_config.comm_type)
+        if self.rs485_smart_recv_config.comm_type == RS485HwType.Serial:
+            port = self.rs485_smart_recv_config.serial_port
+            baud = self.rs485_smart_recv_config.serial_baud
+            self.rs485_smart_recv.connect(port, baud)
+        elif self.rs485_smart_recv_config.comm_type == RS485HwType.Socket:
+            ipaddr = self.rs485_smart_recv_config.socket_ipaddr
+            port = self.rs485_smart_recv_config.socket_port
+            self.rs485_smart_recv.connect(ipaddr, port)
+
+        self.rs485_smart_send.setType(self.rs485_smart_send_config.comm_type)
+        if self.rs485_smart_send_config.comm_type == RS485HwType.Serial:
+            port = self.rs485_smart_send_config.serial_port
+            baud = self.rs485_smart_send_config.serial_baud
+            self.rs485_smart_send.connect(port, baud)
+        elif self.rs485_smart_send_config.comm_type == RS485HwType.Socket:
+            ipaddr = self.rs485_smart_send_config.socket_ipaddr
+            port = self.rs485_smart_send_config.socket_port
+            self.rs485_smart_send.connect(ipaddr, port)
 
     def loadConfig(self, filepath: str):
         if not os.path.isfile(filepath):
             return
-
         root = ET.parse(filepath).getroot()
-
-        node = root.find('serial')
+        node = root.find('rs485')
         try:
-            self.serial_485_energy_port = node.find('port_energy').text
-            self.serial_485_control_port = node.find('port_control').text
-            self.serial_485_smart_port_recv = node.find('port_smart1').text
-            self.serial_485_smart_port_send = node.find('port_smart2').text
+            energy_node = node.find('energy')
+            type_node = energy_node.find('type')
+            self.rs485_energy_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = energy_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_energy_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_energy_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = energy_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_energy_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_energy_config.socket_port = int(socket_port_node.text)
         except Exception as e:
-            writeLog(f"Failed to load serial port info ({e})", self)
+            writeLog(f"Failed to load 'energy' rs485 config ({e})", self)
+        try:
+            control_node = node.find('control')
+            type_node = control_node.find('type')
+            self.rs485_control_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = energy_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_control_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_control_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = control_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_control_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_control_config.socket_port = int(socket_port_node.text)
+        except Exception as e:
+            writeLog(f"Failed to load 'control' rs485 config ({e})", self)
+        try:
+            smart1_node = node.find('smart1')
+            type_node = smart1_node.find('type')
+            self.rs485_smart_recv_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = energy_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_smart_recv_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_smart_recv_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = smart1_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_smart_recv_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_smart_recv_config.socket_port = int(socket_port_node.text)
+        except Exception as e:
+            writeLog(f"Failed to load 'smart1' rs485 config ({e})", self)
+        try:
+            smart2_node = node.find('smart2')
+            type_node = smart2_node.find('type')
+            self.rs485_smart_send_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = energy_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_smart_send_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_smart_send_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = smart2_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_smart_send_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_smart_send_config.socket_port = int(socket_port_node.text)
+        except Exception as e:
+            writeLog(f"Failed to load 'smart2' rs485 config ({e})", self)
 
         node = root.find('mqtt')
         try:
@@ -350,10 +445,10 @@ class Home:
     def startThreadMonitoring(self):
         if self.thread_monitoring is None:
             self.thread_monitoring = ThreadMonitoring([
-                self.serial_485_energy,
-                self.serial_485_control,
-                self.serial_485_smart_recv,
-                # self.serial_485_smart_send
+                self.rs485_energy,
+                self.rs485_control,
+                self.rs485_smart_recv,
+                # self.rs485_smart_send
             ])
             self.thread_monitoring.sig_terminated.connect(self.onThreadMonitoringTerminated)
             self.thread_monitoring.sig_publish_regular.connect(self.publish_all)
@@ -375,11 +470,11 @@ class Home:
             except ValueError as e:
                 writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
 
-    def sendSerialEnergyPacket(self, packet: str):
-        self.serial_485_energy.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))
+    def sendRS485EnergyPacket(self, packet: str):
+        self.rs485_energy.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))
 
-    def sendSerialControlPacket(self, packet: str):
-        self.serial_485_control.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))
+    def sendRS485ControlPacket(self, packet: str):
+        self.rs485_control.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))
 
     def onParserEnergyResult(self, chunk: bytearray):
         try:
@@ -550,7 +645,6 @@ class Home:
                         dev.current_floor = f'B{chunk[12] & 0x7F}'
                     else:
                         dev.current_floor = f'{chunk[12] & 0xFF}'
-                    # dev.current_floor = ctypes.c_int8(chunk[12]).value
                     # notification
                     if not dev.init:
                         dev.publish_mqtt()
@@ -577,18 +671,15 @@ class Home:
         try:
             dev = kwargs['device']
             if isinstance(dev, Light) or isinstance(dev, Outlet):
-                kwargs['func'] = self.parser_energy.sendPacketString
+                kwargs['parser'] = self.parser_energy
             elif isinstance(dev, Thermostat):
-                kwargs['func'] = self.parser_control.sendPacketString
+                kwargs['parser'] = self.parser_control
             elif isinstance(dev, Ventilator):
-                kwargs['func'] = self.parser_control.sendPacketString
+                kwargs['parser'] = self.parser_control
             elif isinstance(dev, GasValve):
-                kwargs['func'] = self.parser_control.sendPacketString
+                kwargs['parser'] = self.parser_control
             elif isinstance(dev, Elevator):
-                if kwargs['direction'] == 'up':
-                    kwargs['func'] = self.parser_smart_recv.setFlagCallUp
-                else:
-                    kwargs['func'] = self.parser_smart_recv.setFlagCallDown
+                kwargs['parser'] = self.parser_smart_recv
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
@@ -751,3 +842,4 @@ def get_home(name: str = '') -> Home:
     if home_ is None:
         home_ = Home(name=name)
     return home_
+ 

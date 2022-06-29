@@ -1,3 +1,5 @@
+import os
+import sys
 import time
 import queue
 import threading
@@ -10,6 +12,13 @@ from Thermostat import Thermostat
 from Ventilator import Ventilator
 from GasValve import GasValve
 from Elevator import Elevator
+CURPATH = os.path.dirname(os.path.abspath(__file__))  # Project/Include
+PROJPATH = os.path.dirname(CURPATH)  # Proejct/
+RS485PATH = os.path.join(PROJPATH, 'RS485')  # Project/RS485
+sys.path.extend([CURPATH, PROJPATH, RS485PATH])
+sys.path = list(set(sys.path))
+del CURPATH, PROJPATH, RS485PATH
+from RS485 import PacketParser, RS485HwType
 
 
 class ThreadCommand(threading.Thread):
@@ -18,7 +27,6 @@ class ThreadCommand(threading.Thread):
     def __init__(self, queue_: queue.Queue):
         threading.Thread.__init__(self, name='Command Thread')
         self._queue = queue_
-        self._retry_cnt = 10
         self._delay_response = 0.4
         self.sig_terminated = Callback()
 
@@ -35,30 +43,33 @@ class ThreadCommand(threading.Thread):
                     dev = elem['device']
                     category = elem['category']
                     target = elem['target']
-                    func = elem['func']
+                    parser = elem['parser']
                     if target is None:
                         continue
 
                     if isinstance(dev, Light) or isinstance(dev, Outlet):
                         if category == 'state':
-                            self.set_light_state(dev, target, func)
+                            self.set_light_state(dev, target, parser)
                     elif isinstance(dev, Thermostat):
                         if category == 'state':
-                            self.set_state_common(dev, target, func)
+                            self.set_state_common(dev, target, parser)
                         elif category == 'temperature':
-                            self.set_thermostat_temperature(dev, target, func)
+                            self.set_thermostat_temperature(dev, target, parser)
                     elif isinstance(dev, GasValve):
                         if category == 'state':
-                            self.set_gas_state(dev, target, func)
+                            self.set_gas_state(dev, target, parser)
                     elif isinstance(dev, Ventilator):
                         if category == 'state':
-                            self.set_state_common(dev, target, func)
+                            self.set_state_common(dev, target, parser)
                         elif category == 'rotation_speed':
-                            self.set_ventilator_rotation_speed(dev, target, func)
+                            self.set_ventilator_rotation_speed(dev, target, parser)
                     elif isinstance(dev, Elevator):
                         if category == 'state':
                             if target == 1:
-                                func()
+                                if elem['direction'] == 'up':
+                                    parser.setFlagCallUp()
+                                else:
+                                    parser.setFlagCallDown()
                             dev.publish_mqtt()
                 except Exception as e:
                     writeLog(str(e), self)
@@ -70,94 +81,118 @@ class ThreadCommand(threading.Thread):
     def stop(self):
         self._keepAlive = False
 
-    def set_state_common(self, dev: Device, target: int, func):
+    @staticmethod
+    def getSendParams(parser: PacketParser) -> tuple:
+        interval = 0.2
+        retry_cnt = 10
+        if parser.getRS485HwType() == RS485HwType.Socket:
+            # ew11은 무선 송수신 레이턴시때문에 RS485 IDLE 시간을 명확하게 알 수 없으므로
+            # 짧은 간격으로 패킷을 많이 쏴보도록 한다
+            interval = 0.1
+            retry_cnt = 50
+        return interval, retry_cnt
+
+    def set_state_common(self, dev: Device, target: int, parser: PacketParser):
         cnt = 0
         packet1 = dev.packet_set_state_on if target else dev.packet_set_state_off
         packet2 = dev.packet_get_state
-        for _ in range(self._retry_cnt):
+        interval, retry_cnt = self.getSendParams(parser)
+        while cnt < retry_cnt:
             if dev.state == target:
                 break
-            func(packet1)
+            if parser.isRS485LineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
+            parser.sendPacketString(packet1)
             cnt += 1
-            time.sleep(0.2)
+            time.sleep(interval)
             if dev.state == target:
                 break
-            func(packet2)
-            time.sleep(0.2)
-        writeLog('set_state_common::send # = {}'.format(cnt), self)
-        time.sleep(self._delay_response)
+            parser.sendPacketString(packet2)
+            time.sleep(interval)
+        if cnt > 0:
+            writeLog('set_state_common::send # = {}'.format(cnt), self)
+            time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_light_state(self, dev: Union[Light, Outlet], target: int, func):
+    def set_light_state(self, dev: Union[Light, Outlet], target: int, parser: PacketParser):
         cnt = 0
         packet1 = dev.packet_set_state_on if target else dev.packet_set_state_off
         packet2 = dev.packet_get_state
-        for _ in range(self._retry_cnt):
+        interval, retry_cnt = self.getSendParams(parser)
+        while cnt < retry_cnt:
             if dev.state == target:
                 break
-            func(packet1)
+            parser.sendPacketString(packet1)
             cnt += 1
-            time.sleep(0.2)
+            time.sleep(interval)
             if dev.state == target:
                 break
-            func(packet2)
-            time.sleep(0.2)
-        writeLog('set_light_state::send # = {}'.format(cnt), self)
-        time.sleep(self._delay_response)
+            parser.sendPacketString(packet2)
+            time.sleep(interval)
+        if cnt > 0:
+            writeLog('set_light_state::send # = {}'.format(cnt), self)
+            time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_gas_state(self, dev: GasValve, target: int, func):
+    def set_gas_state(self, dev: GasValve, target: int, parser: PacketParser):
         cnt = 0
         packet1 = dev.packet_set_state_on if target else dev.packet_set_state_off
         packet2 = dev.packet_get_state
+        interval, retry_cnt = self.getSendParams(parser)
         # only closing is permitted, 2 = Opening/Closing (Valve is moving...)
         if target == 0:
-            for _ in range(self._retry_cnt):
+            while cnt < retry_cnt:
                 if dev.state in [target, 2]:
                     break
-                func(packet1)
+                parser.sendPacketString(packet1)
                 cnt += 1
-                time.sleep(0.5)
+                time.sleep(interval)
                 if dev.state in [target, 2]:
                     break
-                func(packet2)
-                time.sleep(0.5)
-            writeLog('set_gas_state::send # = {}'.format(cnt), self)
-        time.sleep(self._delay_response)
+                parser.sendPacketString(packet2)
+                time.sleep(interval)
+            if cnt > 0:
+                writeLog('set_gas_state::send # = {}'.format(cnt), self)
+                time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_thermostat_temperature(self, dev: Thermostat, target: float, func):
+    def set_thermostat_temperature(self, dev: Thermostat, target: float, parser: PacketParser):
         cnt = 0
         idx = max(0, min(70, int((target - 5.0) / 0.5)))
         packet1 = dev.packet_set_temperature[idx]
         packet2 = dev.packet_get_state
-        for _ in range(self._retry_cnt):
+        interval, retry_cnt = self.getSendParams(parser)
+        while cnt < retry_cnt:
             if dev.temperature_setting == target:
                 break
-            func(packet1)
+            parser.sendPacketString(packet1)
             cnt += 1
-            time.sleep(0.2)
+            time.sleep(interval)
             if dev.temperature_setting == target:
                 break
-            func(packet2)
-            time.sleep(0.2)
-        writeLog('set_thermostat_temperature::send # = {}'.format(cnt), self)
-        time.sleep(self._delay_response)
+            parser.sendPacketString(packet2)
+            time.sleep(interval)
+        if cnt > 0:
+            writeLog('set_thermostat_temperature::send # = {}'.format(cnt), self)
+            time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_ventilator_rotation_speed(self, dev: Ventilator, target: int, func):
+    def set_ventilator_rotation_speed(self, dev: Ventilator, target: int, parser: PacketParser):
         cnt = 0
         packet1 = dev.packet_set_rotation_speed[target - 1]
         packet2 = dev.packet_get_state
-        for _ in range(self._retry_cnt):
+        interval, retry_cnt = self.getSendParams(parser)
+        while cnt < retry_cnt:
             if dev.rotation_speed == target:
                 break
-            func(packet1)
+            parser.sendPacketString(packet1)
             cnt += 1
-            time.sleep(0.2)
+            time.sleep(interval)
             if dev.rotation_speed == target:
                 break
-            func(packet2)
-            time.sleep(0.2)
-        writeLog('set_ventilator_rotation_speed::send # = {}'.format(cnt), self)
-        dev.publish_mqtt()
+            parser.sendPacketString(packet2)
+            time.sleep(interval)
+        if cnt > 0:
+            writeLog('set_ventilator_rotation_speed::send # = {}'.format(cnt), self)
+            dev.publish_mqtt()

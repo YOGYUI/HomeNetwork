@@ -1,8 +1,15 @@
+import os
+import sys
 import time
 import queue
 import serial
 import threading
 import traceback
+CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/RS485/Serial
+RS485PATH = os.path.dirname(CURPATH)  # {$PROJECT}/RS485/
+sys.path.extend([CURPATH, RS485PATH])
+sys.path = list(set(sys.path))
+del CURPATH, RS485PATH
 from Define import Callback, writeLog
 
 

@@ -1,9 +1,9 @@
 from abc import abstractmethod, ABCMeta
-from SerialComm import SerialComm
 from Define import Callback, writeLog
+from RS485Comm import *
 
 
-class Parser:
+class PacketParser:
     __metaclass__ = ABCMeta
 
     buffer: bytearray
@@ -12,18 +12,18 @@ class Parser:
     max_chunk_cnt: int = 1e6
     max_buffer_size: int = 200
 
-    def __init__(self, ser: SerialComm):
+    def __init__(self, rs485: RS485Comm):
         self.buffer = bytearray()
         self.sig_parse = Callback(bytearray)
-        ser.sig_send_data.connect(self.onSendData)
-        ser.sig_recv_data.connect(self.onRecvData)
-        self.serial = ser
+        rs485.sig_send_data.connect(self.onSendData)
+        rs485.sig_recv_data.connect(self.onRecvData)
+        self.rs485 = rs485
 
     def release(self):
         self.buffer.clear()
 
     def sendPacketString(self, packet_str: str):
-        self.serial.sendData(bytearray([int(x, 16) for x in packet_str.split(' ')]))
+        self.rs485.sendData(bytearray([int(x, 16) for x in packet_str.split(' ')]))
 
     def onSendData(self, data: bytes):
         msg = ' '.join(['%02X' % x for x in data])

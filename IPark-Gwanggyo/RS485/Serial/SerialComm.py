@@ -4,10 +4,7 @@ import queue
 import serial
 import datetime
 from typing import Union
-sys.path.extend([os.path.dirname(os.path.abspath(__file__))])
-sys.path = list(set(sys.path))
-from Define import writeLog, Callback
-from Threads import ThreadSend, ThreadReceive, ThreadCheck
+from SerialThreads import *
 
 
 class SerialComm:
@@ -20,7 +17,7 @@ class SerialComm:
     def __init__(self, name: str = 'SerialComm'):
         self._name = name
 
-        self.sig_connected = Callback()
+        self.sig_connected = Callback(bool)
         self.sig_disconnected = Callback()
         self.sig_send_data = Callback(bytes)
         self.sig_recv_data = Callback(bytes)
@@ -50,10 +47,10 @@ class SerialComm:
             if self._serial.isOpen():
                 self.clearQueues()
                 self.startThreads()
-                self.sig_connected.emit()
+                self.sig_connected.emit(True)
                 writeLog('Connected to <{}> (baud: {})'.format(port, baudrate), self)
                 return True
-
+            self.sig_connected.emit(False)
             return False
         except Exception as e:
             writeLog('Exception::{}'.format(e), self)
@@ -175,12 +172,3 @@ class SerialComm:
     @property
     def baudrate(self) -> int:
         return self._serial.baudrate
-
-
-if __name__ == '__main__':
-    import time
-
-    obj = SerialComm()
-    obj.connect('/dev/ttyUSB0', 9600)
-    time.sleep(5)
-    obj.release()
