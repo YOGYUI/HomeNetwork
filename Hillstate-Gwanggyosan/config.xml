@@ -6,22 +6,26 @@
     </webserver>
     <rs485>
         <light>
+            <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
             <usb2serial>
                 <port>/dev/ttyUSB1</port>
+                <baud>9600</baud>
             </usb2serial>
-            <wifi>
-                <ipaddr></ipaddr>
-                <port></port>
-            </wifi>
+            <ew11>
+                <ipaddr>192.168.0.1</ipaddr>
+                <port>8899</port>
+            </ew11>
         </light>
         <various>
+            <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
             <usb2serial>
                 <port>/dev/ttyUSB0</port>
+                <baud>9600</baud>
             </usb2serial>
-            <wifi>
-                <ipaddr></ipaddr>
-                <port></port>
-            </wifi>
+            <ew11>
+                <ipaddr>192.168.0.2</ipaddr>
+                <port>8899</port>
+            </ew11>
         </various>
     </rs485>
     <mqtt>

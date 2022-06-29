@@ -1,16 +1,8 @@
-import os
-import sys
 import queue
 import serial
 import datetime
 from typing import Union
-from SerialThreads import ThreadSend, ThreadReceive, ThreadCheckRecvQueue
-CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/Include/RS485
-INCPATH = os.path.dirname(CURPATH)  # {$PROJECT}/Include/
-sys.path.extend([CURPATH, INCPATH])
-sys.path = list(set(sys.path))
-del CURPATH, INCPATH
-from Common import writeLog, Callback
+from SerialThreads import *
 
 
 class SerialComm:
@@ -23,7 +15,7 @@ class SerialComm:
     def __init__(self, name: str = 'SerialComm'):
         self._name = name
 
-        self.sig_connected = Callback()
+        self.sig_connected = Callback(bool)
         self.sig_disconnected = Callback()
         self.sig_send_data = Callback(bytes)
         self.sig_recv_data = Callback(bytes)
@@ -55,9 +47,10 @@ class SerialComm:
                 self._serial.reset_output_buffer()
                 self.clearQueues()
                 self.startThreads()
-                self.sig_connected.emit()
+                self.sig_connected.emit(True)
                 writeLog(f'"{self._name}" Connected to <{port}> (baud: {baudrate})', self)
                 return True
+            self.sig_connected.emit(False)
             return False
         except Exception as e:
             writeLog('Exception::{}'.format(e), self)

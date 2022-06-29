@@ -12,7 +12,7 @@ sys.path = list(set(sys.path))
 del CURPATH, INCPATH
 from Define import *
 from Common import Callback, writeLog
-from RS485 import SerialParser
+from RS485 import PacketParser, RS485HwType
 
 
 class ThreadCommandQueue(threading.Thread):
@@ -95,43 +95,55 @@ class ThreadCommandQueue(threading.Thread):
     def stop(self):
         self._keepAlive = False
 
-    def set_state_common(self, dev: Device, target: int, parser: SerialParser):
+    def getSendParams(self, parser: PacketParser) -> tuple:
+        interval = 0.2
+        retry_cnt = 10
+        if parser.getRS485HwType() == RS485HwType.Socket:
+            # ew11은 무선 송수신 레이턴시때문에 RS485 IDLE 시간을 명확하게 알 수 없으므로
+            # 짧은 간격으로 패킷을 많이 쏴보도록 한다
+            interval = 0.1
+            retry_cnt = 50
+        return interval, retry_cnt
+
+    def set_state_common(self, dev: Device, target: int, parser: PacketParser):
         cnt = 0
         packet_command = dev.makePacketSetState(bool(target))
-        while cnt < self._retry_cnt:
+        interval, retry_cnt = self.getSendParams(parser)
+        while cnt < retry_cnt:
             if dev.state == target:
                 break
-            if parser.isSerialLineBusy():
+            if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
                 continue
             parser.sendPacket(packet_command)
             cnt += 1
-            time.sleep(0.2)  # wait for parsing response
+            time.sleep(interval)  # wait for parsing response
         if cnt > 0:
             writeLog('set_state_common::send # = {}'.format(cnt), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_temperature(self, dev: Thermostat, target: float, parser: SerialParser):
+    def set_temperature(self, dev: Thermostat, target: float, parser: PacketParser):
         # 힐스테이트는 온도값 범위가 정수형이므로 올림처리해준다
         target_temp = math.ceil(target)
         cnt = 0
         packet_command = dev.makePacketSetTemperature(target_temp)
-        while cnt < self._retry_cnt:
+        interval, retry_cnt = self.getSendParams(parser)
+        while cnt < retry_cnt:
             if dev.temp_config == target_temp:
                 break
-            if parser.isSerialLineBusy():
+            if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
                 continue
             parser.sendPacket(packet_command)
             cnt += 1
-            time.sleep(0.2)  # wait for parsing response
+            time.sleep(interval)  # wait for parsing response
         if cnt > 0:
             writeLog('set_temperature::send # = {}'.format(cnt), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_rotation_speed(self, dev: Union[Ventilator, AirConditioner], target: int, parser: SerialParser):
+    def set_rotation_speed(self, dev: Union[Ventilator, AirConditioner], target: int, parser: PacketParser):
         if isinstance(dev, Ventilator):
             # Speed 값 변환 (100단계의 풍량을 세단계로 나누어 1, 3, 7 중 하나로)
             if target <= 30:
@@ -152,38 +164,40 @@ class ThreadCommandQueue(threading.Thread):
                 conv = 0x04
         cnt = 0
         packet_command = dev.makePacketSetRotationSpeed(conv)
-        while cnt < self._retry_cnt:
+        interval, retry_cnt = self.getSendParams(parser)
+        while cnt < retry_cnt:
             if dev.rotation_speed == conv:
                 break
-            if parser.isSerialLineBusy():
+            if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
                 continue
             parser.sendPacket(packet_command)
             cnt += 1
-            time.sleep(0.2)  # wait for parsing response
+            time.sleep(interval)  # wait for parsing response
         if cnt > 0:
             writeLog('set_rotation_speed::send # = {}'.format(cnt), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_airconditioner_mode(self, dev: AirConditioner, target: int, parser: SerialParser):
+    def set_airconditioner_mode(self, dev: AirConditioner, target: int, parser: PacketParser):
         cnt = 0
         packet_command = dev.makePacketSetMode(target)
-        while cnt < self._retry_cnt:
+        interval, retry_cnt = self.getSendParams(parser)
+        while cnt < retry_cnt:
             if dev.mode == target:
                 break
-            if parser.isSerialLineBusy():
+            if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
                 continue
             parser.sendPacket(packet_command)
             cnt += 1
-            time.sleep(0.2)  # wait for parsing response
+            time.sleep(interval)  # wait for parsing response
         if cnt > 0:
             writeLog('set_airconditioner_mode::send # = {}'.format(cnt), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
     
-    def set_elevator_call(self, dev: Elevator, target: int, parser: SerialParser):
+    def set_elevator_call(self, dev: Elevator, target: int, parser: PacketParser):
         cnt = 0
         if target == 5:
             packet_command = dev.makePacketCallUpside()
@@ -191,19 +205,20 @@ class ThreadCommandQueue(threading.Thread):
             packet_command = dev.makePacketCallDownside()
         else:
             return
-        while cnt < self._retry_cnt:
+        interval, retry_cnt = self.getSendParams(parser)
+        while cnt < retry_cnt:
             if dev.state == target:
                 break
-            if parser.isSerialLineBusy():
+            if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
                 continue
             parser.sendPacket(packet_command)
             cnt += 1
-            time.sleep(0.2)  # wait for parsing response
+            time.sleep(interval)  # wait for parsing response
         if cnt > 0:
             writeLog('set_elevator_call({})::send # = {}'.format(target, cnt), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_doorlock_open(self, dev: DoorLock, parser: SerialParser):
+    def set_doorlock_open(self, dev: DoorLock, parser: PacketParser):
         dev.open()
