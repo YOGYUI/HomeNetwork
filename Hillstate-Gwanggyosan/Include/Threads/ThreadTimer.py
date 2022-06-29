@@ -47,9 +47,11 @@ class ThreadTimer(threading.Thread):
                         if delta > 10:
                             msg = 'Warning!! RS485 <{}> is not receiving for {:.1f} seconds'.format(obj.name, delta)
                             writeLog(msg, self)
+                        if delta > 120:
+                            # 2분이상이면 재접속 시도
+                            obj.reconnect()
                     else:
-                        # writeLog('Warning!! RS485 <{}> is not connected'.format(obj.name), self)
-                        pass
+                        writeLog('Warning!! RS485 <{}> is not connected'.format(obj.name), self)
 
                 if time.perf_counter() - tm > self._publish_interval:
                     self.sig_publish_regular.emit()

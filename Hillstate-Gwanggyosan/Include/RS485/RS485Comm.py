@@ -29,6 +29,8 @@ class RS485Config:
 class RS485Comm:
     _comm_obj: Union[SerialComm, TCPClient, None] = None
     _hw_type: RS485HwType = RS485HwType.Unknown
+    _last_conn_addr: str = ''
+    _last_conn_port: int = 0
     
     def __init__(self, name: str = 'RS485Comm'):
         self._name = name
@@ -65,10 +67,19 @@ class RS485Comm:
     def connect(self, addr: str, port: int) -> bool:
         # serial - (devport, baud)
         # socket - (ipaddr, port)
+        self._last_conn_addr = addr
+        self._last_conn_port = port
         return self._comm_obj.connect(addr, port)
 
     def disconnect(self):
         self._comm_obj.disconnect()
+
+    def reconnect(self, count: int = 1):
+        self.disconnect()
+        for _ in range(count):
+            if self.isConnected():
+                break
+            self.connect(self._last_conn_addr, self._last_conn_port)
 
     def isConnected(self) -> bool:
         if self._comm_obj is None:
