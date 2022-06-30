@@ -105,7 +105,7 @@ class EnergyParser(PacketParser):
             if header == 0x31:
                 if command in [0x81, 0x91]:
                     room_idx = packet[5] & 0x0F
-                    for idx in range(8):
+                    for idx in range(4):
                         # 방 조명 패킷
                         state = (packet[6] & (0x01 << idx)) >> idx
                         result = {
