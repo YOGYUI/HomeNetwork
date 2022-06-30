@@ -124,9 +124,10 @@ class Home:
         self.parser_energy.sig_raw_packet.connect(self.onParserEnergyRawPacket)
         self.parser_list.append(self.parser_energy)
 
-        # self.rs485_control_config = RS485Config()
+        self.rs485_control_config = RS485Config()
         # self.rs485_control = RS485Comm('Control')
         # self.rs485_list.append(self.rs485_control)
+        # self.parser_control = ControlParser(self.rs485_control)
         self.parser_control = ControlParser(self.rs485_energy)  # multi-converter, same port
         self.parser_control.sig_parse_result.connect(self.handlePacketParseResult)
         self.parser_control.sig_raw_packet.connect(self.onParserControlRawPacket)

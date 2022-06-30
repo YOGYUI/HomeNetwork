@@ -78,11 +78,11 @@ class ControlParser(PacketParser):
         
             # packet log
             enable = True
-            if header == 0x28 and not self.enable_log_control_28:
+            if header == 0x28 and not self.enable_log_header_28:
                 enable = False
-            if header == 0x31 and not self.enable_log_control_31:
+            if header == 0x31 and not self.enable_log_header_31:
                 enable = False
-            if header == 0x61 and not self.enable_log_control_61:
+            if header == 0x61 and not self.enable_log_header_61:
                 enable = False
             if enable:
                 self.sig_raw_packet.emit(packet)
