@@ -88,6 +88,7 @@ Elfin-EW11 Compatible
 <config>
     <rs485>
         <energy>
+            <enable>1</enable>
             <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
             <usb2serial>
                 <port>/dev/rs485_energy</port>
@@ -103,4 +104,31 @@ Elfin-EW11 Compatible
 ```
 RS485-to-WiFi Converter, like EW11, can be utilized in this project.<br>
 Modify "type" tag value to 1 and IP Address and Port configurations in "ew11" tag. <br>
+Module can be disabled by modifying "enable' tag value as 0.<br>
 ❗Caution❗ EW11-"TCP Server" is only available mode!
+
+Use Multiple RS485 Converter in Same Port
+--
+⚠️It is not recommend to use multiple RS485 converter in same port.⚠️<br>
+You can use different RS485 converters in same functional port by modifying Home.py code like below. <br>
+('control' rs485 module should be disabled by change config.xml file.)
+```python
+class Home:
+    def __init__(self, name: str = 'Home', init_service: bool = True):
+        # ...
+        self.rs485_energy_config = RS485Config()
+        self.rs485_energy = RS485Comm('Energy')
+        self.rs485_list.append(self.rs485_energy)
+        self.parser_energy = EnergyParser(self.rs485_energy)
+        self.parser_energy.sig_parse_result.connect(self.handlePacketParseResult)
+        self.parser_energy.sig_raw_packet.connect(self.onParserEnergyRawPacket)
+        self.parser_list.append(self.parser_energy)
+
+        # self.rs485_control_config = RS485Config()
+        # self.rs485_control = RS485Comm('Control')
+        # self.rs485_list.append(self.rs485_control)
+        self.parser_control = ControlParser(self.rs485_energy)  # multi-converter, same port
+        self.parser_control.sig_parse_result.connect(self.handlePacketParseResult)
+        self.parser_control.sig_raw_packet.connect(self.onParserControlRawPacket)
+        self.parser_list.append(self.parser_control)
+```

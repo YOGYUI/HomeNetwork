@@ -1,6 +1,6 @@
 import os
 import pickle
-from PacketParser import PacketParser
+from PacketParser import *
 from RS485Comm import *
 from typing import List
 
@@ -48,11 +48,11 @@ class SmartSendParser(PacketParser):
                         msg = ' '.join(['%02X' % x for x in chunk])
                         print('[SER 2] ' + msg)
 
-                    self.sig_parse.emit(chunk)
+                    self.interpretPacket(chunk)
                     self.buffer = self.buffer[packetLen:]
                     # TODO: bypass here
-        except Exception:
-            pass
+        except Exception as e:
+            writeLog('handlePacket Exception::{}'.format(e), self)
 
     def sendCallElevatorPacket(self, updown: int, timestamp: int):
         # updown 0 = down, 1 = up
@@ -61,3 +61,8 @@ class SmartSendParser(PacketParser):
         else:
             packet = self.elevator_down_packets[timestamp]
         self.sendPacketString(packet)
+
+    def interpretPacket(self, packet: bytearray):
+        # packet log
+        # self.sig_raw_packet.emit(packet)
+        pass
