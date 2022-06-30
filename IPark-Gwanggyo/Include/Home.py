@@ -501,7 +501,7 @@ class Home:
         try:
             dev_type = result.get('device')
             if dev_type == 'thermostat':
-                room_idx = result.get('room_idx')
+                room_idx = result.get('room_index')
                 room = self.getRoomObjectByIndex(room_idx)
                 if room is not None:
                     dev = room.thermostat
@@ -542,7 +542,7 @@ class Home:
                 dev.state_prev = dev.state
                 dev.rotation_speed_prev = dev.rotation_speed
             elif dev_type == 'light':
-                room_idx = result.get('room_idx')
+                room_idx = result.get('room_index')
                 room = self.getRoomObjectByIndex(room_idx)
                 if room is not None:
                     index = result.get('index')
@@ -557,7 +557,7 @@ class Home:
                             dev.publish_mqtt()
                         dev.state_prev = dev.state
             elif dev_type == 'outlet':
-                room_idx = result.get('room_idx')
+                room_idx = result.get('room_index')
                 room = self.getRoomObjectByIndex(room_idx)
                 if room is not None:
                     index = result.get('index')
