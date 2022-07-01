@@ -6,6 +6,7 @@
     </webserver>
     <rs485>
         <light>
+            <enable>1</enable>
             <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
             <usb2serial>
                 <port>/dev/ttyUSB1</port>
@@ -17,6 +18,7 @@
             </ew11>
         </light>
         <various>
+            <enable>1</enable>
             <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
             <usb2serial>
                 <port>/dev/ttyUSB0</port>

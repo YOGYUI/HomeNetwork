@@ -9,6 +9,8 @@ class EnergyParser(PacketParser):
     enable_log_room_1: bool = True
     enable_log_room_2: bool = True
     enable_log_room_3: bool = True
+    _max_light_count: int = 4
+    _max_outlet_count: int = 3
 
     def handlePacket(self):
         try:
@@ -99,39 +101,25 @@ class EnergyParser(PacketParser):
         try:
             if len(packet) < 8:
                 return
-            header = packet[1]  # [0x31, 0x41, 0x42, 0xD1]
+            header = packet[1]
             command = packet[3]
             room_idx = 0
             if header == 0x31:
-                if command in [0x81, 0x91]:
+                if command == 0x81:
+                    pass
+                elif command == 0x91:
                     room_idx = packet[5] & 0x0F
-                    for idx in range(4):
-                        # 방 조명 패킷
-                        state = (packet[6] & (0x01 << idx)) >> idx
-                        result = {
-                            'device': 'light',
-                            'room_index': room_idx,
-                            'index': idx,
-                            'state': state
-                        }
-                        self.sig_parse_result.emit(result)
-                        # 콘센트 소비전력 패킷
-                        state = (packet[7] & (0x01 << idx)) >> idx
-                        if len(packet) >= 14 + 2 * idx + 2 + 1:
-                            value = int.from_bytes(packet[14 + 2 * idx: 14 + 2 * idx + 2], byteorder='big')
-                            consumption = value / 10.
-                        else:
-                            consumption = 0.
-                        result = {
-                            'device': 'outlet',
-                            'room_index': room_idx,
-                            'index': idx,
-                            'state': state,
-                            'consumption': consumption
-                        }
-                        self.sig_parse_result.emit(result)
-                elif command in [0x11]:
+                    self.handleStatePacket(packet)
+                elif command in [0x01, 0x11]:
                     room_idx = packet[5] & 0x0F
+            elif header == 0x41:  # 정체파악 못한 패킷
+                pass
+            elif header == 0x42:  # 정체파악 못한 패킷
+                pass
+            elif header == 0xD1:  # 정체파악 못한 패킷
+                pass
+            else:
+                pass
 
             # packet log
             enable = True
@@ -155,3 +143,35 @@ class EnergyParser(PacketParser):
                 self.sig_raw_packet.emit(packet)
         except Exception as e:
             writeLog('interpretPacket Exception::{}'.format(e), self)
+
+    def handleStatePacket(self, packet: bytearray):
+        room_idx = packet[5] & 0x0F
+        # 방 조명 패킷
+        for idx in range(self._max_light_count):
+            state = (packet[6] & (0x01 << idx)) >> idx
+            result = {
+                'device': 'light',
+                'room_index': room_idx,
+                'index': idx,
+                'state': state
+            }
+            self.sig_parse_result.emit(result)
+        # 콘센트 소비전력 패킷
+        for idx in range(self._max_outlet_count):
+            state = (packet[7] & (0x01 << idx)) >> idx
+            # TODO: 월패드에서 제어가 되지 않는 (항상 켜져있는) 아울렛 state 지정
+            idx1 = 14 + 2 * idx
+            idx2 = idx1 + 2
+            if len(packet) > idx2:
+                value = int.from_bytes(packet[idx1:idx2], byteorder='big')
+                consumption = value / 10.
+            else:
+                consumption = 0.
+            result = {
+                'device': 'outlet',
+                'room_index': room_idx,
+                'index': idx,
+                'state': state,
+                'consumption': consumption
+            }
+            self.sig_parse_result.emit(result)

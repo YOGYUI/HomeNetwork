@@ -19,6 +19,7 @@ class RS485HwType(IntEnum):
 
 
 class RS485Config:
+    enable: bool = True
     comm_type: RS485HwType
     serial_port: str = '/dev/ttyUSB0'
     serial_baud: int = 9600

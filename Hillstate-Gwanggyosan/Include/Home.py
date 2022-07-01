@@ -167,24 +167,33 @@ class Home:
         writeLog(f'Initializing Room Finished ({len(self.rooms)})', self)
 
     def initRS485Connection(self):
-        self.rs485_light.setType(self.rs485_light_config.comm_type)
-        if self.rs485_light_config.comm_type == RS485HwType.Serial:
-            port = self.rs485_light_config.serial_port
-            baud = self.rs485_light_config.serial_baud
-            self.rs485_light.connect(port, baud)
-        elif self.rs485_light_config.comm_type == RS485HwType.Socket:
-            ipaddr = self.rs485_light_config.socket_ipaddr
-            port = self.rs485_light_config.socket_port
-            self.rs485_light.connect(ipaddr, port)
-        self.rs485_various.setType(self.rs485_various_config.comm_type)     
-        if self.rs485_various_config.comm_type == RS485HwType.Serial:
-            port = self.rs485_various_config.serial_port
-            baud = self.rs485_various_config.serial_baud
-            self.rs485_various.connect(port, baud)
-        elif self.rs485_various_config.comm_type == RS485HwType.Socket:
-            ipaddr = self.rs485_various_config.socket_ipaddr
-            port = self.rs485_various_config.socket_port
-            self.rs485_various.connect(ipaddr, port)   
+        try:
+            if self.rs485_light_config.enable:
+                self.rs485_light.setType(self.rs485_light_config.comm_type)
+                if self.rs485_light_config.comm_type == RS485HwType.Serial:
+                    port = self.rs485_light_config.serial_port
+                    baud = self.rs485_light_config.serial_baud
+                    self.rs485_light.connect(port, baud)
+                elif self.rs485_light_config.comm_type == RS485HwType.Socket:
+                    ipaddr = self.rs485_light_config.socket_ipaddr
+                    port = self.rs485_light_config.socket_port
+                    self.rs485_light.connect(ipaddr, port)
+        except Exception as e:
+            writeLog(f"Failed to initialize 'light' rs485 connection ({e})", self)
+
+        try:
+            if self.rs485_various_config.enable:
+                self.rs485_various.setType(self.rs485_various_config.comm_type)     
+                if self.rs485_various_config.comm_type == RS485HwType.Serial:
+                    port = self.rs485_various_config.serial_port
+                    baud = self.rs485_various_config.serial_baud
+                    self.rs485_various.connect(port, baud)
+                elif self.rs485_various_config.comm_type == RS485HwType.Socket:
+                    ipaddr = self.rs485_various_config.socket_ipaddr
+                    port = self.rs485_various_config.socket_port
+                    self.rs485_various.connect(ipaddr, port)   
+        except Exception as e:
+            writeLog(f"Failed to initialize 'various' rs485 connection ({e})", self)
 
     def loadConfig(self, filepath: str):
         if not os.path.isfile(filepath):
@@ -194,6 +203,8 @@ class Home:
         node = root.find('rs485')
         try:
             light_node = node.find('light')
+            enable_node = light_node.find('enable')
+            self.rs485_light_config.enable = bool(int(enable_node.text))
             type_node = light_node.find('type')
             self.rs485_light_config.comm_type = RS485HwType(int(type_node.text))
             usb2serial_node = light_node.find('usb2serial')
@@ -210,6 +221,8 @@ class Home:
             writeLog(f"Failed to load 'light' rs485 config ({e})", self)
         try:
             various_node = node.find('various')
+            enable_node = various_node.find('enable')
+            self.rs485_various_config.enable = bool(int(enable_node.text))
             type_node = various_node.find('type')
             self.rs485_various_config.comm_type = RS485HwType(int(type_node.text))
             usb2serial_node = various_node.find('usb2serial')
@@ -326,7 +339,12 @@ class Home:
 
     def startThreadTimer(self):
         if self.thread_timer is None:
-            self.thread_timer = ThreadTimer(self.rs485_list)
+            rs485_list = []
+            if self.rs485_light_config.enable:
+                rs485_list.append(self.rs485_light)
+            if self.rs485_various_config.enable:
+                rs485_list.append(self.rs485_various)
+            self.thread_timer = ThreadTimer(rs485_list)
             self.thread_timer.sig_terminated.connect(self.onThreadTimerTerminated)
             self.thread_timer.sig_publish_regular.connect(self.publish_all)
             self.thread_timer.setDaemon(True)
