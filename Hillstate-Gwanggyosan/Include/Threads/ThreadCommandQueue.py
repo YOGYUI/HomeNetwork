@@ -107,6 +107,7 @@ class ThreadCommandQueue(threading.Thread):
         return interval, retry_cnt
 
     def set_state_common(self, dev: Device, target: int, parser: PacketParser):
+        tm_start = time.perf_counter()
         cnt = 0
         packet_command = dev.makePacketSetState(bool(target))
         interval, retry_cnt = self.getSendParams(parser)
@@ -120,14 +121,16 @@ class ThreadCommandQueue(threading.Thread):
             cnt += 1
             time.sleep(interval)  # wait for parsing response
         if cnt > 0:
-            writeLog('set_state_common::send # = {}'.format(cnt), self)
+            tm_elapsed = time.perf_counter() - tm_start
+            writeLog('set_state_common::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
     def set_temperature(self, dev: Thermostat, target: float, parser: PacketParser):
         # 힐스테이트는 온도값 범위가 정수형이므로 올림처리해준다
-        target_temp = math.ceil(target)
+        tm_start = time.perf_counter()
         cnt = 0
+        target_temp = math.ceil(target)
         packet_command = dev.makePacketSetTemperature(target_temp)
         interval, retry_cnt = self.getSendParams(parser)
         while cnt < retry_cnt:
@@ -140,11 +143,13 @@ class ThreadCommandQueue(threading.Thread):
             cnt += 1
             time.sleep(interval)  # wait for parsing response
         if cnt > 0:
-            writeLog('set_temperature::send # = {}'.format(cnt), self)
+            tm_elapsed = time.perf_counter() - tm_start
+            writeLog('set_temperature::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
     def set_rotation_speed(self, dev: Union[Ventilator, AirConditioner], target: int, parser: PacketParser):
+        tm_start = time.perf_counter()
         if isinstance(dev, Ventilator):
             # Speed 값 변환 (100단계의 풍량을 세단계로 나누어 1, 3, 7 중 하나로)
             if target <= 30:
@@ -176,11 +181,13 @@ class ThreadCommandQueue(threading.Thread):
             cnt += 1
             time.sleep(interval)  # wait for parsing response
         if cnt > 0:
-            writeLog('set_rotation_speed::send # = {}'.format(cnt), self)
+            tm_elapsed = time.perf_counter() - tm_start
+            writeLog('set_rotation_speed::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
     def set_airconditioner_mode(self, dev: AirConditioner, target: int, parser: PacketParser):
+        tm_start = time.perf_counter()
         cnt = 0
         packet_command = dev.makePacketSetMode(target)
         interval, retry_cnt = self.getSendParams(parser)
@@ -194,11 +201,13 @@ class ThreadCommandQueue(threading.Thread):
             cnt += 1
             time.sleep(interval)  # wait for parsing response
         if cnt > 0:
-            writeLog('set_airconditioner_mode::send # = {}'.format(cnt), self)
+            tm_elapsed = time.perf_counter() - tm_start
+            writeLog('set_airconditioner_mode::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
     
     def set_elevator_call(self, dev: Elevator, target: int, parser: PacketParser):
+        tm_start = time.perf_counter()
         cnt = 0
         if target == 5:
             packet_command = dev.makePacketCallUpside()
@@ -217,7 +226,8 @@ class ThreadCommandQueue(threading.Thread):
             cnt += 1
             time.sleep(interval)  # wait for parsing response
         if cnt > 0:
-            writeLog('set_elevator_call({})::send # = {}'.format(target, cnt), self)
+            tm_elapsed = time.perf_counter() - tm_start
+            writeLog('set_elevator_call({})::send # = {}, elapsed = {:g} msec'.format(target, cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
