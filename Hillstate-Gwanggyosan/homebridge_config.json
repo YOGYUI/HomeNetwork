@@ -937,6 +937,61 @@
                 "Unknown"
             ],
             "logMqtt": true
+        },
+        {
+            "accessory": "mqttthing",
+            "type": "airQualitySensor",
+            "name": "Air Quality Sensor (Outer)",
+            "url": "mosquitto broker url",
+            "username": "mosquitto auth id",
+            "password": "mosquitto auth password",
+            "topics": {
+                "getAirQuality": {
+                    "topic": "home/hillstate/airquality/state",
+                    "apply": "return JSON.parse(message).grade;"
+                },
+                "getPM10Density": {
+                    "topic": "home/hillstate/airquality/state",
+                    "apply": "return JSON.parse(message).pm10;"
+                },
+                "getPM2_5Density": {
+                    "topic": "home/hillstate/airquality/state",
+                    "apply": "return JSON.parse(message).pm25;"
+                },
+                "getOzoneDensity": {
+                    "topic": "home/hillstate/airquality/state",
+                    "apply": "return JSON.parse(message).o3;"
+                },
+                "getNitrogenDioxideDensity": {
+                    "topic": "home/hillstate/airquality/state",
+                    "apply": "return JSON.parse(message).no2;"
+                },
+                "getSulphurDioxideDensity": {
+                    "topic": "home/hillstate/airquality/state",
+                    "apply": "return JSON.parse(message).so2;"
+                },
+                "getCarbonMonoxideLevel": {
+                    "topic": "home/hillstate/airquality/state",
+                    "apply": "return JSON.parse(message).co;"
+                }
+            },
+            "airQualityValues": [
+                -1,
+                0,
+                1,
+                2,
+                3,
+                4
+            ],
+            "startPub": [
+                {
+                    "topic": "system/command",
+                    "message": "{\"query_all\": 1}"
+                }
+            ],
+            "history": false,
+            "room2": false,
+            "logMqtt": true
         }
     ],
     "platforms": [

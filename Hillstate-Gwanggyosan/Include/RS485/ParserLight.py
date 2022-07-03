@@ -1,7 +1,7 @@
-from SerialParser import *
+from PacketParser import *
 
 
-class ParserLight(SerialParser):
+class ParserLight(PacketParser):
     def interpretPacket(self, packet: bytearray):
         try:
             if packet[3] == 0x19:  # 조명

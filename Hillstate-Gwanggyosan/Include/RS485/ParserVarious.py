@@ -1,7 +1,7 @@
-from SerialParser import *
+from PacketParser import *
 
 
-class ParserVarious(SerialParser):    
+class ParserVarious(PacketParser):    
     def interpretPacket(self, packet: bytearray):
         try:
             if packet[3] == 0x18:  # 난방

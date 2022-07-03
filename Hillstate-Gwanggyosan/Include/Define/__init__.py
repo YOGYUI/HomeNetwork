@@ -14,3 +14,4 @@ from Ventilator import Ventilator
 from AirConditioner import AirConditioner
 from Elevator import Elevator
 from DoorLock import DoorLock
+from AirqualitySensor import AirqualitySensor

@@ -14,13 +14,14 @@ def checkAgrumentType(obj, arg):
 
 class Callback(object):
     _args = None
-    _callback = None
 
     def __init__(self, *args):
         self._args = args
+        self._callbacks = list()
 
     def connect(self, callback):
-        self._callback = callback
+        if callback not in self._callbacks:
+            self._callbacks.append(callback)
 
     def emit(self, *args):
         if len(args) != len(self._args):
@@ -30,8 +31,8 @@ class Callback(object):
             validTypes = [checkAgrumentType(args[i], self._args[i]) for i in range(arglen)]
             if sum(validTypes) != arglen:
                 raise Exception('Callback::Argument Type Mismatch (Definition: {}, Call: {})'.format(self._args, args))
-        if self._callback is not None:
-            self._callback(*args)
+        for callback in self._callbacks:
+            callback(*args)
 
 
 def timestampToString(timestamp: datetime.datetime):

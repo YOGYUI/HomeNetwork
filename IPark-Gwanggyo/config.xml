@@ -4,15 +4,60 @@
         <host>0.0.0.0</host>
         <port>1234</port>
     </webserver>
-    <serial>
-        <port_energy>/dev/rs485_energy</port_energy>
-        <port_control>/dev/rs485_control</port_control>
-        <port_smart1>/dev/rs485_smart1</port_smart1>
-        <port_smart2>/dev/rs485_smart2</port_smart2>
-    </serial>
+    <rs485>
+        <energy>
+            <enable>1</enable>
+            <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <usb2serial>
+                <port>/dev/rs485_energy</port>
+                <baud>9600</baud>
+            </usb2serial>
+            <ew11>
+                <ipaddr>192.168.0.1</ipaddr>
+                <port>8899</port>
+            </ew11>
+        </energy>
+        <control>
+            <enable>1</enable>
+            <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <usb2serial>
+                <port>/dev/rs485_control</port>
+                <baud>9600</baud>
+            </usb2serial>
+            <ew11>
+                <ipaddr>192.168.0.2</ipaddr>
+                <port>8899</port>
+            </ew11>
+        </control>
+        <smart1>
+            <enable>1</enable>
+            <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <usb2serial>
+                <port>/dev/rs485_smart1</port>
+                <baud>9600</baud>
+            </usb2serial>
+            <ew11>
+                <ipaddr>192.168.0.3</ipaddr>
+                <port>8899</port>
+            </ew11>
+        </smart1>
+        <smart2>
+            <enable>1</enable>
+            <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <usb2serial>
+                <port>/dev/rs485_smart2</port>
+                <baud>9600</baud>
+            </usb2serial>
+            <ew11>
+                <ipaddr>192.168.0.4</ipaddr>
+                <port>8899</port>
+            </ew11>
+        </smart2>
+    </rs485>
+
     <mqtt>
         <host>mosquitto ip address</host>
-        <port>mosquitto port</port>
+        <port>1883</port>
         <username>mosquitto auth id</username>
         <password>mosquitto auth password</password>
         <console_log>1</console_log>

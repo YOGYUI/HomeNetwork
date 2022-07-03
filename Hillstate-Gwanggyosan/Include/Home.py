@@ -18,8 +18,7 @@ class Home:
     ventilator: Ventilator
     elevator: Elevator
     doorlock: DoorLock
-
-    serial_baud: int = 9600
+    airquality: AirqualitySensor
 
     thread_cmd_queue: Union[ThreadCommandQueue, None] = None
     thread_parse_result_queue: Union[ThreadParseResultQueue, None] = None
@@ -33,8 +32,8 @@ class Home:
     mqtt_is_connected: bool = False
     enable_mqtt_console_log: bool = True
 
-    serial_list: List[SerialComm]
-    parser_list: List[SerialParser]
+    rs485_list: List[RS485Comm]
+    parser_list: List[PacketParser]
 
     def __init__(self, name: str = 'Home', init_service: bool = True):
         self.name = name
@@ -42,28 +41,28 @@ class Home:
         self.rooms = list()
         self.queue_command = queue.Queue()
         self.queue_parse_result = queue.Queue()
-        self.serial_list = list()
+        self.rs485_list = list()
         self.parser_list = list()
 
         # 조명 + 아울렛 포트
-        self.serial_port_light: str = ''
-        self.serial_light = SerialComm('Light')
-        self.serial_list.append(self.serial_light)
-        self.parser_light = ParserLight(self.serial_light)
+        self.rs485_light_config = RS485Config()
+        self.rs485_light = RS485Comm('RS485-Light')
+        self.rs485_list.append(self.rs485_light)
+        self.parser_light = ParserLight(self.rs485_light)
         self.parser_light.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_light)
 
         # 가스밸스, 환기, 난방, 시스템에어컨, 엘리베이터 포트
-        self.serial_port_various: str = ''
-        self.serial_various = SerialComm('Various')
-        self.serial_list.append(self.serial_various)
-        self.parser_various = ParserVarious(self.serial_various)
+        self.rs485_various_config = RS485Config()
+        self.rs485_various = RS485Comm('RS485-Various')
+        self.rs485_list.append(self.rs485_various)
+        self.parser_various = ParserVarious(self.rs485_various)
         self.parser_various.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_various)
 
         self.initialize(init_service, False)
     
-    def initialize(self, init_service: bool, connect_serial: bool):
+    def initialize(self, init_service: bool, connect_rs485: bool):
         self.device_list.clear()
         self.rooms.clear()
 
@@ -85,6 +84,7 @@ class Home:
         self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
         self.elevator = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
         self.doorlock = DoorLock(name="DoorLock", mqtt_client=self.mqtt_client)
+        self.airquality = AirqualitySensor(mqtt_client=self.mqtt_client)
 
         # append device list
         for room in self.rooms:
@@ -93,6 +93,7 @@ class Home:
         self.device_list.append(self.ventilator)
         self.device_list.append(self.elevator)
         self.device_list.append(self.doorlock)
+        self.device_list.append(self.airquality)
         
         self.loadConfig(xml_path)
 
@@ -106,8 +107,8 @@ class Home:
                 writeLog('MQTT Connection Error: {}'.format(e), self)
             self.mqtt_client.loop_start()
         
-        if connect_serial:
-            self.initSerialConnection()
+        if connect_rs485:
+            self.initRS485Connection()
 
         writeLog(f'Initialized <{self.name}>', self)
 
@@ -122,8 +123,8 @@ class Home:
 
         for parser in self.parser_list:
             parser.release()
-        for serial in self.serial_list:
-            serial.release()
+        for rs485 in self.rs485_list:
+            rs485.release()
         writeLog(f'Released', self)
     
     def restart(self):
@@ -165,21 +166,77 @@ class Home:
                 writeLog(f"Failed to initializing room <{child.tag}> ({e})", self)
         writeLog(f'Initializing Room Finished ({len(self.rooms)})', self)
 
-    def initSerialConnection(self):
-        self.serial_light.connect(self.serial_port_light, self.serial_baud)
-        self.serial_various.connect(self.serial_port_various, self.serial_baud)
+    def initRS485Connection(self):
+        try:
+            if self.rs485_light_config.enable:
+                self.rs485_light.setType(self.rs485_light_config.comm_type)
+                if self.rs485_light_config.comm_type == RS485HwType.Serial:
+                    port = self.rs485_light_config.serial_port
+                    baud = self.rs485_light_config.serial_baud
+                    self.rs485_light.connect(port, baud)
+                elif self.rs485_light_config.comm_type == RS485HwType.Socket:
+                    ipaddr = self.rs485_light_config.socket_ipaddr
+                    port = self.rs485_light_config.socket_port
+                    self.rs485_light.connect(ipaddr, port)
+        except Exception as e:
+            writeLog(f"Failed to initialize 'light' rs485 connection ({e})", self)
+
+        try:
+            if self.rs485_various_config.enable:
+                self.rs485_various.setType(self.rs485_various_config.comm_type)     
+                if self.rs485_various_config.comm_type == RS485HwType.Serial:
+                    port = self.rs485_various_config.serial_port
+                    baud = self.rs485_various_config.serial_baud
+                    self.rs485_various.connect(port, baud)
+                elif self.rs485_various_config.comm_type == RS485HwType.Socket:
+                    ipaddr = self.rs485_various_config.socket_ipaddr
+                    port = self.rs485_various_config.socket_port
+                    self.rs485_various.connect(ipaddr, port)   
+        except Exception as e:
+            writeLog(f"Failed to initialize 'various' rs485 connection ({e})", self)
 
     def loadConfig(self, filepath: str):
         if not os.path.isfile(filepath):
             return
         root = ET.parse(filepath).getroot()
 
-        node = root.find('serial')
+        node = root.find('rs485')
         try:
-            self.serial_port_light = node.find('port_light').text
-            self.serial_port_various = node.find('port_various').text
+            light_node = node.find('light')
+            enable_node = light_node.find('enable')
+            self.rs485_light_config.enable = bool(int(enable_node.text))
+            type_node = light_node.find('type')
+            self.rs485_light_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = light_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_light_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_light_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = light_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_light_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_light_config.socket_port = int(socket_port_node.text)
         except Exception as e:
-            writeLog(f"Failed to load serial port info ({e})", self)
+            writeLog(f"Failed to load 'light' rs485 config ({e})", self)
+        try:
+            various_node = node.find('various')
+            enable_node = various_node.find('enable')
+            self.rs485_various_config.enable = bool(int(enable_node.text))
+            type_node = various_node.find('type')
+            self.rs485_various_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = various_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_various_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_various_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = various_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_various_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_various_config.socket_port = int(socket_port_node.text)
+        except Exception as e:
+            writeLog(f"Failed to load 'various' rs485 config ({e})", self)
 
         node = root.find('mqtt')
         try:
@@ -232,6 +289,16 @@ class Home:
             self.doorlock.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
         except Exception as e:
             writeLog(f"Failed to load doorlock config ({e})", self)
+        
+        node = root.find('airquality')
+        try:
+            mqtt_node = node.find('mqtt')
+            self.airquality.mqtt_publish_topic = mqtt_node.find('publish').text
+            apikey = node.find('apikey').text
+            obsname = node.find('obsname').text
+            self.airquality.setApiParams(apikey, obsname)
+        except Exception as e:
+            writeLog(f"Failed to load airquality sensor config ({e})", self)
 
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
@@ -257,7 +324,7 @@ class Home:
     def startThreadParseResultQueue(self):
         if self.thread_parse_result_queue is None:
             self.thread_parse_result_queue = ThreadParseResultQueue(self.queue_parse_result)
-            self.thread_parse_result_queue.sig_get.connect(self.handleSerialParseResult)
+            self.thread_parse_result_queue.sig_get.connect(self.handlePacketParseResult)
             self.thread_parse_result_queue.sig_terminated.connect(self.onThreadParseResultQueueTerminated)
             self.thread_parse_result_queue.setDaemon(True)
             self.thread_parse_result_queue.start()
@@ -272,7 +339,12 @@ class Home:
 
     def startThreadTimer(self):
         if self.thread_timer is None:
-            self.thread_timer = ThreadTimer(self.serial_list)
+            rs485_list = []
+            if self.rs485_light_config.enable:
+                rs485_list.append(self.rs485_light)
+            if self.rs485_various_config.enable:
+                rs485_list.append(self.rs485_various)
+            self.thread_timer = ThreadTimer(rs485_list)
             self.thread_timer.sig_terminated.connect(self.onThreadTimerTerminated)
             self.thread_timer.sig_publish_regular.connect(self.publish_all)
             self.thread_timer.setDaemon(True)
@@ -293,7 +365,7 @@ class Home:
             except ValueError as e:
                 writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
 
-    def handleSerialParseResult(self, result: dict):
+    def handlePacketParseResult(self, result: dict):
         try:
             dev_type = result.get('device')
             if dev_type in ['light', 'outlet']:
@@ -350,7 +422,7 @@ class Home:
             elif dev_type == 'doorlock':
                 pass
         except Exception as e:
-            writeLog('handleSerialParseResult::Exception::{} ({})'.format(e, result), self)
+            writeLog('handlePacketParseResult::Exception::{} ({})'.format(e, result), self)
 
     def command(self, **kwargs):
         try:
@@ -412,28 +484,31 @@ class Home:
         Homebridge Publish, App Subscribe
         사용자에 의한 명령 MQTT 토픽 핸들링
         """
-        if self.enable_mqtt_console_log:
-            writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
-        topic = message.topic
-        msg_dict = json.loads(message.payload.decode("utf-8"))
-        if 'system/command' == topic:
-            self.onMqttCommandSystem(topic, msg_dict)
-        if 'light/command' in topic:
-            self.onMqttCommandLight(topic, msg_dict)
-        if 'outlet/command' in topic:
-            self.onMqttCommandOutlet(topic, msg_dict)
-        if 'gasvalve/command' in topic:
-            self.onMqttCommandGasvalve(topic, msg_dict)
-        if 'thermostat/command' in topic:
-            self.onMqttCommandThermostat(topic, msg_dict)
-        if 'ventilator/command' in topic:
-            self.onMqttCommandVentilator(topic, msg_dict)
-        if 'airconditioner/command' in topic:
-            self.onMqttCommandAirconditioner(topic, msg_dict)
-        if 'elevator/command' in topic:
-            self.onMqttCommandElevator(topic, msg_dict)
-        if 'doorlock/command' in topic:
-            self.onMqttCommandDookLock(topic, msg_dict)
+        try:
+            if self.enable_mqtt_console_log:
+                writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
+            topic = message.topic
+            msg_dict = json.loads(message.payload.decode("utf-8"))
+            if 'system/command' == topic:
+                self.onMqttCommandSystem(topic, msg_dict)
+            if 'light/command' in topic:
+                self.onMqttCommandLight(topic, msg_dict)
+            if 'outlet/command' in topic:
+                self.onMqttCommandOutlet(topic, msg_dict)
+            if 'gasvalve/command' in topic:
+                self.onMqttCommandGasvalve(topic, msg_dict)
+            if 'thermostat/command' in topic:
+                self.onMqttCommandThermostat(topic, msg_dict)
+            if 'ventilator/command' in topic:
+                self.onMqttCommandVentilator(topic, msg_dict)
+            if 'airconditioner/command' in topic:
+                self.onMqttCommandAirconditioner(topic, msg_dict)
+            if 'elevator/command' in topic:
+                self.onMqttCommandElevator(topic, msg_dict)
+            if 'doorlock/command' in topic:
+                self.onMqttCommandDookLock(topic, msg_dict)
+        except Exception as e:
+            writeLog(f"onMqttClientMessage Exception ({e}).. topic='{message.topic}', payload='{message.payload}'", self)
 
     def onMqttClientLog(self, _, userdata, level, buf):
         if self.enable_mqtt_console_log:
@@ -465,10 +540,10 @@ class Home:
                 pass
         if 'send_packet' in message.keys():
             try:
-                ser_idx = message.get('index')
+                idx = message.get('index')
                 packet_str = message.get('packet')
                 packet = bytearray([int(x, 16) for x in packet_str.split(' ')])
-                self.serial_list[ser_idx].sendData(packet)
+                self.rs485_list[idx].sendData(packet)
             except Exception:
                 pass
         if 'clear_console' in message.keys():
@@ -604,7 +679,7 @@ def get_home(name: str = '') -> Home:
 
 if __name__ == "__main__":
     home_obj = get_home('hillstate')
-    home_obj.initSerialConnection()
+    home_obj.initRS485Connection()
     
     def loop():
         sysin = sys.stdin.readline()

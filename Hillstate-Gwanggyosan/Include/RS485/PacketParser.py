@@ -1,12 +1,13 @@
 from abc import abstractmethod, ABCMeta
 from typing import Union, List
 from functools import reduce
-from SerialComm import *
+from RS485Comm import *
 
 
-class SerialParser:
+class PacketParser:
     __metaclass__ = ABCMeta
 
+    rs485: RS485Comm
     buffer: bytearray
     enable_console_log: bool = False
     chunk_cnt: int = 0
@@ -14,21 +15,21 @@ class SerialParser:
     max_buffer_size: int = 200
     line_busy: bool = False
 
-    def __init__(self, ser: SerialComm):
+    def __init__(self, rs485: RS485Comm):
         self.buffer = bytearray()
         self.sig_parse_result = Callback(dict)
-        ser.sig_send_data.connect(self.onSendData)
-        ser.sig_recv_data.connect(self.onRecvData)
-        self.serial = ser
+        rs485.sig_send_data.connect(self.onSendData)
+        rs485.sig_recv_data.connect(self.onRecvData)
+        self.rs485 = rs485
 
     def release(self):
         self.buffer.clear()
 
     def sendPacket(self, packet: Union[bytes, bytearray]):
-        self.serial.sendData(packet)
+        self.rs485.sendData(packet)
 
     def sendString(self, packet_str: str):
-        self.serial.sendData(bytearray([int(x, 16) for x in packet_str.split(' ')]))
+        self.rs485.sendData(bytearray([int(x, 16) for x in packet_str.split(' ')]))
 
     def onSendData(self, data: bytes):
         msg = ' '.join(['%02X' % x for x in data])
@@ -76,8 +77,13 @@ class SerialParser:
             pass
         self.enable_console_log = False
 
-    def isSerialLineBusy(self) -> bool:
+    def isRS485LineBusy(self) -> bool:
+        if self.rs485.getType() == RS485HwType.Socket:
+            return False  # 무선 송신 레이턴시때문에 언제 라인이 IDLE인지 정확히 파악할 수 없다
         return self.line_busy
+
+    def getRS485HwType(self) -> RS485HwType:
+        return self.rs485.getType()
 
     @staticmethod
     def prettifyPacket(packet: bytearray) -> str:

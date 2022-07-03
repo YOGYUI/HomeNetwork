@@ -5,8 +5,8 @@ import queue
 import serial
 import threading
 import traceback
-CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/Include/RS485
-INCPATH = os.path.dirname(CURPATH)  # {$PROJECT}/Include/
+CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/Include/RS485/Serial
+INCPATH = os.path.dirname(os.path.dirname(CURPATH))  # {$PROJECT}/Include/
 sys.path.extend([CURPATH, INCPATH])
 sys.path = list(set(sys.path))
 del CURPATH, INCPATH

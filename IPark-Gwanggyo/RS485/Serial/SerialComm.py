@@ -4,13 +4,7 @@ import queue
 import serial
 import datetime
 from typing import Union
-from SerialThreads import ThreadSend, ThreadReceive, ThreadCheckRecvQueue
-CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/Include/RS485
-INCPATH = os.path.dirname(CURPATH)  # {$PROJECT}/Include/
-sys.path.extend([CURPATH, INCPATH])
-sys.path = list(set(sys.path))
-del CURPATH, INCPATH
-from Common import writeLog, Callback
+from SerialThreads import *
 
 
 class SerialComm:
@@ -18,12 +12,12 @@ class SerialComm:
     _serial: serial.Serial
     _threadSend: Union[ThreadSend, None] = None
     _threadRecv: Union[ThreadReceive, None] = None
-    _threadCheck: Union[ThreadCheckRecvQueue, None] = None
+    _threadCheck: Union[ThreadCheck, None] = None
 
     def __init__(self, name: str = 'SerialComm'):
         self._name = name
 
-        self.sig_connected = Callback()
+        self.sig_connected = Callback(bool)
         self.sig_disconnected = Callback()
         self.sig_send_data = Callback(bytes)
         self.sig_recv_data = Callback(bytes)
@@ -51,13 +45,12 @@ class SerialComm:
             self._serial.baudrate = baudrate
             self._serial.open()
             if self._serial.isOpen():
-                self._serial.reset_input_buffer()
-                self._serial.reset_output_buffer()
                 self.clearQueues()
                 self.startThreads()
-                self.sig_connected.emit()
-                writeLog(f'"{self._name}" Connected to <{port}> (baud: {baudrate})', self)
+                self.sig_connected.emit(True)
+                writeLog('Connected to <{}> (baud: {})'.format(port, baudrate), self)
                 return True
+            self.sig_connected.emit(False)
             return False
         except Exception as e:
             writeLog('Exception::{}'.format(e), self)
@@ -69,7 +62,7 @@ class SerialComm:
                 self.stopThreads()
                 self._serial.close()
                 self.sig_disconnected.emit()
-                writeLog(f'"{self._name}" Disconnected', self)
+                writeLog('Disconnected', self)
         except Exception as e:
             writeLog('Exception::{}'.format(e), self)
             self.sig_exception.emit(str(e))    
@@ -85,15 +78,15 @@ class SerialComm:
         if self._threadSend is None:
             self._threadSend = ThreadSend(self._serial, self._queue_send)
             self._threadSend.sig_send_data.connect(self.onSendData)
-            self._threadSend.sig_terminated.connect(self.onThreadSendTerminated)
+            self._threadSend.sig_terminated.connect(self.onThreadSendTermanted)
             self._threadSend.sig_exception.connect(self.onException)
             self._threadSend.setDaemon(True)
             self._threadSend.start()
         
         if self._threadCheck is None:
-            self._threadCheck = ThreadCheckRecvQueue(self._serial, self._queue_recv)
+            self._threadCheck = ThreadCheck(self._queue_recv)
             self._threadCheck.sig_get.connect(self.onRecvData)
-            self._threadCheck.sig_terminated.connect(self.onThreadCheckTerminated)
+            self._threadCheck.sig_terminated.connect(self.onThreadCheckTermanted)
             self._threadCheck.sig_exception.connect(self.onException)
             self._threadCheck.setDaemon(True)
             self._threadCheck.start()
@@ -101,7 +94,7 @@ class SerialComm:
         if self._threadRecv is None:
             self._threadRecv = ThreadReceive(self._serial, self._queue_recv)
             self._threadRecv.sig_recv_data.connect(self.onRecvSomething)
-            self._threadRecv.sig_terminated.connect(self.onThreadRecvTerminated)
+            self._threadRecv.sig_terminated.connect(self.onThreadRecvTermanted)
             self._threadRecv.sig_exception.connect(self.onException)
             self._threadRecv.setDaemon(True)
             self._threadRecv.start()
@@ -149,15 +142,15 @@ class SerialComm:
     def onException(self, msg: str):
         self.sig_exception.emit(msg)
 
-    def onThreadSendTerminated(self):
+    def onThreadSendTermanted(self):
         del self._threadSend
         self._threadSend = None
     
-    def onThreadRecvTerminated(self):
+    def onThreadRecvTermanted(self):
         del self._threadRecv
         self._threadRecv = None
     
-    def onThreadCheckTerminated(self):
+    def onThreadCheckTermanted(self):
         del self._threadCheck
         self._threadCheck = None
 
@@ -179,16 +172,3 @@ class SerialComm:
     @property
     def baudrate(self) -> int:
         return self._serial.baudrate
-
-
-if __name__ == '__main__':
-    import time
-
-    def onRecv(data: bytes):
-        print(data)
-
-    obj = SerialComm()
-    obj.sig_recv_data.connect(onRecv)
-    obj.connect('/dev/ttyUSB0', 9600)
-    time.sleep(5)
-    obj.release()

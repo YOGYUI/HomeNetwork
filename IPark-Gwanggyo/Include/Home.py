@@ -1,12 +1,19 @@
+import os
+import sys
 import time
 import json
 import queue
-import ctypes
 from typing import List, Union
 import paho.mqtt.client as mqtt
 import xml.etree.ElementTree as ET
+CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/Include
+PROJPATH = os.path.dirname(CURPATH)  # {$PROJECT}
+RS485PATH = os.path.join(PROJPATH, 'RS485')  # {$PROJECT}/RS485
+sys.path.extend([CURPATH, PROJPATH, RS485PATH])
+sys.path = list(set(sys.path))
+del CURPATH, PROJPATH, RS485PATH
+from RS485 import *
 from Include import *
-from Serial485 import *
 
 
 class Home:
@@ -19,12 +26,6 @@ class Home:
     elevator: Elevator
     airquality: AirqualitySensor
     doorlock: Doorlock
-
-    serial_baud: int = 9600
-    serial_485_energy_port: str = ''
-    serial_485_control_port: str = ''
-    serial_485_smart_port_recv: str = ''
-    serial_485_smart_port_send: str = ''
 
     thread_command: Union[ThreadCommand, None] = None
     thread_monitoring: Union[ThreadMonitoring, None] = None
@@ -39,22 +40,22 @@ class Home:
 
     max_packet_log_cnt: int = 100
     packets_energy: List[bytearray]
-    enable_log_energy_31: bool = True
-    enable_log_energy_41: bool = True
-    enable_log_energy_42: bool = True
-    enable_log_energy_d1: bool = True
-    enable_log_energy_room_1: bool = True
-    enable_log_energy_room_2: bool = True
-    enable_log_energy_room_3: bool = True
+    _enable_log_energy_31: bool = True
+    _enable_log_energy_41: bool = True
+    _enable_log_energy_42: bool = True
+    _enable_log_energy_d1: bool = True
+    _enable_log_energy_room_1: bool = True
+    _enable_log_energy_room_2: bool = True
+    _enable_log_energy_room_3: bool = True
     packets_control: List[bytearray]
-    enable_log_control_28: bool = True
-    enable_log_control_31: bool = True
-    enable_log_control_61: bool = True
+    _enable_log_control_28: bool = True
+    _enable_log_control_31: bool = True
+    _enable_log_control_61: bool = True
     packets_smart_recv: List[bytearray]
     packets_smart_send: List[bytearray]
 
-    serial_list: List[SerialComm]
-    parser_list: List[Parser]
+    rs485_list: List[RS485Comm]
+    parser_list: List[PacketParser]
 
     def __init__(self, name: str = 'Home', init_service: bool = True):
         self.name = name
@@ -66,37 +67,45 @@ class Home:
         self.packets_control = list()
         self.packets_smart_recv = list()
         self.packets_smart_send = list()
-        self.serial_list = list()
+        self.rs485_list = list()
         self.parser_list = list()
 
-        self.serial_485_energy = SerialComm('Energy')
-        self.serial_list.append(self.serial_485_energy)
-        self.parser_energy = EnergyParser(self.serial_485_energy)
-        self.parser_energy.sig_parse.connect(self.onParserEnergyResult)
+        self.rs485_energy_config = RS485Config()
+        self.rs485_energy = RS485Comm('Energy')
+        self.rs485_list.append(self.rs485_energy)
+        self.parser_energy = EnergyParser(self.rs485_energy)
+        self.parser_energy.sig_parse_result.connect(self.handlePacketParseResult)
+        self.parser_energy.sig_raw_packet.connect(self.onParserEnergyRawPacket)
         self.parser_list.append(self.parser_energy)
 
-        self.serial_485_control = SerialComm('Control')
-        self.serial_list.append(self.serial_485_control)
-        self.parser_control = ControlParser(self.serial_485_control)
-        self.parser_control.sig_parse.connect(self.onParserControlResult)
+        self.rs485_control_config = RS485Config()
+        self.rs485_control = RS485Comm('Control')
+        self.rs485_list.append(self.rs485_control)
+        self.parser_control = ControlParser(self.rs485_control)
+        self.parser_control.sig_parse_result.connect(self.handlePacketParseResult)
+        self.parser_control.sig_raw_packet.connect(self.onParserControlRawPacket)
         self.parser_list.append(self.parser_control)
 
-        self.serial_485_smart_recv = SerialComm('Smart(Recv)')
-        self.serial_list.append(self.serial_485_smart_recv)
-        self.parser_smart_recv = SmartRecvParser(self.serial_485_smart_recv)
-        self.parser_smart_recv.sig_parse.connect(self.onParserSmartRecvResult)
+        self.rs485_smart_recv_config = RS485Config()
+        self.rs485_smart_recv = RS485Comm('Smart(Recv)')
+        self.rs485_list.append(self.rs485_smart_recv)
+        self.parser_smart_recv = SmartRecvParser(self.rs485_smart_recv)
         self.parser_smart_recv.sig_call_elevator.connect(self.callElevatorByParser)
+        self.parser_smart_recv.sig_parse_result.connect(self.handlePacketParseResult)
+        self.parser_smart_recv.sig_raw_packet.connect(self.onParserSmartRecvRawPacket)
         self.parser_list.append(self.parser_smart_recv)
 
-        self.serial_485_smart_send = SerialComm('Smart(Send)')
-        self.serial_list.append(self.serial_485_smart_send)
-        self.parser_smart_send = SmartSendParser(self.serial_485_smart_send)
-        self.parser_smart_send.sig_parse.connect(self.onParserSmartSendResult)
+        self.rs485_smart_send_config = RS485Config()
+        self.rs485_smart_send = RS485Comm('Smart(Send)')
+        self.rs485_list.append(self.rs485_smart_send)
+        self.parser_smart_send = SmartSendParser(self.rs485_smart_send)
+        self.parser_smart_send.sig_parse_result.connect(self.handlePacketParseResult)
+        self.parser_smart_send.sig_raw_packet.connect(self.onParserSmartSendRawPacket)
         self.parser_list.append(self.parser_smart_send)
 
         self.initialize(init_service, False)
 
-    def initialize(self, init_service: bool, serial_conn: bool):
+    def initialize(self, init_service: bool, connect_rs485: bool):
         self.device_list.clear()
         self.rooms.clear()
 
@@ -147,8 +156,8 @@ class Home:
                 writeLog('MQTT Connection Error: {}'.format(e), self)
             self.mqtt_client.loop_start()
         
-        if serial_conn:
-            self.initSerialConnection();
+        if connect_rs485:
+            self.initRS485Connection()
 
         writeLog(f'Initialized <{self.name}>', self)
 
@@ -162,8 +171,8 @@ class Home:
 
         for parser in self.parser_list:
             parser.release()
-        for serial in self.serial_list:
-            serial.release()
+        for rs485 in self.rs485_list:
+            rs485.release()
         writeLog(f'Released', self)
 
     def restart(self):
@@ -203,26 +212,128 @@ class Home:
             writeLog(str(room), self)
         """
 
-    def initSerialConnection(self):
-        self.serial_485_energy.connect(self.serial_485_energy_port, self.serial_baud)
-        self.serial_485_control.connect(self.serial_485_control_port, self.serial_baud)
-        self.serial_485_smart_recv.connect(self.serial_485_smart_port_recv, self.serial_baud)
-        self.serial_485_smart_send.connect(self.serial_485_smart_port_send, self.serial_baud)
+    def initRS485Connection(self):
+        if self.rs485_energy_config.enable:
+            self.rs485_energy.setType(self.rs485_energy_config.comm_type)
+            if self.rs485_energy_config.comm_type == RS485HwType.Serial:
+                port = self.rs485_energy_config.serial_port
+                baud = self.rs485_energy_config.serial_baud
+                self.rs485_energy.connect(port, baud)
+            elif self.rs485_energy_config.comm_type == RS485HwType.Socket:
+                ipaddr = self.rs485_energy_config.socket_ipaddr
+                port = self.rs485_energy_config.socket_port
+                self.rs485_energy.connect(ipaddr, port)
+
+        if self.rs485_control_config.enable:
+            self.rs485_control.setType(self.rs485_control_config.comm_type)
+            if self.rs485_control_config.comm_type == RS485HwType.Serial:
+                port = self.rs485_control_config.serial_port
+                baud = self.rs485_control_config.serial_baud
+                self.rs485_control.connect(port, baud)
+            elif self.rs485_control_config.comm_type == RS485HwType.Socket:
+                ipaddr = self.rs485_control_config.socket_ipaddr
+                port = self.rs485_control_config.socket_port
+                self.rs485_control.connect(ipaddr, port)
+
+        if self.rs485_smart_recv_config.enable:
+            self.rs485_smart_recv.setType(self.rs485_smart_recv_config.comm_type)
+            if self.rs485_smart_recv_config.comm_type == RS485HwType.Serial:
+                port = self.rs485_smart_recv_config.serial_port
+                baud = self.rs485_smart_recv_config.serial_baud
+                self.rs485_smart_recv.connect(port, baud)
+            elif self.rs485_smart_recv_config.comm_type == RS485HwType.Socket:
+                ipaddr = self.rs485_smart_recv_config.socket_ipaddr
+                port = self.rs485_smart_recv_config.socket_port
+                self.rs485_smart_recv.connect(ipaddr, port)
+
+        if self.rs485_smart_send_config.enable:
+            self.rs485_smart_send.setType(self.rs485_smart_send_config.comm_type)
+            if self.rs485_smart_send_config.comm_type == RS485HwType.Serial:
+                port = self.rs485_smart_send_config.serial_port
+                baud = self.rs485_smart_send_config.serial_baud
+                self.rs485_smart_send.connect(port, baud)
+            elif self.rs485_smart_send_config.comm_type == RS485HwType.Socket:
+                ipaddr = self.rs485_smart_send_config.socket_ipaddr
+                port = self.rs485_smart_send_config.socket_port
+                self.rs485_smart_send.connect(ipaddr, port)
 
     def loadConfig(self, filepath: str):
         if not os.path.isfile(filepath):
             return
-
         root = ET.parse(filepath).getroot()
-
-        node = root.find('serial')
+        node = root.find('rs485')
         try:
-            self.serial_485_energy_port = node.find('port_energy').text
-            self.serial_485_control_port = node.find('port_control').text
-            self.serial_485_smart_port_recv = node.find('port_smart1').text
-            self.serial_485_smart_port_send = node.find('port_smart2').text
+            energy_node = node.find('energy')
+            enable_node = energy_node.find('enable')
+            self.rs485_energy_config.enable = bool(int(enable_node.text))
+            type_node = energy_node.find('type')
+            self.rs485_energy_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = energy_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_energy_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_energy_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = energy_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_energy_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_energy_config.socket_port = int(socket_port_node.text)
         except Exception as e:
-            writeLog(f"Failed to load serial port info ({e})", self)
+            writeLog(f"Failed to load 'energy' rs485 config ({e})", self)
+        try:
+            control_node = node.find('control')
+            enable_node = control_node.find('enable')
+            self.rs485_control_config.enable = bool(int(enable_node.text))
+            type_node = control_node.find('type')
+            self.rs485_control_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = energy_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_control_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_control_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = control_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_control_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_control_config.socket_port = int(socket_port_node.text)
+        except Exception as e:
+            writeLog(f"Failed to load 'control' rs485 config ({e})", self)
+        try:
+            smart1_node = node.find('smart1')
+            enable_node = smart1_node.find('enable')
+            self.rs485_smart_recv_config.enable = bool(int(enable_node.text))
+            type_node = smart1_node.find('type')
+            self.rs485_smart_recv_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = energy_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_smart_recv_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_smart_recv_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = smart1_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_smart_recv_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_smart_recv_config.socket_port = int(socket_port_node.text)
+        except Exception as e:
+            writeLog(f"Failed to load 'smart1' rs485 config ({e})", self)
+        try:
+            smart2_node = node.find('smart2')
+            enable_node = smart2_node.find('enable')
+            self.rs485_smart_send_config.enable = bool(int(enable_node.text))
+            type_node = smart2_node.find('type')
+            self.rs485_smart_send_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = energy_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_smart_send_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_smart_send_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = smart2_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_smart_send_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_smart_send_config.socket_port = int(socket_port_node.text)
+        except Exception as e:
+            writeLog(f"Failed to load 'smart2' rs485 config ({e})", self)
 
         node = root.find('mqtt')
         try:
@@ -349,12 +460,17 @@ class Home:
 
     def startThreadMonitoring(self):
         if self.thread_monitoring is None:
-            self.thread_monitoring = ThreadMonitoring([
-                self.serial_485_energy,
-                self.serial_485_control,
-                self.serial_485_smart_recv,
-                # self.serial_485_smart_send
-            ])
+            rs485_list = []
+            if self.rs485_energy_config.enable:
+                rs485_list.append(self.rs485_energy)
+            if self.rs485_control_config.enable:
+                rs485_list.append(self.rs485_control)
+            if self.rs485_smart_recv_config.enable:
+                rs485_list.append(self.rs485_smart_recv)
+            if self.rs485_smart_send_config.enable:
+                rs485_list.append(self.rs485_smart_send)
+
+            self.thread_monitoring = ThreadMonitoring(rs485_list)
             self.thread_monitoring.sig_terminated.connect(self.onThreadMonitoringTerminated)
             self.thread_monitoring.sig_publish_regular.connect(self.publish_all)
             self.thread_monitoring.setDaemon(True)
@@ -375,122 +491,35 @@ class Home:
             except ValueError as e:
                 writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
 
-    def sendSerialEnergyPacket(self, packet: str):
-        self.serial_485_energy.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))
+    def sendRS485EnergyPacket(self, packet: str):
+        self.rs485_energy.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))
 
-    def sendSerialControlPacket(self, packet: str):
-        self.serial_485_control.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))
+    def sendRS485ControlPacket(self, packet: str):
+        self.rs485_control.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))
 
-    def onParserEnergyResult(self, chunk: bytearray):
+    def handlePacketParseResult(self, result: dict):
         try:
-            if len(chunk) < 8:
-                return
-            header = chunk[1]  # [0x31, 0x41, 0x42, 0xD1]
-            command = chunk[3]
-            room_idx = 0
-            if header == 0x31:
-                if command in [0x81, 0x91]:
-                    # 방 조명 패킷
-                    room_idx = chunk[5] & 0x0F
-                    room = self.getRoomObjectByIndex(room_idx)
-                    if room is not None:
-                        for i in range(room.light_count):
-                            dev = room.lights[i]
-                            dev.state = (chunk[6] & (0x01 << i)) >> i
-                            # notification
-                            if not dev.init:
-                                dev.publish_mqtt()
-                                dev.init = True
-                            if dev.state != dev.state_prev:
-                                dev.publish_mqtt()
-                            dev.state_prev = dev.state
-
-                        # 콘센트 소비전력 패킷
-                        for i in range(room.outlet_count):
-                            dev = room.outlets[i]
-                            dev.state = (chunk[7] & (0x01 << i)) >> i
-                            if room_idx == 1 and i == 2:
-                                dev.state = 1
-                            if len(chunk) >= 14 + 2 * i + 2 + 1:
-                                value = int.from_bytes(chunk[14 + 2 * i: 14 + 2 * i + 2], byteorder='big')
-                                dev.measurement = value / 10.
-                            else:
-                                dev.measurement = 0
-                            if not dev.init:
-                                dev.publish_mqtt()
-                                dev.init = True
-                            if int(dev.measurement) != int(dev.measurement_prev):
-                                dev.publish_mqtt()
-                            dev.measurement_prev = dev.measurement
-                elif command in [0x11]:
-                    room_idx = chunk[5] & 0x0F
-
-            # packet log
-            append = True
-            if header == 0x31:
-                if not self.enable_log_energy_31:
-                    append = False
-                else:
-                    if room_idx == 1 and not self.enable_log_energy_room_1:
-                        append = False
-                    if room_idx == 2 and not self.enable_log_energy_room_2:
-                        append = False
-                    if room_idx == 3 and not self.enable_log_energy_room_3:
-                        append = False
-            if header == 0x41 and not self.enable_log_energy_41:
-                append = False
-            if header == 0x42 and not self.enable_log_energy_42:
-                append = False
-            if header == 0xD1 and not self.enable_log_energy_d1:
-                append = False
-
-            if append:
-                if len(self.packets_energy) > self.max_packet_log_cnt:
-                    self.packets_energy = self.packets_energy[1:]
-                self.packets_energy.append(chunk)
-        except Exception as e:
-            writeLog('onParserEnergyResult::Exception::{}'.format(e), self)
-
-    def onParserControlResult(self, chunk: bytearray):
-        try:
-            if len(chunk) < 10:
-                return
-            header = chunk[1]  # [0x28, 0x31, 0x61]
-            command = chunk[3]
-            if header == 0x28 and command in [0x91, 0x92]:
-                # 난방 관련 패킷 (방 인덱스)
-                # chunk[3] == 0x91: 쿼리 응답 / 0x92: 명령 응답
-                room_idx = chunk[5] & 0x0F
+            dev_type = result.get('device')
+            if dev_type == 'thermostat':
+                room_idx = result.get('room_index')
                 room = self.getRoomObjectByIndex(room_idx)
                 if room is not None:
                     dev = room.thermostat
-                    dev.state = chunk[6] & 0x01
-                    dev.temperature_setting = (chunk[7] & 0x3F) + (chunk[7] & 0x40 > 0) * 0.5
-                    dev.temperature_current = int.from_bytes(chunk[8:10], byteorder='big') / 10.0
-                    """
-                    print('Room Idx: {}, Temperature Current: {}, Temperature Setting: {}'.format(
-                        room_idx, dev.temperature_current, dev.temperature_setting))
-                    print('Raw Packet: {}'.format('|'.join(['%02X'%x for x in chunk])))
-                    """
+                    dev.state = result.get('state')
+                    dev.temperature_setting = result.get('temperature_setting')
+                    dev.temperature_current = result.get('temperature_current')
+                    # notification
                     if not dev.init:
                         dev.publish_mqtt()
                         dev.init = True
                     if dev.state != dev.state_prev or dev.temperature_setting != dev.temperature_setting_prev:
                         dev.publish_mqtt()
-                    """
-                    if dev.temperature_current != dev.temperature_current_prev:
-                        dev.publish_mqtt()
-                        pass
-                    """
                     dev.state_prev = dev.state
                     dev.temperature_setting_prev = dev.temperature_setting
                     dev.temperature_current_prev = dev.temperature_current
-            elif header == 0x31 and chunk[2] in [0x80, 0x82]:
-                # 가스 관련 패킷 (길이 정보 없음, 무조건 10 고정)
-                # chunk[2] == 0x80: 쿼리 응답
-                # chunk[2] == 0x82: 명령 응답
+            elif dev_type == 'gasvalve':
                 dev = self.gas_valve
-                dev.state = chunk[5]
+                dev.state = result.get('state')
                 # notification
                 if not dev.init:
                     dev.publish_mqtt()
@@ -498,13 +527,12 @@ class Home:
                 if dev.state != dev.state_prev:
                     dev.publish_mqtt()
                 dev.state_prev = dev.state
-            elif header == 0x61 and chunk[2] in [0x80, 0x81, 0x83, 0x84, 0x87]:
-                # 환기 관련 패킷
+            elif dev_type == 'ventilator':
                 dev = self.ventilator
-                dev.state = chunk[5] & 0x01
-                dev.state_natural = (chunk[5] & 0x10) >> 4
-                dev.rotation_speed = chunk[6]
-                dev.timer_remain = chunk[7]
+                dev.state = result.get('state')
+                # dev.state_natural = result.get('state_natural')
+                dev.rotation_speed = result.get('rotation_speed')
+                # dev.timer_remain = result.get('timer_remain')
                 # notification
                 if not dev.init:
                     dev.publish_mqtt()
@@ -513,82 +541,88 @@ class Home:
                     dev.publish_mqtt()
                 dev.state_prev = dev.state
                 dev.rotation_speed_prev = dev.rotation_speed
-            else:
-                pass
-
-            # packet log
-            append = True
-            if header == 0x28 and not self.enable_log_control_28:
-                append = False
-            if header == 0x31 and not self.enable_log_control_31:
-                append = False
-            if header == 0x61 and not self.enable_log_control_61:
-                append = False
-
-            if append:
-                if len(self.packets_control) > self.max_packet_log_cnt:
-                    self.packets_control = self.packets_control[1:]
-                self.packets_control.append(chunk)
-        except Exception as e:
-            writeLog('onParserControlResult Exception::{}'.format(e), self)
-
-    def onParserSmartRecvResult(self, chunk: bytearray):
-        try:
-            if len(chunk) < 4:
-                return
-            header = chunk[1]  # [0xC1]
-            packetLen = chunk[2]
-            cmd = chunk[3]
-            if header == 0xC1 and packetLen == 0x13 and cmd == 0x13:
+            elif dev_type == 'light':
+                room_idx = result.get('room_index')
+                room = self.getRoomObjectByIndex(room_idx)
+                if room is not None:
+                    index = result.get('index')
+                    if index < room.light_count:
+                        dev = room.lights[index]
+                        dev.state = result.get('state')
+                        # notification
+                        if not dev.init:
+                            dev.publish_mqtt()
+                            dev.init = True
+                        if dev.state != dev.state_prev:
+                            dev.publish_mqtt()
+                        dev.state_prev = dev.state
+            elif dev_type == 'outlet':
+                room_idx = result.get('room_index')
+                room = self.getRoomObjectByIndex(room_idx)
+                if room is not None:
+                    index = result.get('index')
+                    if index < room.outlet_count:
+                        dev = room.outlets[index]
+                        dev.state = result.get('state')
+                        dev.measurement = result.get('consumption')
+                        # notification
+                        if not dev.init:
+                            dev.publish_mqtt()
+                            dev.init = True
+                        if int(dev.measurement) != int(dev.measurement_prev):
+                            dev.publish_mqtt()
+                        dev.measurement_prev = dev.measurement
+            elif dev_type == 'elevator':
                 dev = self.elevator
-                if len(chunk) >= 13:
-                    dev.state = chunk[11]
-                    # 0xFF : unknown, 최상위 비트가 1이면 지하
-                    if chunk[12] == 0xFF:
-                        dev.current_floor = 'unknown'
-                    elif chunk[12] & 0x80:
-                        dev.current_floor = f'B{chunk[12] & 0x7F}'
-                    else:
-                        dev.current_floor = f'{chunk[12] & 0xFF}'
-                    # dev.current_floor = ctypes.c_int8(chunk[12]).value
-                    # notification
-                    if not dev.init:
-                        dev.publish_mqtt()
-                        dev.init = True
-                    if dev.state != dev.state_prev:
-                        dev.publish_mqtt()
-                    if dev.current_floor != dev.current_floor_prev:
-                        writeLog(f'Elevator Current Floor: {dev.current_floor}', self)
-                    dev.state_prev = dev.state
-                    dev.current_floor_prev = dev.current_floor
-
-            # packet log
-            if len(self.packets_smart_recv) > self.max_packet_log_cnt:
-                self.packets_smart_recv = self.packets_smart_recv[1:]
-            self.packets_smart_recv.append(chunk)
+                dev.state = result.get('state')
+                dev.current_floor = result.get('current_floor')
+                # notification
+                if not dev.init:
+                    dev.publish_mqtt()
+                    dev.init = True
+                if dev.state != dev.state_prev:
+                    dev.publish_mqtt()
+                if dev.current_floor != dev.current_floor_prev:
+                    writeLog(f'Elevator Current Floor: {dev.current_floor}', self)
+                dev.state_prev = dev.state
+                dev.current_floor_prev = dev.current_floor
         except Exception as e:
-            writeLog('onParserSmartRecvResult Exception::{}'.format(e), self)
+            writeLog('handlePacketParseResult::Exception::{} ({})'.format(e, result), self)
 
-    def onParserSmartSendResult(self, chunk: bytearray):
-        pass
+    def onParserEnergyRawPacket(self, packet: bytearray):
+        if len(self.packets_energy) > self.max_packet_log_cnt:
+            self.packets_energy = self.packets_energy[1:]
+        self.packets_energy.append(packet)
+
+    def onParserControlRawPacket(self, packet: bytearray):
+        if len(self.packets_control) > self.max_packet_log_cnt:
+            self.packets_control = self.packets_control[1:]
+        self.packets_control.append(packet)
+
+    def onParserSmartRecvRawPacket(self, packet: bytearray):
+        if len(self.packets_smart_recv) > self.max_packet_log_cnt:
+            self.packets_smart_recv = self.packets_smart_recv[1:]
+        self.packets_smart_recv.append(packet)
+
+    def onParserSmartSendRawPacket(self, packet: bytearray):
+        if len(self.packets_smart_send) > self.max_packet_log_cnt:
+            self.packets_smart_send = self.packets_smart_send[1:]
+        self.packets_smart_send.append(packet)
 
     def command(self, **kwargs):
         # writeLog('Command::{}'.format(kwargs), self)
         try:
             dev = kwargs['device']
             if isinstance(dev, Light) or isinstance(dev, Outlet):
-                kwargs['func'] = self.parser_energy.sendPacketString
+                kwargs['parser'] = self.parser_energy
             elif isinstance(dev, Thermostat):
-                kwargs['func'] = self.parser_control.sendPacketString
+                kwargs['parser'] = self.parser_control
             elif isinstance(dev, Ventilator):
-                kwargs['func'] = self.parser_control.sendPacketString
+                kwargs['parser'] = self.parser_control
             elif isinstance(dev, GasValve):
-                kwargs['func'] = self.parser_control.sendPacketString
+                kwargs['parser'] = self.parser_control
             elif isinstance(dev, Elevator):
-                if kwargs['direction'] == 'up':
-                    kwargs['func'] = self.parser_smart_recv.setFlagCallUp
-                else:
-                    kwargs['func'] = self.parser_smart_recv.setFlagCallDown
+                kwargs['parser'] = self.parser_smart_recv
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
@@ -601,6 +635,96 @@ class Home:
 
     def callElevatorDown(self):
         self.parser_smart_recv.setFlagCallDown()
+
+    @property
+    def enable_log_control_28(self) -> bool:
+        return self._enable_log_control_28
+
+    @enable_log_control_28.setter
+    def enable_log_control_28(self, value: bool):
+        self._enable_log_control_28 = value
+        self.parser_control.enable_log_header_28 = value
+    
+    @property
+    def enable_log_control_31(self) -> bool:
+        return self._enable_log_control_31
+
+    @enable_log_control_31.setter
+    def enable_log_control_31(self, value: bool):
+        self._enable_log_control_31 = value
+        self.parser_control.enable_log_header_31 = value
+    
+    @property
+    def enable_log_control_61(self) -> bool:
+        return self._enable_log_control_61
+
+    @enable_log_control_61.setter
+    def enable_log_control_61(self, value: bool):
+        self._enable_log_control_61 = value
+        self.parser_control.enable_log_header_61 = value
+
+    @property
+    def enable_log_energy_31(self) -> bool:
+        return self._enable_log_energy_31
+
+    @enable_log_energy_31.setter
+    def enable_log_energy_31(self, value: bool):
+        self._enable_log_energy_31 = value
+        self.parser_energy.enable_log_header_31 = value
+
+    @property
+    def enable_log_energy_41(self) -> bool:
+        return self._enable_log_energy_41
+
+    @enable_log_energy_41.setter
+    def enable_log_energy_41(self, value: bool):
+        self._enable_log_energy_41 = value
+        self.parser_energy.enable_log_header_41 = value
+
+    @property
+    def enable_log_energy_42(self) -> bool:
+        return self._enable_log_energy_42
+
+    @enable_log_energy_42.setter
+    def enable_log_energy_42(self, value: bool):
+        self._enable_log_energy_42 = value
+        self.parser_energy.enable_log_header_42 = value
+
+    @property
+    def enable_log_energy_d1(self) -> bool:
+        return self._enable_log_energy_d1
+
+    @enable_log_energy_d1.setter
+    def enable_log_energy_d1(self, value: bool):
+        self._enable_log_energy_d1 = value
+        self.parser_energy.enable_log_header_d1 = value
+
+    @property
+    def enable_log_energy_room_1(self) -> bool:
+        return self._enable_log_energy_room_1
+
+    @enable_log_energy_room_1.setter
+    def enable_log_energy_room_1(self, value: bool):
+        self._enable_log_energy_room_1 = value
+        self.parser_energy.enable_log_room_1 = value
+
+    @property
+    def enable_log_energy_room_2(self) -> bool:
+        return self._enable_log_energy_room_2
+
+    @enable_log_energy_room_2.setter
+    def enable_log_energy_room_2(self, value: bool):
+        self._enable_log_energy_room_2 = value
+        self.parser_energy.enable_log_room_2 = value
+    
+    @property
+    def enable_log_energy_room_3(self) -> bool:
+        return self._enable_log_energy_room_3
+
+    @enable_log_energy_room_3.setter
+    def enable_log_energy_room_3(self, value: bool):
+        self._enable_log_energy_room_3 = value
+        self.parser_energy.enable_log_room_3 = value
 
     def startMqttSubscribe(self):
         self.mqtt_client.subscribe('system/command')
@@ -751,3 +875,4 @@ def get_home(name: str = '') -> Home:
     if home_ is None:
         home_ = Home(name=name)
     return home_
+ 

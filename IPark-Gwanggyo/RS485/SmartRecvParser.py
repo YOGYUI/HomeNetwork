@@ -1,9 +1,9 @@
-from Parser import Parser
+from PacketParser import *
 from Define import Callback
-from SerialComm import SerialComm
+from RS485Comm import *
 
 
-class SmartRecvParser(Parser):
+class SmartRecvParser(PacketParser):
     year: int = 0
     month: int = 0
     day: int = 0
@@ -16,8 +16,8 @@ class SmartRecvParser(Parser):
     flag_send_up_packet: bool = False
     flag_send_down_packet: bool = False
 
-    def __init__(self, ser: SerialComm):
-        super().__init__(ser)
+    def __init__(self, rs485: RS485Comm):
+        super().__init__(rs485)
         self.sig_call_elevator = Callback(int, int)  # up(1)/down(0) flag, timestamp
 
     def handlePacket(self):
@@ -55,13 +55,42 @@ class SmartRecvParser(Parser):
                         msg = ' '.join(['%02X' % x for x in chunk])
                         print('[SER 1] ' + msg)
 
-                    self.sig_parse.emit(chunk)
+                    self.interpretPacket(chunk)
                     self.buffer = self.buffer[packetLen:]
-        except Exception:
-            pass
+        except Exception as e:
+            writeLog('handlePacket Exception::{}'.format(e), self)
 
     def setFlagCallUp(self):
         self.flag_send_up_packet = True
 
     def setFlagCallDown(self):
         self.flag_send_down_packet = True
+
+    def interpretPacket(self, packet: bytearray):
+        try:
+            if len(packet) < 4:
+                return
+            header = packet[1]  # [0xC1]
+            packetLen = packet[2]
+            cmd = packet[3]
+            if header == 0xC1 and packetLen == 0x13 and cmd == 0x13:
+                if len(packet) >= 13:
+                    state = packet[11]
+                    # 0xFF : unknown, 최상위 비트가 1이면 지하
+                    if packet[12] == 0xFF:
+                        current_floor = 'unknown'
+                    elif packet[12] & 0x80:
+                        current_floor = f'B{packet[12] & 0x7F}'
+                    else:
+                        current_floor = f'{packet[12] & 0xFF}'
+                    result = {
+                        'device': 'elevator',
+                        'state': state,
+                        'current_floor': current_floor
+                    }
+                    self.sig_parse_result.emit(result)
+            
+            # packet log
+            self.sig_raw_packet.emit(packet)
+        except Exception as e:
+            writeLog('interpretPacket Exception::{}'.format(e), self)
