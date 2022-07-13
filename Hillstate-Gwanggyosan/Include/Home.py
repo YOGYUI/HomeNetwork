@@ -1,6 +1,7 @@
 import time
 import json
 import queue
+from functools import partial
 from typing import List, Union
 import paho.mqtt.client as mqtt
 import xml.etree.ElementTree as ET
@@ -8,6 +9,7 @@ from Define import *
 from Room import *
 from Threads import *
 from RS485 import *
+from Common import *
 
 
 class Home:
@@ -97,6 +99,9 @@ class Home:
         
         self.loadConfig(xml_path)
 
+        for dev in self.device_list:
+            dev.sig_set_state.connect(partial(self.onDeviceSetState, dev))
+
         if init_service:
             self.startThreadCommandQueue()
             self.startThreadParseResultQueue()
@@ -125,6 +130,8 @@ class Home:
             parser.release()
         for rs485 in self.rs485_list:
             rs485.release()
+        for dev in self.device_list:
+            dev.release()
         writeLog(f'Released', self)
     
     def restart(self):
@@ -447,8 +454,16 @@ class Home:
             writeLog('command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
 
+    def onDeviceSetState(self, dev: Device, state: int):
+        if isinstance(dev, AirConditioner):
+            self.command(
+                device=dev,
+                category='active',
+                target=state
+            )
+
     def startMqttSubscribe(self):
-        self.mqtt_client.subscribe('system/command')
+        self.mqtt_client.subscribe('home/hillstate/system/command')
         for dev in self.device_list:
             for topic in dev.mqtt_subscribe_topics:
                 self.mqtt_client.subscribe(topic)
@@ -489,7 +504,7 @@ class Home:
                 writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
             topic = message.topic
             msg_dict = json.loads(message.payload.decode("utf-8"))
-            if 'system/command' == topic:
+            if 'system/command' in topic:
                 self.onMqttCommandSystem(topic, msg_dict)
             if 'light/command' in topic:
                 self.onMqttCommandLight(topic, msg_dict)
@@ -649,6 +664,8 @@ class Home:
                     category='rotationspeed',
                     target=target
                 )
+            if 'timer' in message.keys():
+                room.airconditioner.setTimer(message['timer'])
 
     def onMqttCommandElevator(self, topic: str, message: dict):
         if 'state' in message.keys():
