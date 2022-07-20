@@ -414,6 +414,7 @@ class Home:
 
         node = root.find('elevator')
         self.elevator.my_floor = int(node.find('myfloor').text)
+        self.parser_smart_send.setElevatorCallCount(int(node.find('callcount').text))
         mqtt_node = node.find('mqtt')
         self.elevator.mqtt_publish_topic = mqtt_node.find('publish').text
         topic_text = mqtt_node.find('subscribe').text

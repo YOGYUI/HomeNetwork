@@ -269,6 +269,7 @@
                 home/ipark/elevator/command/down
             </subscribe>
         </mqtt>
+        <callcount>1</callcount>
     </elevator>
     <thermo_temp_packet>
         02 28 0E 12 FE 01 00 05 00 00 00 00 00 D0
