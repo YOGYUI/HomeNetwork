@@ -10,6 +10,7 @@ class SmartSendParser(PacketParser):
     elevator_up_packets: List[str]
     elevator_down_packets: List[str]
     elevator_call_count: int = 1
+    is_calling_elevator: bool = False
 
     def __init__(self, rs485: RS485Comm, elevator_call_count: int = 1):
         super().__init__(rs485)
@@ -61,13 +62,17 @@ class SmartSendParser(PacketParser):
 
     def sendCallElevatorPacket(self, updown: int, timestamp: int):
         # updown 0 = down, 1 = up
+        if self.is_calling_elevator:
+            return
+        self.is_calling_elevator = True
         for i in range(self.elevator_call_count):
-            temp = max(0, min(255, timestamp + i))
+            temp = (timestamp + i) % 256
             if updown:
                 packet = self.elevator_up_packets[temp]
             else:
                 packet = self.elevator_down_packets[temp]
             self.sendPacketString(packet)
+        self.is_calling_elevator = False
 
     def interpretPacket(self, packet: bytearray):
         # packet log
