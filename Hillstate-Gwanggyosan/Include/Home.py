@@ -20,6 +20,7 @@ class Home:
     ventilator: Ventilator
     elevator: Elevator
     doorlock: DoorLock
+    doorphone: DoorPhone
     airquality: AirqualitySensor
 
     thread_cmd_queue: Union[ThreadCommandQueue, None] = None
@@ -86,6 +87,7 @@ class Home:
         self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
         self.elevator = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
         self.doorlock = DoorLock(name="DoorLock", mqtt_client=self.mqtt_client)
+        self.doorphone = DoorPhone(name="DoorPhone", mqtt_client=self.mqtt_client)
         self.airquality = AirqualitySensor(mqtt_client=self.mqtt_client)
 
         # append device list
@@ -95,6 +97,7 @@ class Home:
         self.device_list.append(self.ventilator)
         self.device_list.append(self.elevator)
         self.device_list.append(self.doorlock)
+        self.device_list.append(self.doorphone)
         self.device_list.append(self.airquality)
         
         self.loadConfig(xml_path)
@@ -297,6 +300,17 @@ class Home:
         except Exception as e:
             writeLog(f"Failed to load doorlock config ({e})", self)
         
+        node = root.find('doorphone')
+        try:
+            gpio_node = node.find('gpio')
+            gpio_port = int(gpio_node.text)
+            self.doorphone.setParams(gpio_port)
+            mqtt_node = node.find('mqtt')
+            self.doorphone.mqtt_publish_topic = mqtt_node.find('publish').text
+            self.doorphone.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+        except Exception as e:
+            writeLog(f"Failed to load doorphone config ({e})", self)
+
         node = root.find('airquality')
         try:
             mqtt_node = node.find('mqtt')
@@ -428,6 +442,8 @@ class Home:
                 )
             elif dev_type == 'doorlock':
                 pass
+            elif dev_type == 'doorphone':
+                pass
         except Exception as e:
             writeLog('handlePacketParseResult::Exception::{} ({})'.format(e, result), self)
 
@@ -449,7 +465,9 @@ class Home:
             elif isinstance(dev, Elevator):
                 kwargs['parser'] = self.parser_various
             elif isinstance(dev, DoorLock):
-                kwargs['parser'] = self.parser_light
+                kwargs['parser'] = self.parser_light  # TODO:
+            elif isinstance(dev, DoorPhone):
+                kwargs['parser'] = self.parser_light  # TODO:
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
@@ -522,6 +540,8 @@ class Home:
                 self.onMqttCommandElevator(topic, msg_dict)
             if 'doorlock/command' in topic:
                 self.onMqttCommandDookLock(topic, msg_dict)
+            if 'doorphone/command' in topic:
+                self.onMqttCommandDoorPhone(topic, msg_dict)
         except Exception as e:
             writeLog(f"onMqttClientMessage Exception ({e}).. topic='{message.topic}', payload='{message.payload}'", self)
 
@@ -682,6 +702,13 @@ class Home:
                 category='state',
                 target=message['state']
             )
+
+    def onMqttCommandDoorPhone(self, topic: str, message: dict):
+        if 'cam_power' in message.keys():
+            if message['cam_power']:
+                self.doorphone.turn_on_camera()
+            else:
+                self.doorphone.turn_off_camera()
 
 
 home_: Union[Home, None] = None
