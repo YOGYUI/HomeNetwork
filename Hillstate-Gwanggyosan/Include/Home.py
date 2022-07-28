@@ -1,6 +1,7 @@
 import time
 import json
 import queue
+from functools import partial
 from typing import List, Union
 import paho.mqtt.client as mqtt
 import xml.etree.ElementTree as ET
@@ -8,6 +9,7 @@ from Define import *
 from Room import *
 from Threads import *
 from RS485 import *
+from Common import *
 
 
 class Home:
@@ -18,6 +20,7 @@ class Home:
     ventilator: Ventilator
     elevator: Elevator
     doorlock: DoorLock
+    doorphone: DoorPhone
     airquality: AirqualitySensor
 
     thread_cmd_queue: Union[ThreadCommandQueue, None] = None
@@ -84,6 +87,7 @@ class Home:
         self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
         self.elevator = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
         self.doorlock = DoorLock(name="DoorLock", mqtt_client=self.mqtt_client)
+        self.doorphone = DoorPhone(name="DoorPhone", mqtt_client=self.mqtt_client)
         self.airquality = AirqualitySensor(mqtt_client=self.mqtt_client)
 
         # append device list
@@ -93,9 +97,13 @@ class Home:
         self.device_list.append(self.ventilator)
         self.device_list.append(self.elevator)
         self.device_list.append(self.doorlock)
+        self.device_list.append(self.doorphone)
         self.device_list.append(self.airquality)
         
         self.loadConfig(xml_path)
+
+        for dev in self.device_list:
+            dev.sig_set_state.connect(partial(self.onDeviceSetState, dev))
 
         if init_service:
             self.startThreadCommandQueue()
@@ -125,6 +133,8 @@ class Home:
             parser.release()
         for rs485 in self.rs485_list:
             rs485.release()
+        for dev in self.device_list:
+            dev.release()
         writeLog(f'Released', self)
     
     def restart(self):
@@ -290,6 +300,17 @@ class Home:
         except Exception as e:
             writeLog(f"Failed to load doorlock config ({e})", self)
         
+        node = root.find('doorphone')
+        try:
+            gpio_node = node.find('gpio')
+            gpio_port = int(gpio_node.text)
+            self.doorphone.setParams(gpio_port)
+            mqtt_node = node.find('mqtt')
+            self.doorphone.mqtt_publish_topic = mqtt_node.find('publish').text
+            self.doorphone.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+        except Exception as e:
+            writeLog(f"Failed to load doorphone config ({e})", self)
+
         node = root.find('airquality')
         try:
             mqtt_node = node.find('mqtt')
@@ -421,6 +442,8 @@ class Home:
                 )
             elif dev_type == 'doorlock':
                 pass
+            elif dev_type == 'doorphone':
+                pass
         except Exception as e:
             writeLog('handlePacketParseResult::Exception::{} ({})'.format(e, result), self)
 
@@ -442,13 +465,23 @@ class Home:
             elif isinstance(dev, Elevator):
                 kwargs['parser'] = self.parser_various
             elif isinstance(dev, DoorLock):
-                kwargs['parser'] = self.parser_light
+                kwargs['parser'] = self.parser_light  # TODO:
+            elif isinstance(dev, DoorPhone):
+                kwargs['parser'] = self.parser_light  # TODO:
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
 
+    def onDeviceSetState(self, dev: Device, state: int):
+        if isinstance(dev, AirConditioner):
+            self.command(
+                device=dev,
+                category='active',
+                target=state
+            )
+
     def startMqttSubscribe(self):
-        self.mqtt_client.subscribe('system/command')
+        self.mqtt_client.subscribe('home/hillstate/system/command')
         for dev in self.device_list:
             for topic in dev.mqtt_subscribe_topics:
                 self.mqtt_client.subscribe(topic)
@@ -489,7 +522,7 @@ class Home:
                 writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
             topic = message.topic
             msg_dict = json.loads(message.payload.decode("utf-8"))
-            if 'system/command' == topic:
+            if 'system/command' in topic:
                 self.onMqttCommandSystem(topic, msg_dict)
             if 'light/command' in topic:
                 self.onMqttCommandLight(topic, msg_dict)
@@ -507,6 +540,8 @@ class Home:
                 self.onMqttCommandElevator(topic, msg_dict)
             if 'doorlock/command' in topic:
                 self.onMqttCommandDookLock(topic, msg_dict)
+            if 'doorphone/command' in topic:
+                self.onMqttCommandDoorPhone(topic, msg_dict)
         except Exception as e:
             writeLog(f"onMqttClientMessage Exception ({e}).. topic='{message.topic}', payload='{message.payload}'", self)
 
@@ -649,6 +684,8 @@ class Home:
                     category='rotationspeed',
                     target=target
                 )
+            if 'timer' in message.keys():
+                room.airconditioner.setTimer(message['timer'])
 
     def onMqttCommandElevator(self, topic: str, message: dict):
         if 'state' in message.keys():
@@ -665,6 +702,13 @@ class Home:
                 category='state',
                 target=message['state']
             )
+
+    def onMqttCommandDoorPhone(self, topic: str, message: dict):
+        if 'cam_power' in message.keys():
+            if message['cam_power']:
+                self.doorphone.turn_on_camera()
+            else:
+                self.doorphone.turn_off_camera()
 
 
 home_: Union[Home, None] = None

@@ -97,6 +97,12 @@
                     <publish>home/hillstate/airconditioner/state/1</publish>
                     <subscribe>home/hillstate/airconditioner/command/1</subscribe>
                 </mqtt>
+                <timer>
+                    <target_temperature>26</target_temperature>
+                    <on_time>10</on_time>
+                    <start_hour>1</start_hour>
+                    <stop_hour>7</stop_hour>
+                </timer>
             </airconditioner>
         </room1>
         <room2>
@@ -328,6 +334,13 @@
             <subscribe>home/hillstate/doorlock/command</subscribe>
         </mqtt>
     </doorlock>
+    <doorphone>
+        <gpio>18</gpio>
+        <mqtt>
+            <publish>home/hillstate/doorphone/state</publish>
+            <subscribe>home/hillstate/doorphone/command</subscribe>
+        </mqtt>
+    </doorphone>
     <airquality>
         <apikey>Your API Key from data.go.kr</apikey>
         <obsname>수지</obsname>

@@ -1,5 +1,6 @@
 import datetime
 import threading
+from functools import partial
 
 
 def checkAgrumentType(obj, arg):
@@ -71,3 +72,15 @@ def writeLog(strMsg: str, obj: object = None):
 
     msg = strTime + strObj + ' ' + strMsg
     print(msg)
+
+
+class bind(partial):
+    # https://stackoverflow.com/questions/7811247/how-to-fill-specific-positional-arguments-with-partial-in-python
+    """
+    An improved version of partial which accepts Ellipsis (...) as a placeholder
+    """
+    def __call__(self, *args, **keywords):
+        keywords = {**self.keywords, **keywords}
+        iargs = iter(args)
+        args = (next(iargs) if arg is ... else arg for arg in self.args)
+        return self.func(*args, *iargs, **keywords)
