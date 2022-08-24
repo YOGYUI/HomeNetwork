@@ -6,14 +6,12 @@ class ParserLight(PacketParser):
         try:
             if packet[3] == 0x19:  # 조명
                 self.handleLight(packet)
+            elif packet[3] == 0x1E:  # 현관 도어락 (?)
+                writeLog(f'Doorlock Packet: {self.prettifyPacket(packet)}', self)
             elif packet[3] == 0x1F:  # 아울렛 (콘센트)
                 self.handleOutlet(packet)
             else:
                 writeLog(f'Unknown packet: {self.prettifyPacket(packet)}', self)
-            """
-            elif packet[3] == 0x1E:  # 현관 도어락 (?)
-                writeLog(f'Doorlock Packet: {self.prettifyPacket(packet)}', self)
-            """
         except Exception as e:
             writeLog('interpretPacket::Exception::{} ({})'.format(e, packet), self)
 

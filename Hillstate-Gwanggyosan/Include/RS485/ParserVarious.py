@@ -1,7 +1,7 @@
 from PacketParser import *
 
 
-class ParserVarious(PacketParser):    
+class ParserVarious(PacketParser):
     def interpretPacket(self, packet: bytearray):
         try:
             if packet[3] == 0x18:  # 난방
@@ -25,6 +25,8 @@ class ParserVarious(PacketParser):
                     pass
                 else:
                     writeLog(f'Unknown packet (43): {self.prettifyPacket(packet)}', self)
+            elif packet[3] == 0x44:  # ??
+                writeLog(f'Unknown packet (44): {self.prettifyPacket(packet)}', self)
             elif packet[3] == 0x48:  # ??
                 if packet == bytearray([0xF7, 0x0D, 0x01, 0x48, 0x01, 0x40, 0x10, 0x00, 0x71, 0x11, 0x02, 0x80, 0xEE]):
                     pass

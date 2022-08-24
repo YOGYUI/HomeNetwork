@@ -35,11 +35,11 @@ class ThreadCommandQueue(threading.Thread):
                     elem_txt += f'  {k}: {v}\n'
                 writeLog(f'Get Command Queue: \n{{{elem_txt}}}', self)
                 try:
-                    dev = elem['device']
-                    category = elem['category']
-                    target = elem['target']
-                    parser = elem['parser']
-                    if target is None:
+                    dev = elem.get('device')
+                    category = elem.get('category')
+                    target = elem.get('target')
+                    parser = elem.get('parser')
+                    if target is None or parser is None:
                         continue
 
                     if isinstance(dev, Light):
@@ -85,6 +85,9 @@ class ThreadCommandQueue(threading.Thread):
                         if category == 'state':
                             if target == 'Unsecured':
                                 self.set_doorlock_open(dev, parser)
+                    elif isinstance(dev, DoorPhone):
+                        if category == 'cam_power':
+                            self.set_doorphone_camera_power(dev, target, parser)
                 except Exception as e:
                     writeLog(str(e), self)
             else:
@@ -232,4 +235,15 @@ class ThreadCommandQueue(threading.Thread):
         dev.publish_mqtt()
 
     def set_doorlock_open(self, dev: DoorLock, parser: PacketParser):
-        dev.open()
+        dev.open()  # GPIO
+        packet_command = dev.makePacketOpen()
+        parser.sendPacket(packet_command)
+        time.sleep(0.3)
+        parser.sendPacket(packet_command)
+        time.sleep(0.3)
+
+    def set_doorphone_camera_power(self, dev: DoorPhone, target: int, parser: PacketParser):
+        if target:
+            dev.turn_on_camera()
+        else:
+            dev.turn_off_camera()

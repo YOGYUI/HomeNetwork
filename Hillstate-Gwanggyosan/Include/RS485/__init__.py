@@ -9,3 +9,4 @@ from RS485Comm import RS485Comm, RS485Config, RS485HwType
 from PacketParser import PacketParser
 from ParserLight import ParserLight
 from ParserVarious import ParserVarious
+from ParserDoorphone import ParserDoorphone
