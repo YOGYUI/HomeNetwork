@@ -2,6 +2,7 @@ from abc import abstractmethod, ABCMeta
 from typing import Union, List
 from functools import reduce
 from RS485Comm import *
+import datetime
 
 
 class PacketParser:
@@ -15,12 +16,16 @@ class PacketParser:
     max_buffer_size: int = 200
     line_busy: bool = False
 
+    packet_storage: List[dict]
+    max_packet_store_cnt: int = 100
+
     def __init__(self, rs485: RS485Comm):
         self.buffer = bytearray()
         self.sig_parse_result = Callback(dict)
         rs485.sig_send_data.connect(self.onSendData)
         rs485.sig_recv_data.connect(self.onRecvData)
         self.rs485 = rs485
+        self.packet_storage = list()
 
     def release(self):
         self.buffer.clear()
@@ -84,6 +89,9 @@ class PacketParser:
 
     def getRS485HwType(self) -> RS485HwType:
         return self.rs485.getType()
+
+    def clearPacketStorage(self):
+        self.packet_storage.clear()
 
     @staticmethod
     def prettifyPacket(packet: bytearray) -> str:

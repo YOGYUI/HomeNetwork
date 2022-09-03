@@ -63,6 +63,14 @@ class Home:
         self.parser_various.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_various)
 
+        # 도어폰 포트
+        self.rs485_doorphone_config = RS485Config()
+        self.rs485_doorphone = RS485Comm('RS485-Doorphone')
+        self.rs485_list.append(self.rs485_doorphone)
+        self.parser_doorphone = ParserDoorphone(self.rs485_doorphone)
+        self.parser_doorphone.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
+        self.parser_list.append(self.parser_doorphone)
+
         self.initialize(init_service, False)
     
     def initialize(self, init_service: bool, connect_rs485: bool):
@@ -204,6 +212,20 @@ class Home:
                     self.rs485_various.connect(ipaddr, port)   
         except Exception as e:
             writeLog(f"Failed to initialize 'various' rs485 connection ({e})", self)
+        
+        try:
+            if self.rs485_doorphone_config.enable:
+                self.rs485_doorphone.setType(self.rs485_doorphone_config.comm_type)     
+                if self.rs485_doorphone_config.comm_type == RS485HwType.Serial:
+                    port = self.rs485_doorphone_config.serial_port
+                    baud = self.rs485_doorphone_config.serial_baud
+                    self.rs485_doorphone.connect(port, baud)
+                elif self.rs485_doorphone_config.comm_type == RS485HwType.Socket:
+                    ipaddr = self.rs485_doorphone_config.socket_ipaddr
+                    port = self.rs485_doorphone_config.socket_port
+                    self.rs485_doorphone.connect(ipaddr, port)   
+        except Exception as e:
+            writeLog(f"Failed to initialize 'various' rs485 connection ({e})", self)
 
     def loadConfig(self, filepath: str):
         if not os.path.isfile(filepath):
@@ -247,6 +269,24 @@ class Home:
             self.rs485_various_config.socket_port = int(socket_port_node.text)
         except Exception as e:
             writeLog(f"Failed to load 'various' rs485 config ({e})", self)
+        try:
+            doorphone_node = node.find('doorphone')
+            enable_node = doorphone_node.find('enable')
+            self.rs485_doorphone_config.enable = bool(int(enable_node.text))
+            type_node = doorphone_node.find('type')
+            self.rs485_doorphone_config.comm_type = RS485HwType(int(type_node.text))
+            usb2serial_node = doorphone_node.find('usb2serial')
+            serial_port_node = usb2serial_node.find('port')
+            self.rs485_doorphone_config.serial_port = serial_port_node.text
+            serial_baud_node = usb2serial_node.find('baud')
+            self.rs485_doorphone_config.serial_baud = int(serial_baud_node.text)
+            ew11_node = doorphone_node.find('ew11')
+            socket_addr_node = ew11_node.find('ipaddr')
+            self.rs485_doorphone_config.socket_ipaddr = socket_addr_node.text
+            socket_port_node = ew11_node.find('port')
+            self.rs485_doorphone_config.socket_port = int(socket_port_node.text)
+        except Exception as e:
+            writeLog(f"Failed to load 'doorphone' rs485 config ({e})", self)
 
         node = root.find('mqtt')
         try:
@@ -365,6 +405,8 @@ class Home:
                 rs485_list.append(self.rs485_light)
             if self.rs485_various_config.enable:
                 rs485_list.append(self.rs485_various)
+            if self.rs485_doorphone_config.enable:
+                rs485_list.append(self.rs485_doorphone)
             self.thread_timer = ThreadTimer(rs485_list)
             self.thread_timer.sig_terminated.connect(self.onThreadTimerTerminated)
             self.thread_timer.sig_publish_regular.connect(self.publish_all)
@@ -465,9 +507,9 @@ class Home:
             elif isinstance(dev, Elevator):
                 kwargs['parser'] = self.parser_various
             elif isinstance(dev, DoorLock):
-                kwargs['parser'] = self.parser_light  # TODO:
+                kwargs['parser'] = self.parser_light
             elif isinstance(dev, DoorPhone):
-                kwargs['parser'] = self.parser_light  # TODO:
+                kwargs['parser'] = self.parser_doorphone
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
@@ -705,10 +747,11 @@ class Home:
 
     def onMqttCommandDoorPhone(self, topic: str, message: dict):
         if 'cam_power' in message.keys():
-            if message['cam_power']:
-                self.doorphone.turn_on_camera()
-            else:
-                self.doorphone.turn_off_camera()
+            self.command(
+                device=self.doorphone,
+                category='cam_power',
+                target=message['cam_power']
+            )
 
 
 home_: Union[Home, None] = None

@@ -68,7 +68,7 @@ class DoorLock(Device):
 
     def startThreadOpen(self):
         if self.thread_open is None:
-            self.state = 0
+            self.updateState(0)
             GPIO.setup(self.gpio_port, GPIO.OUT)
             GPIO.output(self.gpio_port, GPIO.HIGH)
             self.thread_open = ThreadDoorLockOpen(self.gpio_port)
@@ -80,8 +80,7 @@ class DoorLock(Device):
     def onThreadOpenTerminated(self):
         del self.thread_open
         self.thread_open = None
-        self.state = 1
-        self.publish_mqtt()
+        self.updateState(1)
         GPIO.setup(self.gpio_port, GPIO.IN, GPIO.PUD_UP)  # GPIO IN, Pull Down 설정
 
     def open(self):
@@ -89,3 +88,7 @@ class DoorLock(Device):
             self.startThreadOpen()
         else:
             writeLog('Disabled!', self)
+
+    def makePacketOpen(self) -> bytearray:
+        # F7 0E 01 1E 02 43 11 04 00 04 FF FF B6 EE
+        return bytearray([0xF7, 0x0E, 0x01, 0x1E, 0x02, 0x43, 0x11, 0x04, 0x00, 0x04, 0xFF, 0xFF, 0xB6, 0xEE])

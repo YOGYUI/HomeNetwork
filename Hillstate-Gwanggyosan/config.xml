@@ -3,6 +3,7 @@
     <webserver>
         <host>0.0.0.0</host>
         <port>1234</port>
+        <log>1</log>
     </webserver>
     <rs485>
         <light>
@@ -29,6 +30,18 @@
                 <port>8899</port>
             </ew11>
         </various>
+        <doorphone>
+            <enable>0</enable>
+            <type>0</type>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <usb2serial>
+                <port>/dev/ttyUSB0</port>
+                <baud>9600</baud>
+            </usb2serial>
+            <ew11>
+                <ipaddr>192.168.0.1</ipaddr>
+                <port>8899</port>
+            </ew11>
+        </doorphone>
     </rs485>
     <mqtt>
         <host>mosquitto ip address</host>

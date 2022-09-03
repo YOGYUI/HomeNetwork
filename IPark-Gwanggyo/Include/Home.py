@@ -413,8 +413,12 @@ class Home:
         self.ventilator.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
 
         node = root.find('elevator')
-        self.elevator.my_floor = int(node.find('myfloor').text)
-        self.parser_smart_send.setElevatorCallCount(int(node.find('callcount').text))
+        try:
+            self.elevator.my_floor = int(node.find('myfloor').text)
+            self.parser_smart_send.setElevatorCallCount(int(node.find('callcount').text))
+            self.parser_smart_send.setElevatorCallInterval(int(node.find('callinterval').text))
+        except Exception:
+            pass
         mqtt_node = node.find('mqtt')
         self.elevator.mqtt_publish_topic = mqtt_node.find('publish').text
         topic_text = mqtt_node.find('subscribe').text
