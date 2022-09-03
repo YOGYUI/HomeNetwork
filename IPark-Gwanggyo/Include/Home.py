@@ -417,8 +417,9 @@ class Home:
             self.elevator.my_floor = int(node.find('myfloor').text)
             self.parser_smart_send.setElevatorCallCount(int(node.find('callcount').text))
             self.parser_smart_send.setElevatorCallInterval(int(node.find('callinterval').text))
-        except Exception:
-            pass
+            self.elevator.notify_floor = bool(int(node.find('notifyfloor').text))
+        except Exception as e:
+            print(e)
         mqtt_node = node.find('mqtt')
         self.elevator.mqtt_publish_topic = mqtt_node.find('publish').text
         topic_text = mqtt_node.find('subscribe').text
@@ -589,6 +590,8 @@ class Home:
                     dev.publish_mqtt()
                 if dev.current_floor != dev.current_floor_prev:
                     writeLog(f'Elevator Current Floor: {dev.current_floor}', self)
+                    if dev.notify_floor:
+                        dev.publish_mqtt_floor()
                 dev.state_prev = dev.state
                 dev.current_floor_prev = dev.current_floor
         except Exception as e:
