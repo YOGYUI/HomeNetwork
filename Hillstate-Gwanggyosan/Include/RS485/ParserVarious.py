@@ -2,20 +2,44 @@ from PacketParser import *
 
 
 class ParserVarious(PacketParser):
+    enable_store_packet_header_18: bool = True
+    enable_store_packet_header_1B: bool = True
+    enable_store_packet_header_1C: bool = True
+    enable_store_packet_header_2A: bool = True
+    enable_store_packet_header_2B: bool = True
+    enable_store_packet_header_34: bool = True
+    enable_store_packet_header_43: bool = True
+    enable_store_packet_header_44: bool = True
+    enable_store_packet_header_48: bool = True
+    enable_store_packet_unknown: bool = True
+
     def interpretPacket(self, packet: bytearray):
         try:
+            store: bool = True
+            packet_info = {'packet': packet, 'timestamp': datetime.datetime.now()}
             if packet[3] == 0x18:  # 난방
                 self.handleThermostat(packet)
+                packet_info['device'] = 'thermostat'
+                store = self.enable_store_packet_header_18
             elif packet[3] == 0x1B:  # 가스차단기
                 self.handleGasValve(packet)
+                packet_info['device'] = 'gasvalve'
+                store = self.enable_store_packet_header_1B
             elif packet[3] == 0x1C:  # 시스템에어컨
                 self.handleAirconditioner(packet)
+                store = self.enable_store_packet_header_1C
+                packet_info['device'] = 'airconditioner'
             elif packet[3] == 0x2A:  # 다기능스위치
-                pass
+                packet_info['device'] = 'multi function switch'
+                store = self.enable_store_packet_header_2A
             elif packet[3] == 0x2B:  # 환기 (전열교환기)
                 self.handleVentilator(packet)
+                packet_info['device'] = 'ventilator'
+                store = self.enable_store_packet_header_2B
             elif packet[3] == 0x34:  # 엘리베이터
                 self.handleElevator(packet)
+                packet_info['device'] = 'elevator'
+                store = self.enable_store_packet_header_34
             elif packet[3] == 0x43:  # ??
                 # writeLog(f'Unknown packet (43): {self.prettifyPacket(packet)}', self)
                 if packet == bytearray([0xF7, 0x0B, 0x01, 0x43, 0x01, 0x11, 0x11, 0x00, 0x00, 0xBF, 0xEE]):
@@ -25,8 +49,12 @@ class ParserVarious(PacketParser):
                     pass
                 else:
                     writeLog(f'Unknown packet (43): {self.prettifyPacket(packet)}', self)
+                packet_info['device'] = 'unknown'
+                store = self.enable_store_packet_header_43
             elif packet[3] == 0x44:  # ??
                 writeLog(f'Unknown packet (44): {self.prettifyPacket(packet)}', self)
+                packet_info['device'] = 'unknown'
+                store = self.enable_store_packet_header_44
             elif packet[3] == 0x48:  # ??
                 if packet == bytearray([0xF7, 0x0D, 0x01, 0x48, 0x01, 0x40, 0x10, 0x00, 0x71, 0x11, 0x02, 0x80, 0xEE]):
                     pass
@@ -34,8 +62,16 @@ class ParserVarious(PacketParser):
                     pass
                 else:
                     writeLog(f'Unknown packet (48): {self.prettifyPacket(packet)}', self)
+                packet_info['device'] = 'unknown'
+                store = self.enable_store_packet_header_48
             else:
                 writeLog(f'Unknown packet (??): {self.prettifyPacket(packet)}', self)
+                packet_info['device'] = 'unknown'
+                store = self.enable_store_packet_unknown
+            if store:
+                if len(self.packet_storage) > self.max_packet_store_cnt:
+                    self.packet_storage.pop(0)
+                self.packet_storage.append(packet_info)
         except Exception as e:
             writeLog('interpretPacket::Exception::{} ({})'.format(e, packet), self)
 

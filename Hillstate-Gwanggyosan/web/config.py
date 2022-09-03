@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 class Config:
     HOST: str = '0.0.0.0'
     PORT: int = 9999
+    LOG: bool = False
 
     SECRET_KEY = 'My Secret Key'  # for CSRF
 
@@ -22,6 +23,8 @@ class Config:
                 self.HOST = node_host.text
                 node_port = node.find('port')
                 self.PORT = int(node_port.text)
+                node_log = node.find('log')
+                self.LOG = bool(int(node_log.text))
         except Exception as e:
             print(f'Config - Exception {e}')
 

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>패킷</h1>
+</div>
+<div>
+    <input type="button" id="btn_start" onclick="onBtnStartClicked();" value="START">
+    <input type="button" id="btn_stop"  onclick="onBtnStopClicked();"  value="STOP">
+    <h2>조명, 아울렛</h2>
+    <form action="/api/packet_logger/clear/light" method="POST">
+        <input type="submit" value="CLEAR">
+    </form>
+    <label>Header </label>
+    <label><input type="checkbox" id="check_light_header_19" onclick="onCheckHeaderLight(0x19)" {% if enable_header_light_19==1 %} checked {% endif %}>0x19 (조명)</label>
+    <label><input type="checkbox" id="check_light_header_1E" onclick="onCheckHeaderLight(0x1E)" {% if enable_header_light_1E==1 %} checked {% endif %}>0x1E (도어락)</label>
+    <label><input type="checkbox" id="check_light_header_1F" onclick="onCheckHeaderLight(0x1F)" {% if enable_header_light_1F==1 %} checked {% endif %}>0x1F (아울렛)</label>
+    <br>
+    <div id="textbox_light" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll; overflow-wrap: break-word;"></div>
+
+    <h2>기타</h2>
+    <form action="/api/packet_logger/clear/various" method="POST">
+        <input type="submit" value="CLEAR">
+    </form>
+    <label>Header </label>
+    <label><input type="checkbox" id="check_various_header_18" onclick="onCheckHeaderVarious(0x18)" {% if enable_header_various_18==1 %} checked {% endif %}>0x18 (난방)</label>
+    <label><input type="checkbox" id="check_various_header_1B" onclick="onCheckHeaderVarious(0x1B)" {% if enable_header_various_1B==1 %} checked {% endif %}>0x1B (가스)</label>
+    <label><input type="checkbox" id="check_various_header_1C" onclick="onCheckHeaderVarious(0x1C)" {% if enable_header_various_1C==1 %} checked {% endif %}>0x1C (에어컨)</label>
+    <label><input type="checkbox" id="check_various_header_2A" onclick="onCheckHeaderVarious(0x2A)" {% if enable_header_various_2A==1 %} checked {% endif %}>0x2A (다기능스위치)</label>
+    <label><input type="checkbox" id="check_various_header_2B" onclick="onCheckHeaderVarious(0x2B)" {% if enable_header_various_2B==1 %} checked {% endif %}>0x2B (전열교환기)</label>
+    <label><input type="checkbox" id="check_various_header_34" onclick="onCheckHeaderVarious(0x34)" {% if enable_header_various_34==1 %} checked {% endif %}>0x34 (엘리베이터)</label>
+    <label><input type="checkbox" id="check_various_header_43" onclick="onCheckHeaderVarious(0x43)" {% if enable_header_various_43==1 %} checked {% endif %}>0x43 (??)</label>
+    <label><input type="checkbox" id="check_various_header_44" onclick="onCheckHeaderVarious(0x44)" {% if enable_header_various_44==1 %} checked {% endif %}>0x44 (??)</label>
+    <label><input type="checkbox" id="check_various_header_48" onclick="onCheckHeaderVarious(0x48)" {% if enable_header_various_48==1 %} checked {% endif %}>0x48 (??)</label>
+    <br>
+    <div id="textbox_various" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll; overflow-wrap: break-word;"></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    var interval;
+    function onBtnStartClicked() {
+        interval = setInterval(function(){$.ajax({
+            url: '/api/packet_logger/update',
+            type: 'POST',
+            success: function(response) {
+                $("#textbox_light").html(response["light"]);
+                $("#textbox_various").html(response["various"]);
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        })}, 1000);
+        console.log("Interval Started");
+    }
+
+    function onBtnStopClicked() {
+        clearInterval(interval);
+        console.log("Interval Stopped");
+    }
+
+    function onCheckHeaderLight(value) {
+        var newForm = $('<form></form>');
+        newForm.attr("id", "temp");
+        newForm.attr("method", "POST");
+
+        if (value == 0x19) {
+            var checked = document.getElementById("check_light_header_19").checked;
+            newForm.attr("action", "/api/packet_logger/enable/light/19");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        } else if (value == 0x1E) {
+            var checked = document.getElementById("check_light_header_1E").checked;
+            newForm.attr("action", "/api/packet_logger/enable/light/1E");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        } else if (value == 0x1F) {
+            var checked = document.getElementById("check_light_header_1F").checked;
+            newForm.attr("action", "/api/packet_logger/enable/light/1F");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        }
+
+        newForm.appendTo('body');
+        newForm.submit();
+        document.getElementById("temp").remove();
+    }
+
+    function onCheckHeaderVarious(value) {
+        var newForm = $('<form></form>');
+        newForm.attr("id", "temp");
+        newForm.attr("method", "POST");
+
+        if (value == 0x18) {
+            var checked = document.getElementById("check_various_header_18").checked;
+            newForm.attr("action", "/api/packet_logger/enable/various/18");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        } else if (value == 0x1B) {
+            var checked = document.getElementById("check_various_header_1B").checked;
+            newForm.attr("action", "/api/packet_logger/enable/various/1B");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        } else if (value == 0x1C) {
+            var checked = document.getElementById("check_various_header_1C").checked;
+            newForm.attr("action", "/api/packet_logger/enable/various/1C");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        } else if (value == 0x2A) {
+            var checked = document.getElementById("check_various_header_2A").checked;
+            newForm.attr("action", "/api/packet_logger/enable/various/2A");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        } else if (value == 0x2B) {
+            var checked = document.getElementById("check_various_header_2B").checked;
+            newForm.attr("action", "/api/packet_logger/enable/various/2B");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        } else if (value == 0x34) {
+            var checked = document.getElementById("check_various_header_34").checked;
+            newForm.attr("action", "/api/packet_logger/enable/various/34");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        } else if (value == 0x43) {
+            var checked = document.getElementById("check_various_header_43").checked;
+            newForm.attr("action", "/api/packet_logger/enable/various/43");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        } else if (value == 0x44) {
+            var checked = document.getElementById("check_various_header_44").checked;
+            newForm.attr("action", "/api/packet_logger/enable/various/44");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        }
+
+        newForm.appendTo('body');
+        newForm.submit();
+        document.getElementById("temp").remove();
+    }
+</script>
+{% endblock %}

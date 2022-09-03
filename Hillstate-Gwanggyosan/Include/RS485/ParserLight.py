@@ -2,16 +2,35 @@ from PacketParser import *
 
 
 class ParserLight(PacketParser):
+    enable_store_packet_header_19: bool = True
+    enable_store_packet_header_1E: bool = True
+    enable_store_packet_header_1F: bool = True
+    enable_store_packet_unknown: bool = True
+
     def interpretPacket(self, packet: bytearray):
         try:
+            store: bool = True
+            packet_info = {'packet': packet, 'timestamp': datetime.datetime.now()}
             if packet[3] == 0x19:  # 조명
                 self.handleLight(packet)
+                packet_info['device'] = 'light'
+                store = self.enable_store_packet_header_19
             elif packet[3] == 0x1E:  # 현관 도어락 (?)
                 writeLog(f'Doorlock Packet: {self.prettifyPacket(packet)}', self)
+                packet_info['device'] = 'doorlock'
+                store = self.enable_store_packet_header_1E
             elif packet[3] == 0x1F:  # 아울렛 (콘센트)
                 self.handleOutlet(packet)
+                packet_info['device'] = 'outlet'
+                store = self.enable_store_packet_header_1F
             else:
                 writeLog(f'Unknown packet: {self.prettifyPacket(packet)}', self)
+                packet_info['device'] = 'unknown'
+                store = self.enable_store_packet_unknown
+            if store:
+                if len(self.packet_storage) > self.max_packet_store_cnt:
+                    self.packet_storage.pop(0)
+                self.packet_storage.append(packet_info)
         except Exception as e:
             writeLog('interpretPacket::Exception::{} ({})'.format(e, packet), self)
 

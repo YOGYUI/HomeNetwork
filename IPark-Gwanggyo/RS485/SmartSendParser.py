@@ -1,5 +1,6 @@
 import os
 import pickle
+import time
 from PacketParser import *
 from RS485Comm import *
 from typing import List
@@ -10,6 +11,7 @@ class SmartSendParser(PacketParser):
     elevator_up_packets: List[str]
     elevator_down_packets: List[str]
     elevator_call_count: int = 1
+    elevator_call_interval: int = 0  # 엘리베이터 호출 반복 호출 사이 딜레이 (단위: ms)
     is_calling_elevator: bool = False
 
     def __init__(self, rs485: RS485Comm, elevator_call_count: int = 1):
@@ -60,6 +62,9 @@ class SmartSendParser(PacketParser):
     def setElevatorCallCount(self, count: int):
         self.elevator_call_count = count
 
+    def setElevatorCallInterval(self, interval: int):
+        self.elevator_call_interval = interval
+
     def sendCallElevatorPacket(self, updown: int, timestamp: int):
         # updown 0 = down, 1 = up
         if self.is_calling_elevator:
@@ -72,6 +77,8 @@ class SmartSendParser(PacketParser):
             else:
                 packet = self.elevator_down_packets[temp]
             self.sendPacketString(packet)
+            if self.elevator_call_interval > 0:
+                time.sleep(self.elevator_call_interval / 1000)
         self.is_calling_elevator = False
 
     def interpretPacket(self, packet: bytearray):
