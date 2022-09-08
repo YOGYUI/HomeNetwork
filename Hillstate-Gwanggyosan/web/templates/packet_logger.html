@@ -124,6 +124,10 @@
             var checked = document.getElementById("check_various_header_44").checked;
             newForm.attr("action", "/api/packet_logger/enable/various/44");
             newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
+        } else if (value == 0x48) {
+            var checked = document.getElementById("check_various_header_48").checked;
+            newForm.attr("action", "/api/packet_logger/enable/various/48");
+            newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
         }
 
         newForm.appendTo('body');

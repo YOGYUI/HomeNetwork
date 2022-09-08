@@ -2,15 +2,15 @@ from PacketParser import *
 
 
 class ParserVarious(PacketParser):
-    enable_store_packet_header_18: bool = True
-    enable_store_packet_header_1B: bool = True
-    enable_store_packet_header_1C: bool = True
-    enable_store_packet_header_2A: bool = True
-    enable_store_packet_header_2B: bool = True
-    enable_store_packet_header_34: bool = True
-    enable_store_packet_header_43: bool = True
-    enable_store_packet_header_44: bool = True
-    enable_store_packet_header_48: bool = True
+    enable_store_packet_header_18: bool = False
+    enable_store_packet_header_1B: bool = False
+    enable_store_packet_header_1C: bool = False
+    enable_store_packet_header_2A: bool = False
+    enable_store_packet_header_2B: bool = False
+    enable_store_packet_header_34: bool = False
+    enable_store_packet_header_43: bool = False
+    enable_store_packet_header_44: bool = False
+    enable_store_packet_header_48: bool = False
     enable_store_packet_unknown: bool = True
 
     def interpretPacket(self, packet: bytearray):
@@ -168,29 +168,51 @@ class ParserVarious(PacketParser):
         if packet[4] == 0x01:  # 상태 쿼리 (월패드 -> 복도 미니패드)
             # F7 0D 01 34 01 41 10 00 XX YY ZZ ** EE
             # XX: 00=Idle, 01=Arrived, 하위4비트가 6이면 하행 호출중, 5이면 상행 호출 중, 
-            #     상위4비트는 엘리베이터 구분인가? (불확실함)
-            # YY: 엘리베이터 층수
-            # ZZ: 엘리베이터가 움직이는지 여부인가? (불확실함)
+            #     상위4비트 A: 올라가는 중, B: 내려가는 중
+            # YY: 현재 층수 (string encoded), ex) 지하3층 = B3, 5층 = 05
+            # ZZ: 호기, ex) 01=1호기, 02=2호기, ...
             # **: Checksum (XOR SUM)
-            state = packet[8] & 0x0F  # 0 = idle, 1 = arrived, 5 = moving(up), 6 = moving(down)
-            elevator_index = (packet[8] & 0xF0) >> 4  # 0x0A or 0x0B
-            floor = ['??', '??']
-            if elevator_index == 0x0A:
-                floor[0] = '{:02X}'.format(packet[9])
-            elif elevator_index == 0x0B:
-                floor[1] = '{:02X}'.format(packet[9])
+            state_h = (packet[8] & 0xF0) >> 4  # 상위 4비트, 0x0: stopped, 0xA: moving (up), 0x0B: moving (down)
+            state_l = packet[8] & 0x0F  # 하위 4비트, 0x0: idle, 0x1: arrived, 0x5: command (up), 0x6: command (down)
+            floor = '{:02X}'.format(packet[9])
+            dev_idx = packet[10]  # 엘리베이터 n호기, 2대 이상의 정보가 교차로 들어오게 됨, idle일 경우 0
+
+            state = 0  # idle (command done, command off)
+            if state_h == 0x0:
+                direction = 0
+                if state_l == 0x1:
+                    state = 1  # arrived
+            else:
+                direction = 0
+                if state_h == 0xA:  # Up
+                    direction = 5
+                elif state_h == 0xB:  # Down
+                    direction = 6
+                if state_l == 0x5:  # Up
+                    state = 5
+                elif state_l == 0x6:  # Down
+                    state = 6
+                
             result = {
                 'device': 'elevator',
                 'state': state,
+                'dev_idx': dev_idx,
+                'direction': direction,
                 'floor': floor
             }
+            # print(f'Query: {self.prettifyPacket(packet)}, {result}')
             self.sig_parse_result.emit(result)
         elif packet[4] == 0x02:
             pass
         elif packet[4] == 0x04:  # 상태 응답 (복도 미니패드 -> 월패드)
-            state = packet[8] & 0x0F  # 0 = idle, 1 = arrived, 5 = moving(up), 6 = moving(down)
+            # F7 0B 01 34 04 41 10 00 XX YY EE
+            # XX: 하위 4비트: 6 = 하행 호출  ** 상행 호출에 해당하는 5 값은 발견되지 않는다
+            # YY: Checksum (XOR SUM)
+            # 미니패드의 '엘리베이터 호출' 버튼의 상태를 반환함
+            state = packet[8] & 0x0F  # 0 = idle, 6 = command (하행) 호출
             result = {
                 'device': 'elevator',
                 'state': state
             }
+            # print(f'Response: {self.prettifyPacket(packet)}, {result}')
             self.sig_parse_result.emit(result)

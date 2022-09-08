@@ -108,5 +108,7 @@ def packet_logger_enable_header(target, header):
             parser.enable_store_packet_header_43 = bool(value)
         elif header == '44':
             parser.enable_store_packet_header_44 = bool(value)
+        elif header == '48':
+            parser.enable_store_packet_header_48 = bool(value)
         parser.clearPacketStorage()
     return '', http.HTTPStatus.NO_CONTENT

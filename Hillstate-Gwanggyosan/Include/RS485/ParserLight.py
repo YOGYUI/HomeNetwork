@@ -2,9 +2,9 @@ from PacketParser import *
 
 
 class ParserLight(PacketParser):
-    enable_store_packet_header_19: bool = True
-    enable_store_packet_header_1E: bool = True
-    enable_store_packet_header_1F: bool = True
+    enable_store_packet_header_19: bool = False
+    enable_store_packet_header_1E: bool = False
+    enable_store_packet_header_1F: bool = False
     enable_store_packet_unknown: bool = True
 
     def interpretPacket(self, packet: bytearray):

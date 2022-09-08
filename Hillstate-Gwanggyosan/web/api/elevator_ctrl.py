@@ -12,30 +12,61 @@ del CURPATH, PROJPATH, INCPATH
 from Include import get_home
 
 
+def get_state_string() -> str:
+    home = get_home()
+    elevator = home.elevator
+    dev_info_list = elevator.dev_info_list
+    if len(dev_info_list) == 0:
+        state_str = 'IDLE'
+    else:
+        state_str = ''    
+        for info in dev_info_list:
+            state_str += f'{info.index}호기: '
+            img_path_list = []
+            try:
+                if info.floor[0] == 'B':
+                    img_path_list.append(f'/static/seven_seg_b.png')
+                else:
+                    img_path_list.append(f'/static/seven_seg_{int(info.floor[0])}.png')
+            except Exception:
+                img_path_list.append('/static/seven_seg_null.png')
+            try:
+                img_path_list.append(f'/static/seven_seg_{int(info.floor[1])}.png')
+            except Exception:
+                img_path_list.append('/static/seven_seg_null.png')
+            
+            img_width, img_height = 60, 80
+            for img_path in img_path_list:
+                state_str += f'<img width="{img_width}" height="{img_height}" src="{img_path}"/>'
+            
+            state_str += ' '
+
+            if elevator.state == 0:  # idle
+                pass
+            elif elevator.state == 1:  # arrived
+                state_str += f'<img width="{img_height}" height="{img_height}" src="/static/destination.png"/>'
+            else:
+                if info.direction.value == 5:  # moving up
+                    state_str += f'<img width="{img_height}" height="{img_height}" src="/static/arrow_up.png"/>'
+                elif info.direction.value == 6:  # moving down
+                    state_str += f'<img width="{img_height}" height="{img_height}" src="/static/arrow_down.png"/>'
+            state_str += "<br>"
+    return state_str
+
+
 @api.route('/elevator_ctrl', methods=['GET', 'POST'])
 def elevator_ctrl():
     home = get_home()
+    now = datetime.now()
 
     req = request.get_data().decode(encoding='utf-8')
-    if 'command' in req:
+    if 'command_call_down' in req:
         home.onMqttCommandElevator('', {'state': 6})
-
-    state_str = '??'
-    state = home.elevator.state
-    if state == 0:
-        state_str = 'IDLE'
-    elif state == 1:
-        state_str = 'ARRIVED'
-    elif state in [5, 6]:
-        state_str = 'MOVING'
-    floor_list = home.elevator.floor_list
 
     return render_template(
         "elevator_ctrl.html",
-        time=datetime.now(),
-        state=state_str,
-        floor1=floor_list[0],
-        floor2=floor_list[1],
+        current_time=now.strftime('%Y-%m-%d %H:%M:%S'),
+        state=get_state_string()
     )
 
 
@@ -44,25 +75,7 @@ def elevator_update():
     home = get_home()
     now = datetime.now()
 
-    state_str = '??'
-    state = home.elevator.state
-    if state == 0:
-        state_str = 'IDLE'
-    elif state == 1:
-        state_str = 'ARRIVED'
-    elif state in [5, 6]:
-        state_str = 'MOVING'
-    floor_list = home.elevator.floor_list
-    if state ==0:
-        floor1 = ''
-        floor2 = ''
-    else:
-        floor1 = floor_list[0]
-        floor2 = floor_list[1]
-
     return jsonify({
-        'time': now.strftime('%Y-%m-%d %H:%M:%S'),
-        'state': state_str,
-        'floor1': floor1,
-        'floor2': floor2
+        'current_time': now.strftime('%Y-%m-%d %H:%M:%S'),
+        'state': get_state_string()
     })

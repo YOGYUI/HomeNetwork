@@ -477,10 +477,11 @@ class Home:
                     )
             elif dev_type == 'elevator':
                 state = result.get('state')
-                floor = result.get('floor')  # 0 = idle, 1 = arrived, 5 = moving(up), 6 = moving(down)
                 self.elevator.updateState(
                     state, 
-                    floor=floor
+                    dev_idx=result.get('dev_idx'),
+                    direction=result.get('direction'),
+                    floor=result.get('floor')
                 )
             elif dev_type == 'doorlock':
                 pass
