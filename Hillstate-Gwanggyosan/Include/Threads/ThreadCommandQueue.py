@@ -81,6 +81,12 @@ class ThreadCommandQueue(threading.Thread):
                     elif isinstance(dev, Elevator):
                         if category == 'state':
                             self.set_elevator_call(dev, target, parser)
+                    elif isinstance(dev, SubPhone):
+                        if category == 'doorcam':
+                            self.set_doorcam_state(dev, target, parser)
+                        elif category == 'doorlock':
+                            self.set_doorlock_open(dev, target, parser)
+                    """
                     elif isinstance(dev, DoorLock):
                         if category == 'state':
                             if target == 'Unsecured':
@@ -88,6 +94,7 @@ class ThreadCommandQueue(threading.Thread):
                     elif isinstance(dev, DoorPhone):
                         if category == 'cam_power':
                             self.set_doorphone_camera_power(dev, target, parser)
+                    """
                 except Exception as e:
                     writeLog(str(e), self)
             else:
@@ -234,6 +241,26 @@ class ThreadCommandQueue(threading.Thread):
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
+    def set_doorcam_state(self, dev: SubPhone, target: int, parser: PacketParser):
+        packet = dev.makePacketSetDoorCamState(target)
+        parser.sendPacket(packet)
+
+    def set_doorlock_open(self, dev: SubPhone, target: int, parser: PacketParser):
+        # TODO:
+        if target == 1:
+            if dev.state_door_cam:
+                if dev.state_outer_door_call:
+                    parser.sendPacket(dev.makePacketOpenOuterDoor())
+                else:
+                    parser.sendPacket(dev.makePacketOpenDoorLock())
+            else:
+                parser.sendPacket(dev.makePacketSetDoorCamState(1))
+                parser.sendPacket(dev.makePacketOpenDoorLock())
+            parser.sendPacket(dev.makePacketSetDoorCamState(0))
+        else:
+            pass  # do nothing?
+
+    """
     def set_doorlock_open(self, dev: DoorLock, parser: PacketParser):
         dev.open()  # GPIO
         packet_command = dev.makePacketOpen()
@@ -247,3 +274,4 @@ class ThreadCommandQueue(threading.Thread):
             dev.turn_on_camera()
         else:
             dev.turn_off_camera()
+    """

@@ -13,6 +13,8 @@ from Thermostat import Thermostat
 from Ventilator import Ventilator
 from AirConditioner import AirConditioner
 from Elevator import Elevator
-from DoorLock import DoorLock
+# from DoorLock import DoorLock
+# from DoorPhone import DoorPhone
+from SubPhone import SubPhone
 from AirqualitySensor import AirqualitySensor
-from DoorPhone import DoorPhone
+

@@ -75,6 +75,14 @@ class Room:
             devices.append(self.airconditioner)
         return devices
 
+    @staticmethod
+    def splitTopicText(text: str) -> List[str]:
+        topics = text.split('\n')
+        topics = [x.replace(' ', '') for x in topics]
+        topics = [x.replace('\t', '') for x in topics]
+        topics = list(filter(lambda x: len(x) > 0, topics))
+        return topics
+
     def loadConfig(self, node: ET.Element):
         try:
             room_node = node.find('room{}'.format(self.index))
@@ -87,7 +95,8 @@ class Room:
                             self.lights[j].name = light_node.find('name').text
                             mqtt_node = light_node.find('mqtt')
                             self.lights[j].mqtt_publish_topic = mqtt_node.find('publish').text
-                            self.lights[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                            topics = self.splitTopicText(mqtt_node.find('subscribe').text)
+                            self.lights[j].mqtt_subscribe_topics.extend(topics)
                 outlets_node = room_node.find('outlets')
                 if outlets_node is not None:
                     for j in range(self.outlet_count):
@@ -96,7 +105,8 @@ class Room:
                             self.outlets[j].name = outlet_node.find('name').text
                             mqtt_node = outlet_node.find('mqtt')
                             self.outlets[j].mqtt_publish_topic = mqtt_node.find('publish').text
-                            self.outlets[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                            topics = self.splitTopicText(mqtt_node.find('subscribe').text)
+                            self.outlets[j].mqtt_subscribe_topics.extend(topics)
                 thermostat_node = room_node.find('thermostat')
                 if thermostat_node is not None:
                     range_min_node = thermostat_node.find('range_min')
@@ -107,7 +117,8 @@ class Room:
                     if self.has_thermostat:
                         self.thermostat.setTemperatureRange(range_min, range_max)
                         self.thermostat.mqtt_publish_topic = mqtt_node.find('publish').text
-                        self.thermostat.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                        topics = self.splitTopicText(mqtt_node.find('subscribe').text)
+                        self.thermostat.mqtt_subscribe_topics.extend(topics)
                 airconditioner_node = room_node.find('airconditioner')
                 if airconditioner_node is not None:
                     range_min_node = airconditioner_node.find('range_min')
@@ -118,7 +129,8 @@ class Room:
                     if self.has_airconditioner:
                         self.airconditioner.setTemperatureRange(range_min, range_max)
                         self.airconditioner.mqtt_publish_topic = mqtt_node.find('publish').text
-                        self.airconditioner.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
+                        topics = self.splitTopicText(mqtt_node.find('subscribe').text)
+                        self.airconditioner.mqtt_subscribe_topics.extend(topics)
             else:
                 writeLog(f"Failed to find room{self.index} node", self)        
         except Exception as e:

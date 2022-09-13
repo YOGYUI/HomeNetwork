@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import threading
+import traceback
 from typing import List
 from Common import Callback, writeLog
 CURPATH = os.path.dirname(os.path.abspath(__file__))  # Project/Include/Threads
@@ -61,6 +62,7 @@ class ThreadTimer(threading.Thread):
                 time.sleep(self._interval_ms / 1000)
             except Exception as e:
                 writeLog(f'Exception::{e}', self)
+                traceback.print_exc()
         writeLog('Terminated', self)
         self.sig_terminated.emit()
 

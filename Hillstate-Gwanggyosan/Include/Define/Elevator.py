@@ -67,8 +67,9 @@ class Elevator(Device):
                 if self.ready_to_clear:
                     self.dev_info_list.clear()
                 if self.state_prev in [5, 6]:  # '도착' 정보가 담긴 패킷을 놓치는 경우에 대한 처리
-                    writeLog(f"Arrived (Missing Packet)", self)
+                    writeLog(f"Arrived (Missing Packet) ({self.state}, {self.state_prev})", self)
                     self.state = 1
+                    self.state_prev = 0
                 else:
                     self.state = 0
             else:
@@ -87,7 +88,7 @@ class Elevator(Device):
                 # 여러대의 엘리베이터 중 한대라도 '도착'이면 state를 1로 전환
                 if e.state == State.ARRIVED:
                     if self.state_prev != 1:
-                        writeLog(f"#{e.index} - Arrived", self)
+                        writeLog(f"Arrived (#{e.index})", self)
                     self.state = 1
                     break
         else:
@@ -111,7 +112,7 @@ class Elevator(Device):
                     # notification이 제대로 되지 않는 문제가 있어, 상태 변화 딜레이를 줘야한다
                     time_elapsed_last_arrived = time.perf_counter() - self.time_arrived
                     if time_elapsed_last_arrived > self.time_threshold_arrived_change:
-                        writeLog("Ready to rollback state (idle)", self)
+                        writeLog(f"Ready to rollback state (idle) ({self.state}, {self.state_prev})", self)
                         self.ready_to_clear = True
                         self.publish_mqtt()
                         self.state_prev = self.state
