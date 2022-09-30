@@ -38,6 +38,9 @@ class Elevator(Device):
     dev_info_list: List[DevInfo]
     ready_to_clear: bool = True
 
+    time_call_started: float = 0.
+    time_threshold_check_duration: float = 10.
+
     def __init__(self, name: str = 'Elevator', **kwargs):
         super().__init__(name, **kwargs)
         self.dev_info_list = list()
@@ -64,12 +67,13 @@ class Elevator(Device):
             direction = kwargs.get('direction')
             floor = kwargs.get('floor')
             if dev_idx == 0:  # idle 상태
-                if self.ready_to_clear:
+                if self.ready_to_clear and len(self.dev_info_list) > 0:
                     self.dev_info_list.clear()
                 if self.state_prev in [5, 6]:  # '도착' 정보가 담긴 패킷을 놓치는 경우에 대한 처리
-                    writeLog(f"Arrived (Missing Packet) ({self.state}, {self.state_prev})", self)
-                    self.state = 1
-                    self.state_prev = 0
+                    if time.perf_counter() - self.time_call_started > self.time_threshold_check_duration:
+                        writeLog(f"Arrived (Missing Packet) ({self.state}, {self.state_prev})", self)
+                        self.state = 1
+                        self.state_prev = 0
                 else:
                     self.state = 0
             else:
@@ -88,6 +92,7 @@ class Elevator(Device):
                 # 여러대의 엘리베이터 중 한대라도 '도착'이면 state를 1로 전환
                 if e.state == State.ARRIVED:
                     if self.state_prev != 1:
+                        # elapsed = time.perf_counter() - self.time_call_started
                         writeLog(f"Arrived (#{e.index})", self)
                     self.state = 1
                     break
@@ -95,6 +100,10 @@ class Elevator(Device):
             # 복도 미니패드 -> 월패드 상태 응답 패킷 (packet[4] == 0x04)
             # state값은 0(idle) 혹은 6(하행 호출)만 전달됨
             self.state = state
+            if self.state != 0:  # 0이 아니면 미니패드가 엘리베이터를 '호출한 상태'
+                self.time_call_started = time.perf_counter()
+                if self.state_prev == 0:
+                    writeLog("Called", self)
         
         if not self.init:
             self.publish_mqtt()
@@ -104,6 +113,7 @@ class Elevator(Device):
             if self.state == 1:  # Arrived
                 self.ready_to_clear = False
                 self.time_arrived = time.perf_counter()
+                writeLog("State changed as <arrived>, elapsed: {:g} sec".format(self.time_arrived - self.time_call_started), self)
                 self.publish_mqtt()
                 self.state_prev = self.state
             else:

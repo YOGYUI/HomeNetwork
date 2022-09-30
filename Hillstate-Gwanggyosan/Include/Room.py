@@ -103,6 +103,7 @@ class Room:
                         outlet_node = outlets_node.find(f'outlet{j + 1}')
                         if outlet_node is not None:
                             self.outlets[j].name = outlet_node.find('name').text
+                            self.outlets[j].enable_off_command = bool(int(outlet_node.find('enable_off_cmd').text))
                             mqtt_node = outlet_node.find('mqtt')
                             self.outlets[j].mqtt_publish_topic = mqtt_node.find('publish').text
                             topics = self.splitTopicText(mqtt_node.find('subscribe').text)

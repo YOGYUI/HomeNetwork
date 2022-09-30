@@ -51,6 +51,11 @@ class ThreadMonitoring(threading.Thread):
                         obj.reconnect()
                 else:
                     writeLog('Warning!! RS485 <{}> is not connected'.format(obj.name), self)
+                    delta = obj.time_after_last_recv()
+                    if delta > 120:
+                        # 2분이상이면 재접속 시도
+                        writeLog('Try to reconnect RS485 <{}>'.format(obj.name), self)
+                        obj.reconnect()
 
             if time.perf_counter() - tm > self._publish_interval:
                 writeLog('Regular Publishing Device State MQTT (interval: {} sec)'.format(self._publish_interval), self)

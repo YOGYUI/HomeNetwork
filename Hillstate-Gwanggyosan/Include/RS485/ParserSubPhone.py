@@ -22,31 +22,44 @@ class ParserSubPhone(PacketParser):
         try:
             store: bool = self.enable_store_packets
             packet_info = {'packet': packet, 'timestamp': datetime.datetime.now()}
-            print(self.prettifyPacket(packet))
             result = {'device': 'subphone'}
             if packet[1] == 0xB5:
-                # 현관 도어폰 초인종 호출 (월패드 -> 비디오폰)
-                result['doorbell'] = 1
-                print('>> Door Bell started')
+                # 현관 도어폰 초인종 호출 (월패드 -> 서브폰)
+                result['call_front'] = 1
+                writeLog(f'{self.prettifyPacket(packet)} >> Front door call started', self)
             elif packet[1] == 0xB6:
-                # 현관 도어폰 초인종 호출 종료 (월패드 -> 비디오폰)
-                result['doorbell'] = 0
-                print('>> Door Bell finished')
-            elif packet[1] == 0xBB:
+                # 현관 도어폰 초인종 호출 종료 (월패드 -> 서브폰)
+                result['call_front'] = 0
+                writeLog(f'{self.prettifyPacket(packet)} >> Front door call terminated', self)
+            elif packet[1] == 0xB9:
+                # 서브폰에서 현관 통화 시작 (서브폰 -> 월패드)
+                result['streaming'] = 1
+                writeLog(f'{self.prettifyPacket(packet)} >> Streaming (front door) started from Subphone', self)
+            elif packet[1] == 0xBA:
+                # 서브폰에서 현관 통화 종료 (서브폰 -> 월패드)
+                result['streaming'] = 0
+                writeLog(f'{self.prettifyPacket(packet)} >> Streaming (front door) terminated from Subphone', self)
+            elif packet[1] == 0xB4:
+                # 서브폰에서 현관문 열림 명령 (서브폰 -> 월패드)
+                result['doorlock'] = 0  # Unsecured
+                writeLog(f'{self.prettifyPacket(packet)} >> Open front door from Subphone', self)
+            elif packet[1] in [0xBA, 0xBB]:
                 # 현관 도어폰 통화 종료?
-                result['doorcam'] = 0
-                result['doorbell'] = 0
-                print('>> Door Call finished')
+                result['call_front'] = 0
+                result['call_communal'] = 0
+                result['streaming'] = 0
+                result['doorlock'] = 1  # Secured
+                writeLog(f'{self.prettifyPacket(packet)} >> Streaming finished', self)
             elif packet[1] == 0x5A:
-                # 공동현관문 호출 (월패드 -> 비디오폰)
-                result['outer_door_call'] = 1
-                print('>> Outer Door Call started')
+                # 공동현관문 호출 (월패드 -> 서브폰)
+                result['call_communal'] = 1
+                writeLog(f'{self.prettifyPacket(packet)} >> Communal door call started', self)
             elif packet[1] == 0x5C:
-                # 공동현관문 호출 종료 (월패드 -> 비디오폰)
-                result['outer_door_call'] = 0
-                print('>> Outer Door Call finished')
+                # 공동현관문 호출 종료 (월패드 -> 서브폰)
+                result['call_communal'] = 0
+                writeLog(f'{self.prettifyPacket(packet)} >> Communal door call terminated', self)
             else:
-                print('>> ???')
+                writeLog(f'{self.prettifyPacket(packet)} >> ???', self)
             self.sig_parse_result.emit(result)
 
             if store:

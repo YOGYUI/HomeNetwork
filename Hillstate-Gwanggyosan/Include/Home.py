@@ -20,7 +20,6 @@ class Home:
     ventilator: Ventilator
     elevator: Elevator
     # doorlock: DoorLock
-    # doorphone: DoorPhone
     subphone: SubPhone
     airquality: AirqualitySensor
 
@@ -64,16 +63,6 @@ class Home:
         self.parser_various.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_various)
 
-        """
-        # 도어폰 포트
-        self.rs485_doorphone_config = RS485Config()
-        self.rs485_doorphone = RS485Comm('RS485-Doorphone')
-        self.rs485_list.append(self.rs485_doorphone)
-        self.parser_doorphone = ParserDoorphone(self.rs485_doorphone)
-        self.parser_doorphone.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
-        self.parser_list.append(self.parser_doorphone)
-        """
-
         # 주방 비디오폰(서브폰) 포트
         self.rs485_subphone_config = RS485Config()
         self.rs485_subphone = RS485Comm('RS485-SubPhone')
@@ -106,7 +95,6 @@ class Home:
         self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
         self.elevator = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
         # self.doorlock = DoorLock(name="DoorLock", mqtt_client=self.mqtt_client)
-        # self.doorphone = DoorPhone(name="DoorPhone", mqtt_client=self.mqtt_client)
         self.subphone = SubPhone(name="SubPhone", mqtt_client=self.mqtt_client)
         self.airquality = AirqualitySensor(mqtt_client=self.mqtt_client)
 
@@ -117,7 +105,6 @@ class Home:
         self.device_list.append(self.ventilator)
         self.device_list.append(self.elevator)
         # self.device_list.append(self.doorlock)
-        # self.device_list.append(self.doorphone)
         self.device_list.append(self.subphone)
         self.device_list.append(self.airquality)
         
@@ -201,7 +188,6 @@ class Home:
         rs485_list = [
             ('light', self.rs485_light_config, self.rs485_light),
             ('various', self.rs485_various_config, self.rs485_various),
-            # ('doorphone', self.rs485_doorphone_config, self.rs485_doorphone),
             ('subphone', self.rs485_subphone_config, self.rs485_subphone)
         ]
 
@@ -239,7 +225,6 @@ class Home:
         rs485_list = [
             ('light', self.rs485_light_config),
             ('various', self.rs485_various_config),
-            # ('doorphone', self.rs485_doorphone_config),
             ('subphone', self.rs485_subphone_config)
         ]
 
@@ -322,19 +307,6 @@ class Home:
             writeLog(f"Failed to load doorlock config ({e})", self)
         """
         
-        """
-        node = root.find('doorphone')
-        try:
-            gpio_node = node.find('gpio')
-            gpio_port = int(gpio_node.text)
-            self.doorphone.setParams(gpio_port)
-            mqtt_node = node.find('mqtt')
-            self.doorphone.mqtt_publish_topic = mqtt_node.find('publish').text
-            self.doorphone.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
-        except Exception as e:
-            writeLog(f"Failed to load doorphone config ({e})", self)
-        """
-        
         node = root.find('subphone')
         try:
             mqtt_node = node.find('mqtt')
@@ -398,10 +370,6 @@ class Home:
                 rs485_list.append(self.rs485_light)
             if self.rs485_various_config.enable:
                 rs485_list.append(self.rs485_various)
-            """
-            if self.rs485_doorphone_config.enable:
-                rs485_list.append(self.rs485_doorphone)
-            """
             """
             # 주방 서브폰은 항상 패킷이 송수신되지 않는다 (현관문 등 다른 기기가 작동해야 함)
             if self.rs485_subphone_config.enable:
@@ -485,16 +453,14 @@ class Home:
                 )
             elif dev_type == 'subphone':
                 # TODO:
-                state = 0
                 self.subphone.updateState(
-                    state, 
-                    doorcam=result.get('doorcam'),
-                    doorbell=result.get('doorbell'),
-                    outer_door_call=result.get('outer_door_call')
+                    0, 
+                    call_front=result.get('call_front'),
+                    call_communal=result.get('call_communal'),
+                    streaming=result.get('streaming'),
+                    doorlock=result.get('doorlock')
                 )
             """
-            elif dev_type == 'doorphone':
-                pass
             elif dev_type == 'doorlock':
                 pass
             """
@@ -581,6 +547,7 @@ class Home:
                 writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
             topic = message.topic
             msg_dict = json.loads(message.payload.decode("utf-8"))
+            writeLog(f'MQTT Message: {topic}: {msg_dict}', self)
             if 'system/command' in topic:
                 self.onMqttCommandSystem(topic, msg_dict)
             if 'light/command' in topic:
@@ -757,12 +724,12 @@ class Home:
             )
     
     def onMqttCommandSubPhone(self, topic: str, message: dict):
-        # print(topic, message)
+        writeLog(f"{topic}, {message}", self)
         splt = topic.split('/')
-        if splt[-1] == 'doorcam':
+        if splt[-1] == 'streaming':
             self.command(
                 device=self.subphone,
-                category='doorcam',
+                category='streaming',
                 target=message['state']
             )
         if splt[-1] == 'doorlock':

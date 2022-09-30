@@ -30,7 +30,7 @@ def packet_logger():
     home = get_home()
     parser_light = home.parser_light
     parser_various = home.parser_various
-    parser_videophone = home.parser_videophone
+    parser_subphone = home.parser_subphone
 
     return render_template(
         'packet_logger.html', 
@@ -46,7 +46,7 @@ def packet_logger():
         enable_header_various_43=int(parser_various.enable_store_packet_header_43),
         enable_header_various_44=int(parser_various.enable_store_packet_header_44),
         enable_header_various_48=int(parser_various.enable_store_packet_header_48),
-        enable_videophone = int(parser_videophone.enable_store_packets)
+        enable_subphone = int(parser_subphone.enable_store_packets)
     )
 
 
@@ -55,18 +55,18 @@ def packet_logger_update():
     home = get_home()
     parser_light = home.parser_light
     parser_various = home.parser_various
-    parser_videophone = home.parser_videophone
+    parser_subphone = home.parser_subphone
     packets_light = parser_light.packet_storage
     packets_various = parser_various.packet_storage
-    packets_videophone = parser_videophone.packet_storage
+    packets_subphone = parser_subphone.packet_storage
     str_packet_light = [stringifyPacketInfo(x) for x in packets_light[::-1]]
     str_packet_various = [stringifyPacketInfo(x) for x in packets_various[::-1]]
-    str_packet_videophone = [stringifyPacketInfo(x) for x in packets_videophone[::-1]]
+    str_packet_subphone = [stringifyPacketInfo(x) for x in packets_subphone[::-1]]
 
     return jsonify({
         'light': '<br>'.join(str_packet_light),
         'various': '<br>'.join(str_packet_various),
-        'videophone': '<br>'.join(str_packet_videophone)
+        'subphone': '<br>'.join(str_packet_subphone)
     })
 
 
@@ -79,9 +79,10 @@ def packet_logger_clear(target):
     elif target == 'various':
         parser = home.parser_various
         parser.clearPacketStorage()
-    elif target == 'videophone':
-        parser = home.parser_videophone
+    elif target == 'subphone':
+        parser = home.parser_subphone
         parser.clearPacketStorage()
+    
     return '', http.HTTPStatus.NO_CONTENT
 
 
@@ -120,8 +121,9 @@ def packet_logger_enable_header(target, header):
         elif header == '48':
             parser.enable_store_packet_header_48 = bool(value)
         parser.clearPacketStorage()
-    elif target == 'videophone':
-        parser = home.parser_videophone
+    elif target == 'subphone':
+        parser = home.parser_subphone
         parser.enable_store_packets = bool(value)
         parser.clearPacketStorage()
+    
     return '', http.HTTPStatus.NO_CONTENT

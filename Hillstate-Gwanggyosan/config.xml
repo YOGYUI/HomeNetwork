@@ -42,6 +42,18 @@
                 <port>8899</port>
             </ew11>
         </doorphone>
+        <subphone>
+            <enable>1</enable>
+            <type>0</type>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <usb2serial>
+                <port>/dev/ttyUSB0</port>
+                <baud>3840</baud>
+            </usb2serial>
+            <ew11>
+                <ipaddr>192.168.0.1</ipaddr>
+                <port>8899</port>
+            </ew11>
+        </subphone>
     </rs485>
     <mqtt>
         <host>mosquitto ip address</host>
@@ -80,6 +92,7 @@
             <outlets>
                 <outlet1>
                     <name>outlet 1</name>
+                    <enable_off_cmd>0</enable_off_cmd>
                     <mqtt>
                         <publish>home/hillstate/outlet/state/1/1</publish>
                         <subscribe>home/hillstate/outlet/command/1/1</subscribe>
@@ -87,6 +100,7 @@
                 </outlet1>
                 <outlet2>
                     <name>outlet 2</name>
+                    <enable_off_cmd>0</enable_off_cmd>
                     <mqtt>
                         <publish>home/hillstate/outlet/state/1/2</publish>
                         <subscribe>home/hillstate/outlet/command/1/2</subscribe>
@@ -140,6 +154,7 @@
             <outlets>
                 <outlet1>
                     <name>outlet 1</name>
+                    <enable_off_cmd>0</enable_off_cmd>
                     <mqtt>
                         <publish>home/hillstate/outlet/state/2/1</publish>
                         <subscribe>home/hillstate/outlet/command/2/1</subscribe>
@@ -147,6 +162,7 @@
                 </outlet1>
                 <outlet2>
                     <name>outlet 2</name>
+                    <enable_off_cmd>0</enable_off_cmd>
                     <mqtt>
                         <publish>home/hillstate/outlet/state/2/2</publish>
                         <subscribe>home/hillstate/outlet/command/2/2</subscribe>
@@ -187,6 +203,7 @@
             <outlets>
                 <outlet1>
                     <name>outlet 1</name>
+                    <enable_off_cmd>0</enable_off_cmd>
                     <mqtt>
                         <publish>home/hillstate/outlet/state/3/1</publish>
                         <subscribe>home/hillstate/outlet/command/3/1</subscribe>
@@ -194,6 +211,7 @@
                 </outlet1>
                 <outlet2>
                     <name>outlet 2</name>
+                    <enable_off_cmd>0</enable_off_cmd>
                     <mqtt>
                         <publish>home/hillstate/outlet/state/3/2</publish>
                         <subscribe>home/hillstate/outlet/command/3/2</subscribe>
@@ -234,6 +252,7 @@
             <outlets>
                 <outlet1>
                     <name>outlet 1</name>
+                    <enable_off_cmd>0</enable_off_cmd>
                     <mqtt>
                         <publish>home/hillstate/outlet/state/4/1</publish>
                         <subscribe>home/hillstate/outlet/command/4/1</subscribe>
@@ -241,6 +260,7 @@
                 </outlet1>
                 <outlet2>
                     <name>outlet 2</name>
+                    <enable_off_cmd>0</enable_off_cmd>
                     <mqtt>
                         <publish>home/hillstate/outlet/state/4/2</publish>
                         <subscribe>home/hillstate/outlet/command/4/2</subscribe>
@@ -288,6 +308,7 @@
             <outlets>
                 <outlet1>
                     <name>outlet 1</name>
+                    <enable_off_cmd>0</enable_off_cmd>
                     <mqtt>
                         <publish>home/hillstate/outlet/state/6/1</publish>
                         <subscribe>home/hillstate/outlet/command/6/1</subscribe>
@@ -295,6 +316,7 @@
                 </outlet1>
                 <outlet2>
                     <name>outlet 2</name>
+                    <enable_off_cmd>0</enable_off_cmd>
                     <mqtt>
                         <publish>home/hillstate/outlet/state/6/2</publish>
                         <subscribe>home/hillstate/outlet/command/6/2</subscribe>
@@ -339,6 +361,7 @@
             <subscribe>home/hillstate/elevator/command</subscribe>
         </mqtt>
     </elevator>
+    <!--
     <doorlock>
         <enable>1</enable>
         <gpio>23</gpio>
@@ -347,13 +370,13 @@
             <subscribe>home/hillstate/doorlock/command</subscribe>
         </mqtt>
     </doorlock>
-    <doorphone>
-        <gpio>18</gpio>
+    -->
+    <subphone>
         <mqtt>
-            <publish>home/hillstate/doorphone/state</publish>
-            <subscribe>home/hillstate/doorphone/command</subscribe>
+            <publish>home/hillstate/subphone/state</publish>
+            <subscribe>home/hillstate/subphone/command/#</subscribe>
         </mqtt>
-    </doorphone>
+    </subphone>
     <airquality>
         <apikey>Your API Key from data.go.kr</apikey>
         <obsname>수지</obsname>

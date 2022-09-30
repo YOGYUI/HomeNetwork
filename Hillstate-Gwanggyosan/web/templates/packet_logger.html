@@ -37,12 +37,12 @@
     <div id="textbox_various" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll; overflow-wrap: break-word;"></div>
 
     <h2>주방 비디오폰</h2>
-    <form action="/api/packet_logger/clear/videophone" method="POST">
+    <form action="/api/packet_logger/clear/subphone" method="POST">
         <input type="submit" value="CLEAR">
     </form>
-    <label><input type="checkbox" id="check_videophone_enable" onclick="onCheckHeaderVideophone()" {% if enable_videophone==1 %} checked {% endif %}>Enable</label>
+    <label><input type="checkbox" id="check_subphone_enable" onclick="onCheckHeaderSubphone()" {% if enable_subphone==1 %} checked {% endif %}>Enable</label>
     <br>
-    <div id="textbox_videophone" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll; overflow-wrap: break-word;"></div>
+    <div id="textbox_subphone" style="height:300px; width: 100%; border: 1px solid #ccc; overflow-x: scroll; overflow-y: scroll; overflow-wrap: break-word;"></div>
 </div>
 
 {% endblock %}
@@ -58,7 +58,7 @@
             success: function(response) {
                 $("#textbox_light").html(response["light"]);
                 $("#textbox_various").html(response["various"]);
-                $("#textbox_videophone").html(response["videophone"]);
+                $("#textbox_subphone").html(response["subphone"]);
             },
             error: function(error) {
                 console.log(error);
@@ -144,13 +144,13 @@
         document.getElementById("temp").remove();
     }
 
-    function onCheckHeaderVideophone() {
+    function onCheckHeaderSubphone() {
         var newForm = $('<form></form>');
         newForm.attr("id", "temp");
         newForm.attr("method", "POST");
 
-        var checked = document.getElementById("check_videophone_enable").checked;
-        newForm.attr("action", "/api/packet_logger/enable/videophone/00");
+        var checked = document.getElementById("check_subphone_enable").checked;
+        newForm.attr("action", "/api/packet_logger/enable/subphone/00");
         newForm.append($('<input/>', {type: 'hidden', name: 'value', value: Number(checked)}));
         
         newForm.appendTo('body');
