@@ -84,22 +84,25 @@ class SubPhone(Device):
         return bytearray([0x7F, max(0, min(0xFF, header)), 0x00, 0x00, 0xEE])
 
     def makePacketSetVideoStreamingState(self, state: int) -> bytearray:
-        # 현관 초인종 카메라 영상을 서브폰으로 우회
         if state:
             if self.state_calling == StateCalling.FRONT:
+                # 현관 초인종 카메라 영상 서브폰 우회
                 return self.makePacketCommon(0xB7)
             elif self.state_calling == StateCalling.COMMUNAL:
-                # 공동현관문 영상 우회?
+                # 공동현관문 영상 우회
                 return self.makePacketCommon(0x5F)
-            else:    
+            else:
+                # 단순 문열기용 (주방 서브폰 활성화)
                 return self.makePacketCommon(0xB9)
         else:
             if self.state_calling == StateCalling.FRONT:
+                # 현관 초인종 카메라 영상 서브폰 우회 종료
                 return self.makePacketCommon(0xB8)
             elif self.state_calling == StateCalling.COMMUNAL:
-                # 공동현관문 영상 우회 종료?
+                # 공동현관문 영상 우회 종료
                 return self.makePacketCommon(0x60)
             else:
+                # 단순 문열기용 (주방 서브폰 활성화)
                 return self.makePacketCommon(0xBA)
 
     def makePacketOpenFrontDoor(self) -> bytearray:

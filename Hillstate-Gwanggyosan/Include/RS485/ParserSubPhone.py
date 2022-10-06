@@ -43,8 +43,8 @@ class ParserSubPhone(PacketParser):
                 # 서브폰에서 현관문 열림 명령 (서브폰 -> 월패드)
                 result['doorlock'] = 0  # Unsecured
                 writeLog(f'{self.prettifyPacket(packet)} >> Open front door from Subphone', self)
-            elif packet[1] in [0xBA, 0xBB, 0xB8]:
-                # 현관 도어폰 통화 종료?
+            elif packet[1] in [0xBA, 0xBB, 0xB8, 0x5E]:
+                # 현관 도어폰 / 공동 현관문 통화 종료
                 result['call_front'] = 0
                 result['call_communal'] = 0
                 result['streaming'] = 0

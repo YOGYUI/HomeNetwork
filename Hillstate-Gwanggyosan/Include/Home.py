@@ -137,14 +137,16 @@ class Home:
             self.initRS485Connection()
         
         # 카메라 스트리밍
-        self.startFFServer()
-        self.startFFMpeg()
+        if self.rs485_subphone_config.enable:
+            self.startFFServer()
+            self.startFFMpeg()
 
         writeLog(f'Initialized <{self.name}>', self)
 
     def release(self):
-        self.stopFFMpeg()
-        self.stopFFServer()
+        if self.rs485_subphone_config.enable:
+            self.stopFFMpeg()
+            self.stopFFServer()
         
         self.mqtt_client.loop_stop()
         self.mqtt_client.disconnect()
