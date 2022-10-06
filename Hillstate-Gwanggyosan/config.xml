@@ -376,6 +376,14 @@
             <publish>home/hillstate/subphone/state</publish>
             <subscribe>home/hillstate/subphone/command/#</subscribe>
         </mqtt>
+        <ffmpeg>
+            <conf_file_path>/etc/ffserver_hillstate_door.conf</conf_file_path>
+            <feed_path>http://0.0.0.0:8090/feed.ffm</feed_path>
+            <input_device>/dev/video0</input_device>
+            <frame_rate>30</frame_rate>
+            <width>640</width>
+            <height>480</height>
+        </ffmpeg>
     </subphone>
     <airquality>
         <apikey>Your API Key from data.go.kr</apikey>

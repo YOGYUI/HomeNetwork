@@ -256,6 +256,9 @@ class Home:
                 ipaddr = self.rs485_smart_send_config.socket_ipaddr
                 port = self.rs485_smart_send_config.socket_port
                 self.rs485_smart_send.connect(ipaddr, port)
+        
+        if self.thread_monitoring is not None:
+            self.thread_monitoring.set_home_initialized()
 
     def loadConfig(self, filepath: str):
         if not os.path.isfile(filepath):

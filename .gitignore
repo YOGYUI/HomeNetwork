@@ -2,3 +2,5 @@
 /.idea
 *.pyc
 /IPark-Gwanggyo/test/airqualitysensor.py
+/CameraTest
+/MosquittoTest

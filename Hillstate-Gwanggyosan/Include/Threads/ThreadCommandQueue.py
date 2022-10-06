@@ -256,15 +256,17 @@ class ThreadCommandQueue(threading.Thread):
     def set_doorlock_state(self, dev: SubPhone, target: str, parser: PacketParser):
         if target == "Unsecured":
             dev.updateState(0, doorlock=0)  # 0: Unsecured
+            if dev.state_calling.value == 2:  # 공동출입문
+                packet_open = dev.makePacketOpenCommunalDoor()
+            else:
+                packet_open = dev.makePacketOpenFrontDoor()
+                
             if dev.state_streaming:
-                if dev.state_calling.value == 2:  # 공동출입문
-                    parser.sendPacket(dev.makePacketOpenCommunalDoor())
-                else:
-                    parser.sendPacket(dev.makePacketOpenFrontDoor())
+                parser.sendPacket(packet_open)
             else:
                 parser.sendPacket(dev.makePacketSetVideoStreamingState(1))
                 time.sleep(0.1)
-                parser.sendPacket(dev.makePacketOpenFrontDoor())
+                parser.sendPacket(packet_open)
                 time.sleep(0.1)
             parser.sendPacket(dev.makePacketSetVideoStreamingState(0))
         elif target == 'Secured':

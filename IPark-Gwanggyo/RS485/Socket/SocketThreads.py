@@ -86,8 +86,11 @@ class ThreadRecv(ThreadCommon):
         try:
             if isinstance(self._sock, socket.socket):
                 data = self._sock.recv(self._bufsize)
-                if data is None or len(data) == 0:
-                    self.sig_exception.emit('Lost connection', True)
+                if data is None:
+                    self.sig_exception.emit('Lost connection (null data)', True)
+                    self.stop()
+                elif len(data) == 0:
+                    self.sig_exception.emit('Lost connection (data len=0)', True)
                     self.stop()
                 else:
                     self.sig_recv.emit(data)

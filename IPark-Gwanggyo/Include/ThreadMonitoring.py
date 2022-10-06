@@ -15,6 +15,7 @@ from RS485 import RS485Comm
 
 class ThreadMonitoring(threading.Thread):
     _keepAlive: bool = True
+    _home_initialized: bool = False
 
     def __init__(
         self,
@@ -34,6 +35,10 @@ class ThreadMonitoring(threading.Thread):
         writeLog('Started', self)
         tm = time.perf_counter()
         while self._keepAlive:
+            if not self._home_initialized:
+                writeLog('Home is not initialized!', self)
+                time.sleep(0.1)
+                continue
             rs485_all_connected: bool = sum([x.isConnected() for x in self._rs485_list]) == len(self._rs485_list)
             if rs485_all_connected and not first_publish:
                 first_publish = True
@@ -67,3 +72,6 @@ class ThreadMonitoring(threading.Thread):
 
     def stop(self):
         self._keepAlive = False
+
+    def set_home_initialized(self):
+        self._home_initialized = True

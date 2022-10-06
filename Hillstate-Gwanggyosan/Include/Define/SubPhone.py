@@ -25,6 +25,15 @@ class SubPhone(Device):
 
     def __init__(self, name: str = 'SubPhone', **kwargs):
         super().__init__(name, **kwargs)
+        self.sig_state_streaming = Callback(int)
+        self.streaming_config = {
+            'conf_file_path': '',
+            'feed_path': '',
+            'input_device': '/dev/video0',
+            'frame_rate': 24,
+            'width': 320,
+            'height': 240,
+        }
     
     def __repr__(self):
         repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
@@ -49,6 +58,7 @@ class SubPhone(Device):
         streaming = kwargs.get('streaming')
         if streaming is not None:
             self.state_streaming = streaming
+            self.sig_state_streaming.emit(self.state_streaming)
             self.publish_mqtt()
         call_front = kwargs.get('call_front')
         if call_front is not None:

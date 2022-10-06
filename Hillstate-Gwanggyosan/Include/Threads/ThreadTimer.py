@@ -3,7 +3,8 @@ import sys
 import time
 import threading
 import traceback
-from typing import List
+import subprocess
+from typing import List, Union
 from Common import Callback, writeLog
 CURPATH = os.path.dirname(os.path.abspath(__file__))  # Project/Include/Threads
 PROJPATH = os.path.dirname(os.path.dirname(CURPATH))  # Proejct/
@@ -16,6 +17,7 @@ from RS485 import RS485Comm
 class ThreadTimer(threading.Thread):
     _keepAlive: bool = True
     _publish_count: int = 0
+    _home_initialized: bool = False
 
     def __init__(
         self,
@@ -32,9 +34,15 @@ class ThreadTimer(threading.Thread):
 
     def run(self):
         first_publish: bool = False
+        time.sleep(2)  # wait for initialization
         writeLog('Started', self)
         tm = time.perf_counter()
         while self._keepAlive:
+            if not self._home_initialized:
+                writeLog('Home is not initialized!', self)
+                time.sleep(1)
+                continue
+
             try:
                 rs485_all_connected: bool = sum([x.isConnected() for x in self._rs485_list]) == len(self._rs485_list)
                 if rs485_all_connected and not first_publish:
@@ -77,3 +85,6 @@ class ThreadTimer(threading.Thread):
     def setMqttPublishInterval(self, interval: int):
         self._publish_interval = interval
         writeLog(f'Set Regular MQTT Publish Interval as {self._publish_interval} sec', self)
+
+    def set_home_initialized(self):
+        self._home_initialized = True

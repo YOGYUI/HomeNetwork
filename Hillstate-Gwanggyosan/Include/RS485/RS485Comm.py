@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 from enum import IntEnum
 from typing import Union
 from Serial import *
@@ -49,12 +50,13 @@ class RS485Comm:
         elif comm_type == RS485HwType.Socket:
             self._comm_obj = TCPClient(self._name)
         self._hw_type = comm_type
-        self._comm_obj.sig_connected.connect(self.onConnect)
-        self._comm_obj.sig_disconnected.connect(self.onDisconnect)
-        self._comm_obj.sig_send_data.connect(self.onSendData)
-        self._comm_obj.sig_recv_data.connect(self.onRecvData)
-        self._comm_obj.sig_exception.connect(self.onException)
-        writeLog(f"Set HW Type as '{comm_type.name}'", self)
+        if self._comm_obj is not None:
+            self._comm_obj.sig_connected.connect(self.onConnect)
+            self._comm_obj.sig_disconnected.connect(self.onDisconnect)
+            self._comm_obj.sig_send_data.connect(self.onSendData)
+            self._comm_obj.sig_recv_data.connect(self.onRecvData)
+            self._comm_obj.sig_exception.connect(self.onException)
+            writeLog(f"Set HW Type as '{comm_type.name}'", self)
 
     def getType(self) -> RS485HwType:
         return self._hw_type
@@ -81,6 +83,7 @@ class RS485Comm:
             if self.isConnected():
                 break
             self.connect(self._last_conn_addr, self._last_conn_port)
+            time.sleep(1)
 
     def isConnected(self) -> bool:
         if self._comm_obj is None:
@@ -88,9 +91,12 @@ class RS485Comm:
         return self._comm_obj.isConnected()
     
     def sendData(self, data: Union[bytes, bytearray, str]):
-        self._comm_obj.sendData(data)
+        if self._comm_obj is not None:
+            self._comm_obj.sendData(data)
 
     def time_after_last_recv(self) -> float:
+        if self._comm_obj is None:
+            return 0.
         return self._comm_obj.time_after_last_recv()
 
     # Callbacks

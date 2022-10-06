@@ -1,15 +1,19 @@
 import time
 import json
 import queue
+import psutil
+import traceback
 from functools import partial
 from typing import List, Union
 import paho.mqtt.client as mqtt
 import xml.etree.ElementTree as ET
+import multiprocessing
 from Define import *
 from Room import *
 from Threads import *
 from RS485 import *
 from Common import *
+from Multiprocess import *
 
 
 class Home:
@@ -37,6 +41,11 @@ class Home:
 
     rs485_list: List[RS485Comm]
     parser_list: List[PacketParser]
+
+    mp_ffserver: Union[multiprocessing.Process, None] = None
+    pid_ffserver_proc: int = 0
+    mp_ffmpeg: Union[multiprocessing.Process, None] = None
+    pid_ffmpeg_proc: int = 0
 
     def __init__(self, name: str = 'Home', init_service: bool = True):
         self.name = name
@@ -77,7 +86,7 @@ class Home:
         self.device_list.clear()
         self.rooms.clear()
 
-        self.mqtt_client = mqtt.Client()
+        self.mqtt_client = mqtt.Client(client_id="Yogyui_Hillstate_Gwanggyosan")
         self.mqtt_client.on_connect = self.onMqttClientConnect
         self.mqtt_client.on_disconnect = self.onMqttClientDisconnect
         self.mqtt_client.on_subscribe = self.onMqttClientSubscribe
@@ -96,6 +105,7 @@ class Home:
         self.elevator = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
         # self.doorlock = DoorLock(name="DoorLock", mqtt_client=self.mqtt_client)
         self.subphone = SubPhone(name="SubPhone", mqtt_client=self.mqtt_client)
+        self.subphone.sig_state_streaming.connect(self.onSubphoneStateStreaming)
         self.airquality = AirqualitySensor(mqtt_client=self.mqtt_client)
 
         # append device list
@@ -125,10 +135,17 @@ class Home:
         
         if connect_rs485:
             self.initRS485Connection()
+        
+        # 카메라 스트리밍
+        self.startFFServer()
+        self.startFFMpeg()
 
         writeLog(f'Initialized <{self.name}>', self)
 
     def release(self):
+        self.stopFFMpeg()
+        self.stopFFServer()
+        
         self.mqtt_client.loop_stop()
         self.mqtt_client.disconnect()
         del self.mqtt_client
@@ -147,7 +164,8 @@ class Home:
     
     def restart(self):
         self.release()
-        time.sleep(1)
+        print('... restarting ...')
+        time.sleep(5)
         self.initialize(True, True)
 
     def initRoomsFromConfig(self, filepath: str):
@@ -207,6 +225,9 @@ class Home:
             except Exception as e:
                 writeLog(f"Failed to initialize '{name}' rs485 connection ({e})", self)
                 continue
+        
+        if self.thread_timer is not None:
+            self.thread_timer.set_home_initialized()
 
     @staticmethod
     def splitTopicText(text: str) -> List[str]:
@@ -313,6 +334,13 @@ class Home:
             self.subphone.mqtt_publish_topic = mqtt_node.find('publish').text
             topics = self.splitTopicText(mqtt_node.find('subscribe').text)
             self.subphone.mqtt_subscribe_topics.extend(topics)
+            ffmpeg_node = node.find('ffmpeg')
+            self.subphone.streaming_config['conf_file_path'] = ffmpeg_node.find('conf_file_path').text
+            self.subphone.streaming_config['feed_path'] = ffmpeg_node.find('feed_path').text
+            self.subphone.streaming_config['input_device'] = ffmpeg_node.find('input_device').text
+            self.subphone.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
+            self.subphone.streaming_config['width'] = int(ffmpeg_node.find('width').text)
+            self.subphone.streaming_config['height'] = int(ffmpeg_node.find('height').text)
         except Exception as e:
             writeLog(f"Failed to load subphone config ({e})", self)
 
@@ -738,6 +766,69 @@ class Home:
                 category='doorlock',
                 target=message['state']
             )
+
+    def onSubphoneStateStreaming(self, state: int):
+        # 카메라 응답없음이 해제가 안되므로, 초기화 시에 시작하도록 한다
+        """
+        if state:
+            self.startFFMpeg()
+        else:
+            self.stopFFMpeg()
+        """
+
+    def startFFServer(self):
+        try:
+            pipe1, pipe2 = multiprocessing.Pipe(duplex=True)
+            args = [self.subphone.streaming_config, pipe1]
+            self.mp_ffserver = multiprocessing.Process(target=procFFServer, name='FFServer', args=tuple(args))
+            self.mp_ffserver.start()
+            while True:
+                if pipe2.poll():
+                    recv = pipe2.recv_bytes().decode(encoding='utf-8', errors='ignore')
+                    writeLog(f'Recv from FFServer process pipe: {recv}', self)
+                    self.pid_ffserver_proc = int(recv)
+                    break
+        except Exception as e:
+            writeLog(f'Failed to start FFServer Process ({e})', self)
+    
+    def stopFFServer(self):
+        if self.mp_ffserver is not None:
+            try:
+                psutil.Process(self.pid_ffserver_proc).kill()
+                self.mp_ffserver.terminate()
+                writeLog(f'FFServer Process Terminated', self)
+            except Exception:
+                writeLog(f'Failed to kill FFServer Process', self)
+                traceback.print_exc()
+        self.mp_ffserver = None
+
+    def startFFMpeg(self):
+        try:
+            pipe1, pipe2 = multiprocessing.Pipe(duplex=True)
+            args = [self.subphone.streaming_config, pipe1]
+            self.mp_ffmpeg = multiprocessing.Process(target=procFFMpeg, name='FFMpeg', args=tuple(args))
+            self.mp_ffmpeg.start()
+            while True:
+                if pipe2.poll():
+                    recv = pipe2.recv_bytes().decode(encoding='utf-8', errors='ignore')
+                    writeLog(f'Recv from FFMpeg process pipe: {recv}', self)
+                    self.pid_ffmpeg_proc = int(recv)
+                    break
+            proc = psutil.Process(self.pid_ffmpeg_proc)
+            proc.nice(0)
+        except Exception as e:
+            writeLog(f'Failed to start FFMpeg Process ({e})', self)
+    
+    def stopFFMpeg(self):
+        if self.mp_ffmpeg is not None:
+            try:
+                psutil.Process(self.pid_ffmpeg_proc).kill()
+                self.mp_ffmpeg.terminate()
+                writeLog(f'FFMpeg Process Terminated', self)
+            except Exception:
+                writeLog(f'Failed to kill FFMpeg Process', self)
+                traceback.print_exc()
+        self.mp_ffmpeg = None
 
     """
     def onMqttCommandDookLock(self, topic: str, message: dict):
