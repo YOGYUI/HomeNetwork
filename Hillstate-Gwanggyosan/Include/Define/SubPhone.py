@@ -18,6 +18,25 @@ class StateDoorLock(IntEnum):
     Unknown = 3
 
 
+class HEMSDevType(IntEnum):
+    Unknown = 0
+    Electricity = 1  # 전기
+    Water = 2  # 수도
+    Gas = 3  # 가스
+    HotWater = 4  # 온수
+    Heating = 5  # 난방
+
+
+class HEMSCategory(IntEnum):
+    Unknown = 0
+    History = 1  # 우리집 사용량 이력 (3달간, 단위: kWh/L)
+    OtherAverage = 2  # 동일평수 평균 사용량 이력 (3달간, 단위: kWh/L)
+    Fee = 3  # 요금 이력 (3달간, 단위: 천원/)
+    CO2 = 4  # CO2 배출량 이력 (3달간, 단위: kg/)
+    Target = 5  # 목표량
+    Current = 7  # 현재 실시간 사용량 
+
+
 class SubPhone(Device):
     state_streaming: int = 0
     state_calling: StateCalling = StateCalling.IDLE
@@ -118,3 +137,7 @@ class SubPhone(Device):
             pass
         else:
             pass
+
+    def makePacketQueryHEMS(self, devtype: HEMSDevType, category: HEMSCategory) -> bytearray:
+        command = ((devtype.value & 0x0F) << 4) | (category.value & 0x0F)
+        return bytearray([0x7F, 0xE0, command, 0x00, 0xEE])

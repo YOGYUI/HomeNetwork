@@ -361,6 +361,11 @@
             <subscribe>home/hillstate/elevator/command</subscribe>
         </mqtt>
     </elevator>
+    <hems>
+        <mqtt>
+            <publish>home/hillstate/hems/state</publish>
+        </mqtt>
+    </hems>
     <!--
     <doorlock>
         <enable>1</enable>

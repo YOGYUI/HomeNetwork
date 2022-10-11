@@ -2,7 +2,6 @@ from abc import abstractmethod, ABCMeta
 from typing import Union, List
 from functools import reduce
 from RS485Comm import *
-import datetime
 
 
 class PacketParser:
@@ -19,6 +18,8 @@ class PacketParser:
     packet_storage: List[dict]
     max_packet_store_cnt: int = 100
 
+    log_send_result: bool = True
+
     def __init__(self, rs485: RS485Comm):
         self.buffer = bytearray()
         self.sig_parse_result = Callback(dict)
@@ -30,20 +31,24 @@ class PacketParser:
     def release(self):
         self.buffer.clear()
 
-    def sendPacket(self, packet: Union[bytes, bytearray]):
+    def sendPacket(self, packet: Union[bytes, bytearray], log: bool = True):
+        self.log_send_result = log
         self.rs485.sendData(packet)
 
     def sendString(self, packet_str: str):
         self.rs485.sendData(bytearray([int(x, 16) for x in packet_str.split(' ')]))
 
     def onSendData(self, data: bytes):
-        msg = ' '.join(['%02X' % x for x in data])
-        writeLog("Send >> {}".format(msg), self)
+        if self.log_send_result:
+            msg = ' '.join(['%02X' % x for x in data])
+            writeLog("Send >> {}".format(msg), self)
+        self.log_send_result = True
 
     def onRecvData(self, data: bytes):
         self.line_busy = True
         if len(self.buffer) > self.max_buffer_size:
             self.buffer.clear()
+            self.line_busy = False
         self.buffer.extend(data)
         self.handlePacket()
 

@@ -30,6 +30,7 @@ class Home:
     thread_cmd_queue: Union[ThreadCommandQueue, None] = None
     thread_parse_result_queue: Union[ThreadParseResultQueue, None] = None
     thread_timer: Union[ThreadTimer, None] = None
+    thread_energy_monitor: Union[ThreadEnergyMonitor, None] = None
     queue_command: queue.Queue
     queue_parse_result: queue.Queue
 
@@ -47,6 +48,9 @@ class Home:
     mp_ffmpeg: Union[multiprocessing.Process, None] = None
     pid_ffmpeg_proc: int = 0
 
+    hems_info: dict
+    topic_hems_publish: str = ''
+
     def __init__(self, name: str = 'Home', init_service: bool = True):
         self.name = name
         self.device_list = list()
@@ -55,6 +59,7 @@ class Home:
         self.queue_parse_result = queue.Queue()
         self.rs485_list = list()
         self.parser_list = list()
+        self.hems_info = dict()
 
         # 조명 + 아울렛 포트
         self.rs485_light_config = RS485Config()
@@ -75,6 +80,7 @@ class Home:
         # 주방 비디오폰(서브폰) 포트
         self.rs485_subphone_config = RS485Config()
         self.rs485_subphone = RS485Comm('RS485-SubPhone')
+        self.rs485_subphone.sig_connected.connect(self.onRS485SubPhoneConnected)
         self.rs485_list.append(self.rs485_subphone)
         self.parser_subphone = ParserSubPhone(self.rs485_subphone)
         self.parser_subphone.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
@@ -133,18 +139,20 @@ class Home:
                 writeLog('MQTT Connection Error: {}'.format(e), self)
             self.mqtt_client.loop_start()
         
-        if connect_rs485:
-            self.initRS485Connection()
-        
         # 카메라 스트리밍
         if self.rs485_subphone_config.enable:
             self.startFFServer()
             self.startFFMpeg()
+            self.startThreadEnergyMonitor()
+        
+        if connect_rs485:
+            self.initRS485Connection()
 
         writeLog(f'Initialized <{self.name}>', self)
 
     def release(self):
         if self.rs485_subphone_config.enable:
+            self.stopThreadEnergyMonitor()
             self.stopFFMpeg()
             self.stopFFServer()
         
@@ -162,6 +170,8 @@ class Home:
             rs485.release()
         for dev in self.device_list:
             dev.release()
+        
+        self.hems_info.clear()
         writeLog(f'Released', self)
     
     def restart(self):
@@ -230,6 +240,10 @@ class Home:
         
         if self.thread_timer is not None:
             self.thread_timer.set_home_initialized()
+
+    def onRS485SubPhoneConnected(self):
+        if self.thread_energy_monitor is not None:
+            self.thread_energy_monitor.set_home_initialized()
 
     @staticmethod
     def splitTopicText(text: str) -> List[str]:
@@ -314,6 +328,13 @@ class Home:
             self.elevator.mqtt_subscribe_topics.extend(topics)
         except Exception as e:
             writeLog(f"Failed to load elevator config ({e})", self)  
+
+        node = root.find('hems')
+        try:
+            mqtt_node = node.find('mqtt')
+            self.topic_hems_publish = mqtt_node.find('publish').text
+        except Exception as e:
+            writeLog(f"Failed to load HEMS config ({e})", self)  
 
         """
         node = root.find('doorlock')
@@ -419,6 +440,21 @@ class Home:
         del self.thread_timer
         self.thread_timer = None
 
+    def startThreadEnergyMonitor(self):
+        if self.thread_energy_monitor is None:
+            self.thread_energy_monitor = ThreadEnergyMonitor(self.subphone, self.parser_subphone)
+            self.thread_energy_monitor.sig_terminated.connect(self.onThreadEnergyMonitorTerminated)
+            self.thread_energy_monitor.setDaemon(True)
+            self.thread_energy_monitor.start()
+    
+    def stopThreadEnergyMonitor(self):
+        if self.thread_energy_monitor is not None:
+            self.thread_energy_monitor.stop()
+
+    def onThreadEnergyMonitorTerminated(self):
+        del self.thread_energy_monitor
+        self.thread_energy_monitor = None
+
     def publish_all(self):
         for dev in self.device_list:
             try:
@@ -482,7 +518,6 @@ class Home:
                     floor=result.get('floor')
                 )
             elif dev_type == 'subphone':
-                # TODO:
                 self.subphone.updateState(
                     0, 
                     call_front=result.get('call_front'),
@@ -490,6 +525,14 @@ class Home:
                     streaming=result.get('streaming'),
                     doorlock=result.get('doorlock')
                 )
+            elif dev_type == 'hems':
+                result.pop('device')
+                self.hems_info['last_recv_time'] = datetime.datetime.now()
+                for key in list(result.keys()):
+                    self.hems_info[key] = result.get(key)
+                    if key in ['electricity_current']:
+                        topic = self.topic_hems_publish + f'/{key}'
+                        self.mqtt_client.publish(topic, json.dumps({"value": result.get(key)}), 1)
             """
             elif dev_type == 'doorlock':
                 pass

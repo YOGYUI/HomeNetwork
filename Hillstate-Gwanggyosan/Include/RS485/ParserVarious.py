@@ -1,4 +1,5 @@
 from PacketParser import *
+import datetime
 
 
 class ParserVarious(PacketParser):
@@ -40,20 +41,20 @@ class ParserVarious(PacketParser):
                 self.handleElevator(packet)
                 packet_info['device'] = 'elevator'
                 store = self.enable_store_packet_header_34
-            elif packet[3] == 0x43:  # ??
-                # writeLog(f'Unknown packet (43): {self.prettifyPacket(packet)}', self)
-                if packet == bytearray([0xF7, 0x0B, 0x01, 0x43, 0x01, 0x11, 0x11, 0x00, 0x00, 0xBF, 0xEE]):
-                    pass
-                elif packet[4] == 0x04:
-                    # writeLog(f'{self.prettifyPacket(packet[7:12])} ({int.from_bytes(packet[7:12], byteorder="big")}, {packet[10]}, {packet[11]})')
-                    pass
-                else:
-                    writeLog(f'Unknown packet (43): {self.prettifyPacket(packet)}', self)
-                packet_info['device'] = 'unknown'
+            elif packet[3] == 0x43:  # 에너지 모니터링
+                self.handleEnergyMonitoring(packet)
+                packet_info['device'] = 'hems'
                 store = self.enable_store_packet_header_43
-            elif packet[3] == 0x44:  # ??
-                writeLog(f'Unknown packet (44): {self.prettifyPacket(packet)}', self)
-                packet_info['device'] = 'unknown'
+            elif packet[3] == 0x44:  # maybe current date-time?
+                if packet[4] == 0x0C:  # broadcasting?
+                    packet_info['device'] = 'timestamp'
+                    year, month, day = packet[8], packet[9], packet[10]
+                    hour, minute, second = packet[11], packet[12], packet[13]
+                    writeLog(f'Timestamp Packet: {self.prettifyPacket(packet)}', self)
+                    writeLog(f'>> {year}-{month}-{day} {hour}:{minute}:{second}', self)
+                else:
+                    packet_info['device'] = 'unknown'
+                    writeLog(f'Unknown packet (44): {self.prettifyPacket(packet)}', self)
                 store = self.enable_store_packet_header_44
             elif packet[3] == 0x48:  # ??
                 if packet == bytearray([0xF7, 0x0D, 0x01, 0x48, 0x01, 0x40, 0x10, 0x00, 0x71, 0x11, 0x02, 0x80, 0xEE]):
@@ -216,3 +217,26 @@ class ParserVarious(PacketParser):
             }
             # print(f'Response: {self.prettifyPacket(packet)}, {result}')
             self.sig_parse_result.emit(result)
+
+    def handleEnergyMonitoring(self, packet: bytearray):
+        if packet[4] == 0x01:  # 상태 쿼리
+            pass
+        elif packet[4] == 0x04:
+            # 값들이 hexa encoding되어있다!
+            if packet[5] == 0x11:  # 전기 사용량
+                value = int(''.join('%02X' % x for x in packet[7:12]))
+                # writeLog(f'EMON - Electricity: {value}', self)
+            elif packet[5] == 0x13:  # 가스 사용량
+                value = int(''.join('%02X' % x for x in packet[7:12]))
+                # writeLog(f'EMON - Gas: {value}', self)
+            elif packet[5] == 0x14:  # 수도 사용량
+                value = int(''.join('%02X' % x for x in packet[7:12]))
+                # writeLog(f'EMON - Water: {value}', self)
+            elif packet[5] == 0x15:  # 온수 사용량
+                value = int(''.join('%02X' % x for x in packet[7:12]))
+                # writeLog(f'EMON - Hot Water: {value}', self)
+            elif packet[5] == 0x16:  # 난방 사용량
+                value = int(''.join('%02X' % x for x in packet[7:12]))
+                # writeLog(f'EMON - Heating: {value}', self)
+            else:
+                writeLog(f'> {self.prettifyPacket(packet)}', self)

@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>HEMS</h1>
+</div>
+<div>
+    <span id="current_time"></span>
+    <br>
+    <span id="last_recv_time"></span>
+    <details open>
+        <summary><h2>[전기]</h2></summary>
+        <div class="section">
+            <h3 id="electricity_current"></h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th align="center">당월</th>
+                        <th align="center">전월</th>
+                        <th align="center">전전월</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>우리집 사용량 (kWh)</td>
+                        <td align="right"><span id="electricity_history_cur_month"></span></td>
+                        <td align="right"><span id="electricity_history_1m_ago"></span></td>
+                        <td align="right"><span id="electricity_history_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>동일평수 평균 사용량 (kWh)</td>
+                        <td align="right"><span id="electricity_otheraverage_cur_month"></span></td>
+                        <td align="right"><span id="electricity_otheraverage_1m_ago"></span></td>
+                        <td align="right"><span id="electricity_otheraverage_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>요금 (원)</td>
+                        <td align="right"><span id="electricity_fee_cur_month"></span></td>
+                        <td align="right"><span id="electricity_fee_1m_ago"></span></td>
+                        <td align="right"><span id="electricity_fee_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>CO2 배출량 (kg)</td>
+                        <td align="right"><span id="electricity_co2_cur_month"></span></td>
+                        <td align="right"><span id="electricity_co2_1m_ago"></span></td>
+                        <td align="right"><span id="electricity_co2_2m_ago"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details open>
+        <summary><h2>[수도]</h2></summary>
+        <div class="section">
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th align="center">당월</th>
+                        <th align="center">전월</th>
+                        <th align="center">전전월</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>우리집 사용량 (L)</td>
+                        <td align="right"><span id="water_history_cur_month"></span></td>
+                        <td align="right"><span id="water_history_1m_ago"></span></td>
+                        <td align="right"><span id="water_history_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>동일평수 평균 사용량 (L)</td>
+                        <td align="right"><span id="water_otheraverage_cur_month"></span></td>
+                        <td align="right"><span id="water_otheraverage_1m_ago"></span></td>
+                        <td align="right"><span id="water_otheraverage_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>요금 (원)</td>
+                        <td align="right"><span id="water_fee_cur_month"></span></td>
+                        <td align="right"><span id="water_fee_1m_ago"></span></td>
+                        <td align="right"><span id="water_fee_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>CO2 배출량 (kg)</td>
+                        <td align="right"><span id="water_co2_cur_month"></span></td>
+                        <td align="right"><span id="water_co2_1m_ago"></span></td>
+                        <td align="right"><span id="water_co2_2m_ago"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details open>
+        <summary><h2>[가스]</h2></summary>
+        <div class="section">
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th align="center">당월</th>
+                        <th align="center">전월</th>
+                        <th align="center">전전월</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>우리집 사용량 (L)</td>
+                        <td align="right"><span id="gas_history_cur_month"></span></td>
+                        <td align="right"><span id="gas_history_1m_ago"></span></td>
+                        <td align="right"><span id="gas_history_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>동일평수 평균 사용량 (L)</td>
+                        <td align="right"><span id="gas_otheraverage_cur_month"></span></td>
+                        <td align="right"><span id="gas_otheraverage_1m_ago"></span></td>
+                        <td align="right"><span id="gas_otheraverage_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>요금 (원)</td>
+                        <td align="right"><span id="gas_fee_cur_month"></span></td>
+                        <td align="right"><span id="gas_fee_1m_ago"></span></td>
+                        <td align="right"><span id="gas_fee_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>CO2 배출량 (kg)</td>
+                        <td align="right"><span id="gas_co2_cur_month"></span></td>
+                        <td align="right"><span id="gas_co2_1m_ago"></span></td>
+                        <td align="right"><span id="gas_co2_2m_ago"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details open>
+        <summary><h2>[온수]</h2></summary>
+        <div class="section">
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th align="center">당월</th>
+                        <th align="center">전월</th>
+                        <th align="center">전전월</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>우리집 사용량 (L)</td>
+                        <td align="right"><span id="hotwater_history_cur_month"></span></td>
+                        <td align="right"><span id="hotwater_history_1m_ago"></span></td>
+                        <td align="right"><span id="hotwater_history_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>동일평수 평균 사용량 (L)</td>
+                        <td align="right"><span id="hotwater_otheraverage_cur_month"></span></td>
+                        <td align="right"><span id="hotwater_otheraverage_1m_ago"></span></td>
+                        <td align="right"><span id="hotwater_otheraverage_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>요금 (원)</td>
+                        <td align="right"><span id="hotwater_fee_cur_month"></span></td>
+                        <td align="right"><span id="hotwater_fee_1m_ago"></span></td>
+                        <td align="right"><span id="hotwater_fee_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>CO2 배출량 (kg)</td>
+                        <td align="right"><span id="hotwater_co2_cur_month"></span></td>
+                        <td align="right"><span id="hotwater_co2_1m_ago"></span></td>
+                        <td align="right"><span id="hotwater_co2_2m_ago"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details open>
+        <summary><h2>[난방]</h2></summary>
+        <div class="section">
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th align="center">당월</th>
+                        <th align="center">전월</th>
+                        <th align="center">전전월</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>우리집 사용량 (L)</td>
+                        <td align="right"><span id="heating_history_cur_month"></span></td>
+                        <td align="right"><span id="heating_history_1m_ago"></span></td>
+                        <td align="right"><span id="heating_history_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>동일평수 평균 사용량 (L)</td>
+                        <td align="right"><span id="heating_otheraverage_cur_month"></span></td>
+                        <td align="right"><span id="heating_otheraverage_1m_ago"></span></td>
+                        <td align="right"><span id="heating_otheraverage_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>요금 (원)</td>
+                        <td align="right"><span id="heating_fee_cur_month"></span></td>
+                        <td align="right"><span id="heating_fee_1m_ago"></span></td>
+                        <td align="right"><span id="heating_fee_2m_ago"></span></td>
+                    </tr>
+                    <tr>
+                        <td>CO2 배출량 (kg)</td>
+                        <td align="right"><span id="heating_co2_cur_month"></span></td>
+                        <td align="right"><span id="heating_co2_1m_ago"></span></td>
+                        <td align="right"><span id="heating_co2_2m_ago"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+setInterval(function() { $.ajax({
+    url: '/api/hems/update',
+    type: 'POST',
+    success: function(response) {
+        $("#current_time").html("현재 시간: " + response["current_time"]);
+        $("#last_recv_time").html("마지막 수신 시간: " + response["last_recv_time"]);
+
+        $("#electricity_current").html("현재 사용량: " + response["electricity_current"] + " W");
+        $("#electricity_history_cur_month").html(response["electricity_history_cur_month"]);
+        $("#electricity_history_1m_ago").html(response["electricity_history_1m_ago"]);
+        $("#electricity_history_2m_ago").html(response["electricity_history_2m_ago"]);
+        $("#electricity_otheraverage_cur_month").html(response["electricity_otheraverage_cur_month"]);
+        $("#electricity_otheraverage_1m_ago").html(response["electricity_otheraverage_1m_ago"]);
+        $("#electricity_otheraverage_2m_ago").html(response["electricity_otheraverage_2m_ago"]);
+        $("#electricity_fee_cur_month").html(Number(response["electricity_fee_cur_month"]) * 1000);
+        $("#electricity_fee_1m_ago").html(Number(response["electricity_fee_1m_ago"]) * 1000);
+        $("#electricity_fee_2m_ago").html(Number(response["electricity_fee_2m_ago"]) * 1000);
+        $("#electricity_co2_cur_month").html(response["electricity_co2_cur_month"]);
+        $("#electricity_co2_1m_ago").html(response["electricity_co2_1m_ago"]);
+        $("#electricity_co2_2m_ago").html(response["electricity_co2_2m_ago"]);
+
+        $("#water_history_cur_month").html(response["water_history_cur_month"]);
+        $("#water_history_1m_ago").html(response["water_history_1m_ago"]);
+        $("#water_history_2m_ago").html(response["water_history_2m_ago"]);
+        $("#water_otheraverage_cur_month").html(response["water_otheraverage_cur_month"]);
+        $("#water_otheraverage_1m_ago").html(response["water_otheraverage_1m_ago"]);
+        $("#water_otheraverage_2m_ago").html(response["water_otheraverage_2m_ago"]);
+        $("#water_fee_cur_month").html(Number(response["water_fee_cur_month"]) * 1000);
+        $("#water_fee_1m_ago").html(Number(response["water_fee_1m_ago"]) * 1000);
+        $("#water_fee_2m_ago").html(Number(response["water_fee_2m_ago"]) * 1000);
+        $("#water_co2_cur_month").html(response["water_co2_cur_month"]);
+        $("#water_co2_1m_ago").html(response["water_co2_1m_ago"]);
+        $("#water_co2_2m_ago").html(response["water_co2_2m_ago"]);
+
+        $("#gas_history_cur_month").html(response["gas_history_cur_month"]);
+        $("#gas_history_1m_ago").html(response["gas_history_1m_ago"]);
+        $("#gas_history_2m_ago").html(response["gas_history_2m_ago"]);
+        $("#gas_otheraverage_cur_month").html(response["gas_otheraverage_cur_month"]);
+        $("#gas_otheraverage_1m_ago").html(response["gas_otheraverage_1m_ago"]);
+        $("#gas_otheraverage_2m_ago").html(response["gas_otheraverage_2m_ago"]);
+        $("#gas_fee_cur_month").html(Number(response["gas_fee_cur_month"]) * 1000);
+        $("#gas_fee_1m_ago").html(Number(response["gas_fee_1m_ago"]) * 1000);
+        $("#gas_fee_2m_ago").html(Number(response["gas_fee_2m_ago"]) * 1000);
+        $("#gas_co2_cur_month").html(response["gas_co2_cur_month"]);
+        $("#gas_co2_1m_ago").html(response["gas_co2_1m_ago"]);
+        $("#gas_co2_2m_ago").html(response["gas_co2_2m_ago"]);
+
+        $("#hotwater_history_cur_month").html(response["hotwater_history_cur_month"]);
+        $("#hotwater_history_1m_ago").html(response["hotwater_history_1m_ago"]);
+        $("#hotwater_history_2m_ago").html(response["hotwater_history_2m_ago"]);
+        $("#hotwater_otheraverage_cur_month").html(response["hotwater_otheraverage_cur_month"]);
+        $("#hotwater_otheraverage_1m_ago").html(response["hotwater_otheraverage_1m_ago"]);
+        $("#hotwater_otheraverage_2m_ago").html(response["hotwater_otheraverage_2m_ago"]);
+        $("#hotwater_fee_cur_month").html(Number(response["hotwater_fee_cur_month"]) * 1000);
+        $("#hotwater_fee_1m_ago").html(Number(response["hotwater_fee_1m_ago"]) * 1000);
+        $("#hotwater_fee_2m_ago").html(Number(response["hotwater_fee_2m_ago"]) * 1000);
+        $("#hotwater_co2_cur_month").html(response["hotwater_co2_cur_month"]);
+        $("#hotwater_co2_1m_ago").html(response["hotwater_co2_1m_ago"]);
+        $("#hotwater_co2_2m_ago").html(response["hotwater_co2_2m_ago"]);
+
+        $("#heating_history_cur_month").html(response["heating_history_cur_month"]);
+        $("#heating_history_1m_ago").html(response["heating_history_1m_ago"]);
+        $("#heating_history_2m_ago").html(response["heating_history_2m_ago"]);
+        $("#heating_otheraverage_cur_month").html(response["heating_otheraverage_cur_month"]);
+        $("#heating_otheraverage_1m_ago").html(response["heating_otheraverage_1m_ago"]);
+        $("#heating_otheraverage_2m_ago").html(response["heating_otheraverage_2m_ago"]);
+        $("#heating_fee_cur_month").html(Number(response["heating_fee_cur_month"]) * 1000);
+        $("#heating_fee_1m_ago").html(Number(response["heating_fee_1m_ago"]) * 1000);
+        $("#heating_fee_2m_ago").html(Number(response["heating_fee_2m_ago"]) * 1000);
+        $("#heating_co2_cur_month").html(response["heating_co2_cur_month"]);
+        $("#heating_co2_1m_ago").html(response["heating_co2_1m_ago"]);
+        $("#heating_co2_2m_ago").html(response["heating_co2_2m_ago"]);
+    },
+    error: function(error) {
+        console.log(error);
+    }
+})}, 1000);
+</script>
+{% endblock %}

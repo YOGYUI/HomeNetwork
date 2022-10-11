@@ -1,4 +1,5 @@
 from PacketParser import *
+import datetime
 
 
 class ParserLight(PacketParser):
@@ -23,6 +24,8 @@ class ParserLight(PacketParser):
                 self.handleOutlet(packet)
                 packet_info['device'] = 'outlet'
                 store = self.enable_store_packet_header_1F
+            elif packet[3] == 0x43:  # 에너지 사용량 쿼리인듯?
+                writeLog(f'Unknown packet (43): {self.prettifyPacket(packet)}', self)
             else:
                 writeLog(f'Unknown packet: {self.prettifyPacket(packet)}', self)
                 packet_info['device'] = 'unknown'

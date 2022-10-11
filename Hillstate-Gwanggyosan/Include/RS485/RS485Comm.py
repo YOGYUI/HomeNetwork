@@ -92,7 +92,8 @@ class RS485Comm:
     
     def sendData(self, data: Union[bytes, bytearray, str]):
         if self._comm_obj is not None:
-            self._comm_obj.sendData(data)
+            if len(data) > 0:
+                self._comm_obj.sendData(data)
 
     def time_after_last_recv(self) -> float:
         if self._comm_obj is None:

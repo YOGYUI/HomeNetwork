@@ -27,7 +27,7 @@ class Device:
     mqtt_subscribe_topics: List[str]
 
     last_published_time: float = time.perf_counter()
-    publish_interval_sec: float = 10.
+    # publish_interval_sec: float = 10.  # legacy (outlet power consumption)
 
     thread_timer = None
 
@@ -81,6 +81,7 @@ class Device:
     def initThreadTimer(self):
         pass
 
+    # 디바이스 개별 타이머 (에어컨 자동 켜기/끄기 등)
     def startThreadTimer(self):
         self.initThreadTimer()
         if self.thread_timer is not None:
