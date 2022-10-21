@@ -289,7 +289,7 @@ class Home:
             self.rs485_control_config.enable = bool(int(enable_node.text))
             type_node = control_node.find('type')
             self.rs485_control_config.comm_type = RS485HwType(int(type_node.text))
-            usb2serial_node = energy_node.find('usb2serial')
+            usb2serial_node = control_node.find('usb2serial')
             serial_port_node = usb2serial_node.find('port')
             self.rs485_control_config.serial_port = serial_port_node.text
             serial_baud_node = usb2serial_node.find('baud')
@@ -307,7 +307,7 @@ class Home:
             self.rs485_smart_recv_config.enable = bool(int(enable_node.text))
             type_node = smart1_node.find('type')
             self.rs485_smart_recv_config.comm_type = RS485HwType(int(type_node.text))
-            usb2serial_node = energy_node.find('usb2serial')
+            usb2serial_node = smart1_node.find('usb2serial')
             serial_port_node = usb2serial_node.find('port')
             self.rs485_smart_recv_config.serial_port = serial_port_node.text
             serial_baud_node = usb2serial_node.find('baud')
@@ -325,7 +325,7 @@ class Home:
             self.rs485_smart_send_config.enable = bool(int(enable_node.text))
             type_node = smart2_node.find('type')
             self.rs485_smart_send_config.comm_type = RS485HwType(int(type_node.text))
-            usb2serial_node = energy_node.find('usb2serial')
+            usb2serial_node = smart2_node.find('usb2serial')
             serial_port_node = usb2serial_node.find('port')
             self.rs485_smart_send_config.serial_port = serial_port_node.text
             serial_baud_node = usb2serial_node.find('baud')
