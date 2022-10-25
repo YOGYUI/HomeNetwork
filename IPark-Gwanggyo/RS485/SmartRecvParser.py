@@ -37,26 +37,27 @@ class SmartRecvParser(PacketParser):
                         self.flag_send_down_packet = False
                 if len(self.buffer) >= packetLen:
                     chunk = self.buffer[:packetLen]
-                    if chunk[3] == 0x11:
-                        if self.flag_send_up_packet:
-                            self.sig_call_elevator.emit(1, self.timestamp)
-                        if self.flag_send_down_packet:
-                            self.sig_call_elevator.emit(0, self.timestamp)
+                    if len(chunk) >= 11:
+                        if chunk[3] == 0x11:
+                            if self.flag_send_up_packet:
+                                self.sig_call_elevator.emit(1, self.timestamp)
+                            if self.flag_send_down_packet:
+                                self.sig_call_elevator.emit(0, self.timestamp)
 
-                    if chunk[1] == 0xC1 and chunk[3] == 0x13:
-                        self.year = chunk[5]
-                        self.month = chunk[6]
-                        self.day = chunk[7]
-                        self.hour = chunk[8]
-                        self.minute = chunk[9]
-                        self.second = chunk[10]
+                        if chunk[1] == 0xC1 and chunk[3] == 0x13:
+                            self.year = chunk[5]
+                            self.month = chunk[6]
+                            self.day = chunk[7]
+                            self.hour = chunk[8]
+                            self.minute = chunk[9]
+                            self.second = chunk[10]
 
-                    if self.enable_console_log:
-                        msg = ' '.join(['%02X' % x for x in chunk])
-                        print('[SER 1] ' + msg)
+                        if self.enable_console_log:
+                            msg = ' '.join(['%02X' % x for x in chunk])
+                            print('[SER 1] ' + msg)
 
-                    self.interpretPacket(chunk)
-                    self.buffer = self.buffer[packetLen:]
+                        self.interpretPacket(chunk)
+                        self.buffer = self.buffer[packetLen:]
         except Exception as e:
             writeLog('handlePacket Exception::{}'.format(e), self)
 

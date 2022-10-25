@@ -52,12 +52,12 @@ class ParserSubPhone(PacketParser):
         notify: bool = True
         if packet[1] == 0xB5:
             # 현관 도어폰 초인종 호출 (월패드 -> 서브폰)
-            result['call_front'] = 1
-            writeLog(f'{self.prettifyPacket(packet)} >> Front door call started', self)
+            result['ringing_front'] = 1
+            writeLog(f'{self.prettifyPacket(packet)} >> Front door ringing started', self)
         elif packet[1] == 0xB6:
             # 현관 도어폰 초인종 호출 종료 (월패드 -> 서브폰)
-            result['call_front'] = 0
-            writeLog(f'{self.prettifyPacket(packet)} >> Front door call terminated', self)
+            result['ringing_front'] = 0
+            writeLog(f'{self.prettifyPacket(packet)} >> Front door ringing terminated', self)
         elif packet[1] == 0xB9:
             # 서브폰에서 현관 통화 시작 (서브폰 -> 월패드)
             result['streaming'] = 1
@@ -72,7 +72,7 @@ class ParserSubPhone(PacketParser):
             writeLog(f'{self.prettifyPacket(packet)} >> Open front door from Subphone', self)
         elif packet[1] in [0xBB, 0xB8]:
             # 현관 도어폰 통화 종료
-            result['call_front'] = 0
+            result['ringing_front'] = 0
             result['streaming'] = 0
             result['doorlock'] = 1  # Secured
             writeLog(f'{self.prettifyPacket(packet)} >> Streaming finished', self)
@@ -87,15 +87,15 @@ class ParserSubPhone(PacketParser):
         notify: bool = True
         if packet[1] == 0x5A:
             # 공동현관문 호출 (월패드 -> 서브폰)
-            result['call_communal'] = 1
-            writeLog(f'{self.prettifyPacket(packet)} >> Communal door call started', self)
+            result['ringing_communal'] = 1
+            writeLog(f'{self.prettifyPacket(packet)} >> Communal door ringing started', self)
         elif packet[1] == 0x5C:
             # 공동현관문 호출 종료 (월패드 -> 서브폰)
-            result['call_communal'] = 0
-            writeLog(f'{self.prettifyPacket(packet)} >> Communal door call terminated', self)
+            result['ringing_communal'] = 0
+            writeLog(f'{self.prettifyPacket(packet)} >> Communal door ringing terminated', self)
         elif packet[1] == 0x5E:
             # 공동현관문 통화 종료
-            result['call_communal'] = 0
+            result['ringing_communal'] = 0
             result['streaming'] = 0
             result['doorlock'] = 1  # Secured
             writeLog(f'{self.prettifyPacket(packet)} >> Streaming finished', self)
@@ -111,18 +111,19 @@ class ParserSubPhone(PacketParser):
             # 쿼리 패킷 (서브폰 -> 월패드)
             pass
         elif packet_type == 0x01:
-            result = {'device': 'hems'}
+            result = {'device': 'hems', 'packet': packet}
             notify: bool = True
             # 응답 패킷 (월패드 -> 서브폰)
             devtype = HEMSDevType((packet[2] & 0xF0) >> 4)
             category = HEMSCategory(packet[2] & 0x0F)
             if category.value in [1, 2, 3, 4]:
-                # 7F E1 XY 09 P1 P2 P3 Q1 Q2 Q3 R1 R2 R3 ?? EE
+                # 7F E1 XY 09 P1 P2 P3 Q1 Q2 Q3 R1 R2 R3 ZZ EE
                 # X: 디바이스 타입
                 # Y: 쿼리 타입
                 # P1 P2 P3 : 당월 이력 값
                 # Q1 Q2 Q3 : 전월 이력 값
                 # R1 R2 R3 : 전전월 이력 값
+                # ZZ : XOR Checksum
                 v1 = int.from_bytes(packet[4:7], byteorder='big', signed=False)
                 v2 = int.from_bytes(packet[7:10], byteorder='big', signed=False)
                 v3 = int.from_bytes(packet[10:13], byteorder='big', signed=False)
@@ -130,9 +131,11 @@ class ParserSubPhone(PacketParser):
                 result[f'{devtype.name.lower()}_{category.name.lower()}_1m_ago'] = v2
                 result[f'{devtype.name.lower()}_{category.name.lower()}_2m_ago'] = v3
             elif category.value in [5, 7]:
-                # 7F E1 XY 03 PP PP PP ?? EE
+                # 7F E1 XY 03 P1 P2 P3 ZZ EE
                 # X: 디바이스 타입
                 # Y: 쿼리 타입
+                # P1~P3: 값
+                # ZZ : XOR Checksum
                 v = int.from_bytes(packet[4:7], byteorder='big', signed=False)
                 result[f'{devtype.name.lower()}_{category.name.lower()}'] = v
             else:

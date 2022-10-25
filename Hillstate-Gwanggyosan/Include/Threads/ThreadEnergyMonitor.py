@@ -43,7 +43,7 @@ class ThreadEnergyMonitor(threading.Thread):
         tm_loop_regular = time.perf_counter_ns() / 1e6
         while self._keepAlive:
             if not self._home_initialized:
-                writeLog('Home is not initialized!', self)
+                writeLog('Waiting for Initializing Home...', self)
                 time.sleep(1)
                 continue
             
@@ -105,7 +105,9 @@ class ThreadEnergyMonitor(threading.Thread):
         # self.send_query(HEMSDevType.Heating, HEMSCategory.Current, log_send)
 
     def send_query_regular(self, log_send: bool = False):
-        writeLog("start regular query", self)
+        tm = time.perf_counter()
+
+        writeLog(f"Start HEMS Regular Query (interval: {self._interval_regular_ms / 60000} min)", self)
         self.send_query(HEMSDevType.Electricity, HEMSCategory.History, log_send)
         self.send_query(HEMSDevType.Electricity, HEMSCategory.OtherAverage, log_send)
         self.send_query(HEMSDevType.Electricity, HEMSCategory.Fee, log_send)
@@ -135,3 +137,6 @@ class ThreadEnergyMonitor(threading.Thread):
         self.send_query(HEMSDevType.Heating, HEMSCategory.Fee, log_send)
         self.send_query(HEMSDevType.Heating, HEMSCategory.CO2, log_send)
         self.send_query(HEMSDevType.Heating, HEMSCategory.Target, log_send)
+        
+        elapsed = time.perf_counter() - tm
+        writeLog(f"HEMS Regular Query Finished(elapsed: {elapsed} sec)", self)

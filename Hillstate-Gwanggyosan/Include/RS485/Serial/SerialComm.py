@@ -49,6 +49,7 @@ class SerialComm:
                 self.startThreads()
                 self.sig_connected.emit(True)
                 writeLog(f'"{self._name}" Connected to <{port}> (baud: {baudrate})', self)
+                self._last_recv_time = datetime.datetime.now()
                 return True
             self.sig_connected.emit(False)
             return False

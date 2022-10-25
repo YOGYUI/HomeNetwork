@@ -41,6 +41,7 @@ class Home:
     enable_mqtt_console_log: bool = True
 
     rs485_list: List[RS485Comm]
+    rs485_reconnect_limit: int = 60
     parser_list: List[PacketParser]
 
     mp_ffserver: Union[multiprocessing.Process, None] = None
@@ -259,33 +260,37 @@ class Home:
         root = ET.parse(filepath).getroot()
 
         node = root.find('rs485')
-        rs485_list = [
-            ('light', self.rs485_light_config),
-            ('various', self.rs485_various_config),
-            ('subphone', self.rs485_subphone_config)
-        ]
+        try:
+            rs485_list = [
+                ('light', self.rs485_light_config),
+                ('various', self.rs485_various_config),
+                ('subphone', self.rs485_subphone_config)
+            ]
 
-        for elem in rs485_list:
-            name, cfg = elem
-            try:
-                child_node = node.find(f'{name}')
-                enable_node = child_node.find('enable')
-                cfg.enable = bool(int(enable_node.text))
-                type_node = child_node.find('type')
-                cfg.comm_type = RS485HwType(int(type_node.text))
-                usb2serial_node = child_node.find('usb2serial')
-                serial_port_node = usb2serial_node.find('port')
-                cfg.serial_port = serial_port_node.text
-                serial_baud_node = usb2serial_node.find('baud')
-                cfg.serial_baud = int(serial_baud_node.text)
-                ew11_node = child_node.find('ew11')
-                socket_addr_node = ew11_node.find('ipaddr')
-                cfg.socket_ipaddr = socket_addr_node.text
-                socket_port_node = ew11_node.find('port')
-                cfg.socket_port = int(socket_port_node.text)
-            except Exception as e:
-                writeLog(f"Failed to load '{name}' rs485 config ({e})", self)
-                continue
+            for elem in rs485_list:
+                name, cfg = elem
+                try:
+                    child_node = node.find(f'{name}')
+                    enable_node = child_node.find('enable')
+                    cfg.enable = bool(int(enable_node.text))
+                    type_node = child_node.find('type')
+                    cfg.comm_type = RS485HwType(int(type_node.text))
+                    usb2serial_node = child_node.find('usb2serial')
+                    serial_port_node = usb2serial_node.find('port')
+                    cfg.serial_port = serial_port_node.text
+                    serial_baud_node = usb2serial_node.find('baud')
+                    cfg.serial_baud = int(serial_baud_node.text)
+                    ew11_node = child_node.find('ew11')
+                    socket_addr_node = ew11_node.find('ipaddr')
+                    cfg.socket_ipaddr = socket_addr_node.text
+                    socket_port_node = ew11_node.find('port')
+                    cfg.socket_port = int(socket_port_node.text)
+                except Exception as e:
+                    writeLog(f"Failed to load '{name}' rs485 config ({e})", self)
+                    continue
+            self.rs485_reconnect_limit = int(node.find('reconnect_limit').text)
+        except Exception as e:
+            writeLog(f"Failed to load rs485 config ({e})", self)
 
         node = root.find('mqtt')
         try:
@@ -426,7 +431,10 @@ class Home:
             if self.rs485_subphone_config.enable:
                 rs485_list.append(self.rs485_subphone)
             """
-            self.thread_timer = ThreadTimer(rs485_list)
+            self.thread_timer = ThreadTimer(
+                rs485_list,
+                reconnect_limit_sec=self.rs485_reconnect_limit
+            )
             self.thread_timer.sig_terminated.connect(self.onThreadTimerTerminated)
             self.thread_timer.sig_publish_regular.connect(self.publish_all)
             self.thread_timer.setDaemon(True)
@@ -520,8 +528,8 @@ class Home:
             elif dev_type == 'subphone':
                 self.subphone.updateState(
                     0, 
-                    call_front=result.get('call_front'),
-                    call_communal=result.get('call_communal'),
+                    ringing_front=result.get('ringing_front'),
+                    ringing_communal=result.get('ringing_communal'),
                     streaming=result.get('streaming'),
                     doorlock=result.get('doorlock')
                 )
@@ -532,7 +540,10 @@ class Home:
                     self.hems_info[key] = result.get(key)
                     if key in ['electricity_current']:
                         topic = self.topic_hems_publish + f'/{key}'
-                        self.mqtt_client.publish(topic, json.dumps({"value": result.get(key)}), 1)
+                        value = result.get(key)
+                        if value == 0:
+                            writeLog(f"zero power consumption? >> {prettifyPacket(result.get('packet'))}", self)
+                        self.mqtt_client.publish(topic, json.dumps({"value": value}), 1)
             """
             elif dev_type == 'doorlock':
                 pass

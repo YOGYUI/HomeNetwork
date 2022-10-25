@@ -24,12 +24,14 @@ class ThreadTimer(threading.Thread):
         self,
         rs485_list: List[RS485Comm],
         publish_interval: int = 60,
-        interval_ms: int = 2000
+        interval_ms: int = 2000,
+        reconnect_limit_sec: int = 60
     ):
         threading.Thread.__init__(self, name='Timer Thread')
         self._rs485_list = rs485_list
         self._publish_interval = publish_interval  # 단위: 초
         self._interval_ms = interval_ms  # 단위: 밀리초
+        self._reconnect_limit_sec = reconnect_limit_sec
         self.sig_terminated = Callback()
         self.sig_publish_regular = Callback()
 
@@ -42,7 +44,7 @@ class ThreadTimer(threading.Thread):
         while self._keepAlive:
             try:
                 if not self._home_initialized:
-                    writeLog('Home is not initialized!', self)
+                    writeLog('Waiting for Initializing Home...', self)
                     time.sleep(1)
                     continue
 
@@ -87,16 +89,16 @@ class ThreadTimer(threading.Thread):
                 if delta > 10:
                     msg = 'Warning!! RS485 <{}> is not receiving for {:.1f} seconds'.format(obj.name, delta)
                     writeLog(msg, self)
-                if delta > 120:
-                    result = False
-                    # 2분이상이면 재접속 시도
-                    obj.reconnect()
+                    if delta > self._reconnect_limit_sec:
+                        result = False
+                        # 일정 시간 이상 패킷을 받지 못하면 재접속 시도
+                        obj.reconnect()
             else:
                 result = False
                 writeLog('Warning!! RS485 <{}> is not connected'.format(obj.name), self)
                 delta = obj.time_after_last_recv()
-                if delta > 120:
-                    # 2분이상이면 재접속 시도
+                if delta > self._reconnect_limit_sec:
+                    # 일정 시간 이상 패킷을 받지 못하면 재접속 시도
                     writeLog('Try to reconnect RS485 <{}>'.format(obj.name), self)
                     obj.reconnect()
         return result

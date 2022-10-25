@@ -6,6 +6,7 @@
         <log>1</log>
     </webserver>
     <rs485>
+        <reconnect_limit>30</reconnect_limit>  <!-- 단위: 초 -->
         <light>
             <enable>1</enable>
             <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
@@ -110,7 +111,7 @@
             <thermostat>
                 <exist>1</exist>
                 <range_min>18</range_min>
-                <range_max>30</range_max>
+                <range_max>35</range_max>
                 <mqtt>
                     <publish>home/hillstate/thermostat/state/1</publish>
                     <subscribe>home/hillstate/thermostat/command/1</subscribe>
@@ -119,7 +120,7 @@
             <airconditioner>
                 <exist>1</exist>
                 <range_min>18</range_min>
-                <range_max>30</range_max>
+                <range_max>35</range_max>
                 <mqtt>
                     <publish>home/hillstate/airconditioner/state/1</publish>
                     <subscribe>home/hillstate/airconditioner/command/1</subscribe>
@@ -172,7 +173,7 @@
             <thermostat>
                 <exist>1</exist>
                 <range_min>18</range_min>
-                <range_max>30</range_max>
+                <range_max>35</range_max>
                 <mqtt>
                     <publish>home/hillstate/thermostat/state/2</publish>
                     <subscribe>home/hillstate/thermostat/command/2</subscribe>
@@ -181,7 +182,7 @@
             <airconditioner>
                 <exist>1</exist>
                 <range_min>18</range_min>
-                <range_max>30</range_max>
+                <range_max>35</range_max>
                 <mqtt>
                     <publish>home/hillstate/airconditioner/state/2</publish>
                     <subscribe>home/hillstate/airconditioner/command/2</subscribe>
@@ -221,7 +222,7 @@
             <thermostat>
                 <exist>1</exist>
                 <range_min>18</range_min>
-                <range_max>30</range_max>
+                <range_max>35</range_max>
                 <mqtt>
                     <publish>home/hillstate/thermostat/state/3</publish>
                     <subscribe>home/hillstate/thermostat/command/3</subscribe>
@@ -230,7 +231,7 @@
             <airconditioner>
                 <exist>1</exist>
                 <range_min>18</range_min>
-                <range_max>30</range_max>
+                <range_max>35</range_max>
                 <mqtt>
                     <publish>home/hillstate/airconditioner/state/3</publish>
                     <subscribe>home/hillstate/airconditioner/command/3</subscribe>
@@ -270,7 +271,7 @@
             <thermostat>
                 <exist>1</exist>
                 <range_min>18</range_min>
-                <range_max>30</range_max>
+                <range_max>35</range_max>
                 <mqtt>
                     <publish>home/hillstate/thermostat/state/4</publish>
                     <subscribe>home/hillstate/thermostat/command/4</subscribe>
@@ -279,7 +280,7 @@
             <airconditioner>
                 <exist>1</exist>
                 <range_min>18</range_min>
-                <range_max>30</range_max>
+                <range_max>35</range_max>
                 <mqtt>
                     <publish>home/hillstate/airconditioner/state/4</publish>
                     <subscribe>home/hillstate/airconditioner/command/4</subscribe>
@@ -326,7 +327,7 @@
             <thermostat>
                 <exist>0</exist>
                 <range_min>18</range_min>
-                <range_max>30</range_max>
+                <range_max>35</range_max>
                 <mqtt>
                     <publish>home/hillstate/thermostat/state/6</publish>
                     <subscribe>home/hillstate/thermostat/command/6</subscribe>
@@ -335,7 +336,7 @@
             <airconditioner>
                 <exist>0</exist>
                 <range_min>18</range_min>
-                <range_max>30</range_max>
+                <range_max>35</range_max>
                 <mqtt>
                     <publish>home/hillstate/airconditioner/state/6</publish>
                     <subscribe>home/hillstate/airconditioner/command/6</subscribe>

@@ -4,7 +4,7 @@ from Device import *
 from enum import IntEnum
 
 
-class StateCalling(IntEnum):
+class StateRinging(IntEnum):
     # 서브폰의 호출 상태
     IDLE = 0
     FRONT = 1  # 현관문 초인종
@@ -29,17 +29,17 @@ class HEMSDevType(IntEnum):
 
 class HEMSCategory(IntEnum):
     Unknown = 0
-    History = 1  # 우리집 사용량 이력 (3달간, 단위: kWh/L)
-    OtherAverage = 2  # 동일평수 평균 사용량 이력 (3달간, 단위: kWh/L)
-    Fee = 3  # 요금 이력 (3달간, 단위: 천원/)
-    CO2 = 4  # CO2 배출량 이력 (3달간, 단위: kg/)
+    History = 1  # 우리집 사용량 이력 (3달간, 단위: kWh/L/MWh)
+    OtherAverage = 2  # 동일평수 평균 사용량 이력 (3달간, 단위: kWh/L/MWh)
+    Fee = 3  # 요금 이력 (3달간, 단위: 천원)
+    CO2 = 4  # CO2 배출량 이력 (3달간, 단위: kg)
     Target = 5  # 목표량
     Current = 7  # 현재 실시간 사용량 
 
 
 class SubPhone(Device):
     state_streaming: int = 0
-    state_calling: StateCalling = StateCalling.IDLE
+    state_ringing: StateRinging = StateRinging.IDLE
     state_doorlock: StateDoorLock = StateDoorLock.Secured
 
     def __init__(self, name: str = 'SubPhone', **kwargs):
@@ -65,7 +65,7 @@ class SubPhone(Device):
             obj = {"state": self.state_streaming}
             self.mqtt_client.publish(topic + '/streaming', json.dumps(obj), 1)
 
-            if self.state_calling in [StateCalling.FRONT, StateCalling.COMMUNAL]:
+            if self.state_ringing in [StateRinging.FRONT, StateRinging.COMMUNAL]:
                 self.mqtt_client.publish(topic + '/doorbell', 'ON', 1)
             else:
                 self.mqtt_client.publish(topic + '/doorbell', 'OFF', 1)
@@ -79,45 +79,45 @@ class SubPhone(Device):
             self.state_streaming = streaming
             self.sig_state_streaming.emit(self.state_streaming)
             self.publish_mqtt()
-        call_front = kwargs.get('call_front')
-        if call_front is not None:
-            if call_front:
-                self.state_calling = StateCalling.FRONT
+        ringing_front = kwargs.get('ringing_front')
+        if ringing_front is not None:
+            if ringing_front:
+                self.state_ringing = StateRinging.FRONT
             else:
-                self.state_calling = StateCalling.IDLE
+                self.state_ringing = StateRinging.IDLE
             self.publish_mqtt()
-        call_communal = kwargs.get('call_communal')
-        if call_communal is not None:
-            if call_communal:
-                self.state_calling = StateCalling.COMMUNAL
+        ringing_communal = kwargs.get('ringing_communal')
+        if ringing_communal is not None:
+            if ringing_communal:
+                self.state_ringing = StateRinging.COMMUNAL
             else:
-                self.state_calling = StateCalling.IDLE
+                self.state_ringing = StateRinging.IDLE
             self.publish_mqtt()
         doorlock = kwargs.get('doorlock')
         if doorlock is not None:
             self.state_doorlock = StateDoorLock(doorlock)
             self.publish_mqtt()
-        writeLog(f"Streaming: {self.state_streaming}, Calling: {self.state_calling.name}, DoorLock: {self.state_doorlock.name}", self)
+        writeLog(f"Streaming: {bool(self.state_streaming)}, Ringing: {self.state_ringing.name}, DoorLock: {self.state_doorlock.name}", self)
 
     def makePacketCommon(self, header: int) -> bytearray:
         return bytearray([0x7F, max(0, min(0xFF, header)), 0x00, 0x00, 0xEE])
 
     def makePacketSetVideoStreamingState(self, state: int) -> bytearray:
         if state:
-            if self.state_calling == StateCalling.FRONT:
+            if self.state_ringing == StateRinging.FRONT:
                 # 현관 초인종 카메라 영상 서브폰 우회
                 return self.makePacketCommon(0xB7)
-            elif self.state_calling == StateCalling.COMMUNAL:
+            elif self.state_ringing == StateRinging.COMMUNAL:
                 # 공동현관문 영상 우회
                 return self.makePacketCommon(0x5F)
             else:
                 # 단순 문열기용 (주방 서브폰 활성화)
                 return self.makePacketCommon(0xB9)
         else:
-            if self.state_calling == StateCalling.FRONT:
+            if self.state_ringing == StateRinging.FRONT:
                 # 현관 초인종 카메라 영상 서브폰 우회 종료
                 return self.makePacketCommon(0xB8)
-            elif self.state_calling == StateCalling.COMMUNAL:
+            elif self.state_ringing == StateRinging.COMMUNAL:
                 # 공동현관문 영상 우회 종료
                 return self.makePacketCommon(0x60)
             else:

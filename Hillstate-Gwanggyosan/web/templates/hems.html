@@ -1,224 +1,267 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
+{% block head %}
+{{ super() }}
+<style>
+    table{
+        width: 40%;
+        border: 1px solid;
+        font-size: 12pt;
+    }
+    th{
+        border: 1px solid black;
+        padding: 5px;
+        text-align: center;
+        background-color: darkgray;
+    }
+    td{
+        border: 1px solid black;
+        padding: 5px
+    }
+    #electricity_current{
+        color: red;
+    }
+    .table_value{
+        text-align: right;
+    }
+    details summary{
+        background: #f1f1f1;
+        font-size: 24px;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
 {% block page_content %}
 <div class="page-header">
     <h1>HEMS</h1>
 </div>
 <div>
-    <span id="current_time"></span>
+    <span>현재 시간: <span id="current_time"></span></span>
     <br>
-    <span id="last_recv_time"></span>
+    <span>마지막 수신 시간: <span id="last_recv_time"></span></span>
+    <br>
     <details open>
-        <summary><h2>[전기]</h2></summary>
+        <summary>[전기]</summary>
         <div class="section">
-            <h3 id="electricity_current"></h3>
+            <h3>현재 사용량: <span id="electricity_current"></span> W</h3>
+            <h3>목표량: <span id="electricity_target"></span> kWh</h3>
             <table>
                 <thead>
                     <tr>
                         <th></th>
-                        <th align="center">당월</th>
-                        <th align="center">전월</th>
-                        <th align="center">전전월</th>
+                        <th>당월</th>
+                        <th>전월</th>
+                        <th>전전월</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td>우리집 사용량 (kWh)</td>
-                        <td align="right"><span id="electricity_history_cur_month"></span></td>
-                        <td align="right"><span id="electricity_history_1m_ago"></span></td>
-                        <td align="right"><span id="electricity_history_2m_ago"></span></td>
+                        <td class="table_value"><span id="electricity_history_cur_month"></span></td>
+                        <td class="table_value"><span id="electricity_history_1m_ago"></span></td>
+                        <td class="table_value"><span id="electricity_history_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>동일평수 평균 사용량 (kWh)</td>
-                        <td align="right"><span id="electricity_otheraverage_cur_month"></span></td>
-                        <td align="right"><span id="electricity_otheraverage_1m_ago"></span></td>
-                        <td align="right"><span id="electricity_otheraverage_2m_ago"></span></td>
+                        <td class="table_value"><span id="electricity_otheraverage_cur_month"></span></td>
+                        <td class="table_value"><span id="electricity_otheraverage_1m_ago"></span></td>
+                        <td class="table_value"><span id="electricity_otheraverage_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>요금 (원)</td>
-                        <td align="right"><span id="electricity_fee_cur_month"></span></td>
-                        <td align="right"><span id="electricity_fee_1m_ago"></span></td>
-                        <td align="right"><span id="electricity_fee_2m_ago"></span></td>
+                        <td class="table_value"><span id="electricity_fee_cur_month"></span></td>
+                        <td class="table_value"><span id="electricity_fee_1m_ago"></span></td>
+                        <td class="table_value"><span id="electricity_fee_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>CO2 배출량 (kg)</td>
-                        <td align="right"><span id="electricity_co2_cur_month"></span></td>
-                        <td align="right"><span id="electricity_co2_1m_ago"></span></td>
-                        <td align="right"><span id="electricity_co2_2m_ago"></span></td>
+                        <td class="table_value"><span id="electricity_co2_cur_month"></span></td>
+                        <td class="table_value"><span id="electricity_co2_1m_ago"></span></td>
+                        <td class="table_value"><span id="electricity_co2_2m_ago"></span></td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </details>
+    <br>
 
     <details open>
-        <summary><h2>[수도]</h2></summary>
+        <summary>[수도]</summary>
         <div class="section">
+            <h3>목표량: <span id="water_target"></span> L</h3>
             <table>
                 <thead>
                     <tr>
                         <th></th>
-                        <th align="center">당월</th>
-                        <th align="center">전월</th>
-                        <th align="center">전전월</th>
+                        <th>당월</th>
+                        <th>전월</th>
+                        <th>전전월</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td>우리집 사용량 (L)</td>
-                        <td align="right"><span id="water_history_cur_month"></span></td>
-                        <td align="right"><span id="water_history_1m_ago"></span></td>
-                        <td align="right"><span id="water_history_2m_ago"></span></td>
+                        <td class="table_value"><span id="water_history_cur_month"></span></td>
+                        <td class="table_value"><span id="water_history_1m_ago"></span></td>
+                        <td class="table_value"><span id="water_history_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>동일평수 평균 사용량 (L)</td>
-                        <td align="right"><span id="water_otheraverage_cur_month"></span></td>
-                        <td align="right"><span id="water_otheraverage_1m_ago"></span></td>
-                        <td align="right"><span id="water_otheraverage_2m_ago"></span></td>
+                        <td class="table_value"><span id="water_otheraverage_cur_month"></span></td>
+                        <td class="table_value"><span id="water_otheraverage_1m_ago"></span></td>
+                        <td class="table_value"><span id="water_otheraverage_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>요금 (원)</td>
-                        <td align="right"><span id="water_fee_cur_month"></span></td>
-                        <td align="right"><span id="water_fee_1m_ago"></span></td>
-                        <td align="right"><span id="water_fee_2m_ago"></span></td>
+                        <td class="table_value"><span id="water_fee_cur_month"></span></td>
+                        <td class="table_value"><span id="water_fee_1m_ago"></span></td>
+                        <td class="table_value"><span id="water_fee_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>CO2 배출량 (kg)</td>
-                        <td align="right"><span id="water_co2_cur_month"></span></td>
-                        <td align="right"><span id="water_co2_1m_ago"></span></td>
-                        <td align="right"><span id="water_co2_2m_ago"></span></td>
+                        <td class="table_value"><span id="water_co2_cur_month"></span></td>
+                        <td class="table_value"><span id="water_co2_1m_ago"></span></td>
+                        <td class="table_value"><span id="water_co2_2m_ago"></span></td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </details>
+    <br>
 
     <details open>
-        <summary><h2>[가스]</h2></summary>
+        <summary>[가스]</summary>
         <div class="section">
+            <h3>목표량: <span id="gas_target"></span> L</h3>
             <table>
                 <thead>
                     <tr>
                         <th></th>
-                        <th align="center">당월</th>
-                        <th align="center">전월</th>
-                        <th align="center">전전월</th>
+                        <th>당월</th>
+                        <th>전월</th>
+                        <th>전전월</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td>우리집 사용량 (L)</td>
-                        <td align="right"><span id="gas_history_cur_month"></span></td>
-                        <td align="right"><span id="gas_history_1m_ago"></span></td>
-                        <td align="right"><span id="gas_history_2m_ago"></span></td>
+                        <td class="table_value"><span id="gas_history_cur_month"></span></td>
+                        <td class="table_value"><span id="gas_history_1m_ago"></span></td>
+                        <td class="table_value"><span id="gas_history_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>동일평수 평균 사용량 (L)</td>
-                        <td align="right"><span id="gas_otheraverage_cur_month"></span></td>
-                        <td align="right"><span id="gas_otheraverage_1m_ago"></span></td>
-                        <td align="right"><span id="gas_otheraverage_2m_ago"></span></td>
+                        <td class="table_value"><span id="gas_otheraverage_cur_month"></span></td>
+                        <td class="table_value"><span id="gas_otheraverage_1m_ago"></span></td>
+                        <td class="table_value"><span id="gas_otheraverage_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>요금 (원)</td>
-                        <td align="right"><span id="gas_fee_cur_month"></span></td>
-                        <td align="right"><span id="gas_fee_1m_ago"></span></td>
-                        <td align="right"><span id="gas_fee_2m_ago"></span></td>
+                        <td class="table_value"><span id="gas_fee_cur_month"></span></td>
+                        <td class="table_value"><span id="gas_fee_1m_ago"></span></td>
+                        <td class="table_value"><span id="gas_fee_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>CO2 배출량 (kg)</td>
-                        <td align="right"><span id="gas_co2_cur_month"></span></td>
-                        <td align="right"><span id="gas_co2_1m_ago"></span></td>
-                        <td align="right"><span id="gas_co2_2m_ago"></span></td>
+                        <td class="table_value"><span id="gas_co2_cur_month"></span></td>
+                        <td class="table_value"><span id="gas_co2_1m_ago"></span></td>
+                        <td class="table_value"><span id="gas_co2_2m_ago"></span></td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </details>
+    <br>
 
     <details open>
-        <summary><h2>[온수]</h2></summary>
+        <summary>[온수]</summary>
         <div class="section">
+            <h3>목표량: <span id="hotwater_target"></span> L</h3>
             <table>
                 <thead>
                     <tr>
                         <th></th>
-                        <th align="center">당월</th>
-                        <th align="center">전월</th>
-                        <th align="center">전전월</th>
+                        <th>당월</th>
+                        <th>전월</th>
+                        <th>전전월</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td>우리집 사용량 (L)</td>
-                        <td align="right"><span id="hotwater_history_cur_month"></span></td>
-                        <td align="right"><span id="hotwater_history_1m_ago"></span></td>
-                        <td align="right"><span id="hotwater_history_2m_ago"></span></td>
+                        <td class="table_value"><span id="hotwater_history_cur_month"></span></td>
+                        <td class="table_value"><span id="hotwater_history_1m_ago"></span></td>
+                        <td class="table_value"><span id="hotwater_history_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>동일평수 평균 사용량 (L)</td>
-                        <td align="right"><span id="hotwater_otheraverage_cur_month"></span></td>
-                        <td align="right"><span id="hotwater_otheraverage_1m_ago"></span></td>
-                        <td align="right"><span id="hotwater_otheraverage_2m_ago"></span></td>
+                        <td class="table_value"><span id="hotwater_otheraverage_cur_month"></span></td>
+                        <td class="table_value"><span id="hotwater_otheraverage_1m_ago"></span></td>
+                        <td class="table_value"><span id="hotwater_otheraverage_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>요금 (원)</td>
-                        <td align="right"><span id="hotwater_fee_cur_month"></span></td>
-                        <td align="right"><span id="hotwater_fee_1m_ago"></span></td>
-                        <td align="right"><span id="hotwater_fee_2m_ago"></span></td>
+                        <td class="table_value"><span id="hotwater_fee_cur_month"></span></td>
+                        <td class="table_value"><span id="hotwater_fee_1m_ago"></span></td>
+                        <td class="table_value"><span id="hotwater_fee_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>CO2 배출량 (kg)</td>
-                        <td align="right"><span id="hotwater_co2_cur_month"></span></td>
-                        <td align="right"><span id="hotwater_co2_1m_ago"></span></td>
-                        <td align="right"><span id="hotwater_co2_2m_ago"></span></td>
+                        <td class="table_value"><span id="hotwater_co2_cur_month"></span></td>
+                        <td class="table_value"><span id="hotwater_co2_1m_ago"></span></td>
+                        <td class="table_value"><span id="hotwater_co2_2m_ago"></span></td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </details>
+    <br>
 
     <details open>
-        <summary><h2>[난방]</h2></summary>
+        <summary>[난방]</summary>
         <div class="section">
+            <h3>목표량: <span id="heating_target"></span> MWh</h3>
             <table>
                 <thead>
                     <tr>
                         <th></th>
-                        <th align="center">당월</th>
-                        <th align="center">전월</th>
-                        <th align="center">전전월</th>
+                        <th>당월</th>
+                        <th>전월</th>
+                        <th>전전월</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>우리집 사용량 (L)</td>
-                        <td align="right"><span id="heating_history_cur_month"></span></td>
-                        <td align="right"><span id="heating_history_1m_ago"></span></td>
-                        <td align="right"><span id="heating_history_2m_ago"></span></td>
+                        <td>우리집 사용량 (MWh)</td>
+                        <td class="table_value"><span id="heating_history_cur_month"></span></td>
+                        <td class="table_value"><span id="heating_history_1m_ago"></span></td>
+                        <td class="table_value"><span id="heating_history_2m_ago"></span></td>
                     </tr>
                     <tr>
-                        <td>동일평수 평균 사용량 (L)</td>
-                        <td align="right"><span id="heating_otheraverage_cur_month"></span></td>
-                        <td align="right"><span id="heating_otheraverage_1m_ago"></span></td>
-                        <td align="right"><span id="heating_otheraverage_2m_ago"></span></td>
+                        <td>동일평수 평균 사용량 (MWh)</td>
+                        <td class="table_value"><span id="heating_otheraverage_cur_month"></span></td>
+                        <td class="table_value"><span id="heating_otheraverage_1m_ago"></span></td>
+                        <td class="table_value"><span id="heating_otheraverage_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>요금 (원)</td>
-                        <td align="right"><span id="heating_fee_cur_month"></span></td>
-                        <td align="right"><span id="heating_fee_1m_ago"></span></td>
-                        <td align="right"><span id="heating_fee_2m_ago"></span></td>
+                        <td class="table_value"><span id="heating_fee_cur_month"></span></td>
+                        <td class="table_value"><span id="heating_fee_1m_ago"></span></td>
+                        <td class="table_value"><span id="heating_fee_2m_ago"></span></td>
                     </tr>
                     <tr>
                         <td>CO2 배출량 (kg)</td>
-                        <td align="right"><span id="heating_co2_cur_month"></span></td>
-                        <td align="right"><span id="heating_co2_1m_ago"></span></td>
-                        <td align="right"><span id="heating_co2_2m_ago"></span></td>
+                        <td class="table_value"><span id="heating_co2_cur_month"></span></td>
+                        <td class="table_value"><span id="heating_co2_1m_ago"></span></td>
+                        <td class="table_value"><span id="heating_co2_2m_ago"></span></td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </details>
+    <br>
 
 </div>
 {% endblock %}
@@ -230,10 +273,10 @@ setInterval(function() { $.ajax({
     url: '/api/hems/update',
     type: 'POST',
     success: function(response) {
-        $("#current_time").html("현재 시간: " + response["current_time"]);
-        $("#last_recv_time").html("마지막 수신 시간: " + response["last_recv_time"]);
+        $("#current_time").html(response["current_time"]);
+        $("#last_recv_time").html(response["last_recv_time"]);
 
-        $("#electricity_current").html("현재 사용량: " + response["electricity_current"] + " W");
+        $("#electricity_current").html(response["electricity_current"]);
         $("#electricity_history_cur_month").html(response["electricity_history_cur_month"]);
         $("#electricity_history_1m_ago").html(response["electricity_history_1m_ago"]);
         $("#electricity_history_2m_ago").html(response["electricity_history_2m_ago"]);
@@ -246,6 +289,7 @@ setInterval(function() { $.ajax({
         $("#electricity_co2_cur_month").html(response["electricity_co2_cur_month"]);
         $("#electricity_co2_1m_ago").html(response["electricity_co2_1m_ago"]);
         $("#electricity_co2_2m_ago").html(response["electricity_co2_2m_ago"]);
+        $("#electricity_target").html(response["electricity_target"]);
 
         $("#water_history_cur_month").html(response["water_history_cur_month"]);
         $("#water_history_1m_ago").html(response["water_history_1m_ago"]);
@@ -259,6 +303,7 @@ setInterval(function() { $.ajax({
         $("#water_co2_cur_month").html(response["water_co2_cur_month"]);
         $("#water_co2_1m_ago").html(response["water_co2_1m_ago"]);
         $("#water_co2_2m_ago").html(response["water_co2_2m_ago"]);
+        $("#water_target").html(response["water_target"]);
 
         $("#gas_history_cur_month").html(response["gas_history_cur_month"]);
         $("#gas_history_1m_ago").html(response["gas_history_1m_ago"]);
@@ -272,6 +317,7 @@ setInterval(function() { $.ajax({
         $("#gas_co2_cur_month").html(response["gas_co2_cur_month"]);
         $("#gas_co2_1m_ago").html(response["gas_co2_1m_ago"]);
         $("#gas_co2_2m_ago").html(response["gas_co2_2m_ago"]);
+        $("#gas_target").html(response["gas_target"]);
 
         $("#hotwater_history_cur_month").html(response["hotwater_history_cur_month"]);
         $("#hotwater_history_1m_ago").html(response["hotwater_history_1m_ago"]);
@@ -285,6 +331,7 @@ setInterval(function() { $.ajax({
         $("#hotwater_co2_cur_month").html(response["hotwater_co2_cur_month"]);
         $("#hotwater_co2_1m_ago").html(response["hotwater_co2_1m_ago"]);
         $("#hotwater_co2_2m_ago").html(response["hotwater_co2_2m_ago"]);
+        $("#hotwater_target").html(response["hotwater_target"]);
 
         $("#heating_history_cur_month").html(response["heating_history_cur_month"]);
         $("#heating_history_1m_ago").html(response["heating_history_1m_ago"]);
@@ -298,6 +345,7 @@ setInterval(function() { $.ajax({
         $("#heating_co2_cur_month").html(response["heating_co2_cur_month"]);
         $("#heating_co2_1m_ago").html(response["heating_co2_1m_ago"]);
         $("#heating_co2_2m_ago").html(response["heating_co2_2m_ago"]);
+        $("#heating_target").html(response["heating_target"]);
     },
     error: function(error) {
         console.log(error);

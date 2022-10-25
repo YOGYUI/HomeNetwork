@@ -51,7 +51,7 @@ class ParserVarious(PacketParser):
                     year, month, day = packet[8], packet[9], packet[10]
                     hour, minute, second = packet[11], packet[12], packet[13]
                     writeLog(f'Timestamp Packet: {self.prettifyPacket(packet)}', self)
-                    writeLog(f'>> {year}-{month}-{day} {hour}:{minute}:{second}', self)
+                    writeLog('>> {:02d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}'.format(year, month, day, hour, minute, second), self)
                 else:
                     packet_info['device'] = 'unknown'
                     writeLog(f'Unknown packet (44): {self.prettifyPacket(packet)}', self)

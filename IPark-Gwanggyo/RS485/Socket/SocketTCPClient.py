@@ -108,6 +108,7 @@ class TCPClient:
                 servinfo = self.getServerInfo()
                 myinfo = self.getClientInfo()
                 writeLog(f'"{self._name}" Connected (server={servinfo[0]}::{servinfo[1]}, self={myinfo[1]})', self)
+                self._last_recv_time = datetime.datetime.now()
             else:
                 del self._sock
                 self._sock = None

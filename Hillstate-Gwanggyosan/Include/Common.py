@@ -74,6 +74,10 @@ def writeLog(strMsg: str, obj: object = None):
     print(msg)
 
 
+def prettifyPacket(packet: bytearray) -> str:
+    return ' '.join(['%02X' % x for x in packet])
+
+
 class bind(partial):
     # https://stackoverflow.com/questions/7811247/how-to-fill-specific-positional-arguments-with-partial-in-python
     """
