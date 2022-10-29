@@ -14,6 +14,7 @@ from Threads import *
 from RS485 import *
 from Common import *
 from Multiprocess import *
+from ThinQ import ThinQ
 
 
 class Home:
@@ -26,6 +27,7 @@ class Home:
     # doorlock: DoorLock
     subphone: SubPhone
     airquality: AirqualitySensor
+    thinq: ThinQ = None
 
     thread_cmd_queue: Union[ThreadCommandQueue, None] = None
     thread_parse_result_queue: Union[ThreadParseResultQueue, None] = None
@@ -39,6 +41,7 @@ class Home:
     mqtt_port: int = 1883
     mqtt_is_connected: bool = False
     enable_mqtt_console_log: bool = True
+    verbose_mqtt_regular_publish: bool = True
 
     rs485_list: List[RS485Comm]
     rs485_reconnect_limit: int = 60
@@ -139,6 +142,8 @@ class Home:
             except Exception as e:
                 writeLog('MQTT Connection Error: {}'.format(e), self)
             self.mqtt_client.loop_start()
+            if self.thinq is not None:
+                self.thinq.start()
         
         # 카메라 스트리밍
         if self.rs485_subphone_config.enable:
@@ -160,6 +165,10 @@ class Home:
         self.mqtt_client.loop_stop()
         self.mqtt_client.disconnect()
         del self.mqtt_client
+
+        if self.thinq is not None:
+            self.thinq.release()
+            del self.thinq
 
         self.stopThreadCommandQueue()
         self.stopThreadParseResultQueue()
@@ -300,6 +309,7 @@ class Home:
             self.mqtt_port = int(node.find('port').text)
             self.mqtt_client.username_pw_set(username, password)
             self.enable_mqtt_console_log = bool(int(node.find('console_log').text))
+            self.verbose_mqtt_regular_publish = bool(int(node.find('verbose_regular_publish').text))
         except Exception as e:
             writeLog(f"Failed to load mqtt config ({e})", self)
         
@@ -381,6 +391,31 @@ class Home:
             self.airquality.setApiParams(apikey, obsname)
         except Exception as e:
             writeLog(f"Failed to load airquality sensor config ({e})", self)
+        
+        node = root.find('thinq')
+        try:
+            enable = bool(int(node.find('enable').text))
+            robot_cleaner_node = node.find('robot_cleaner')
+            robot_cleaner_dev_id = robot_cleaner_node.find('dev_id').text
+            mqtt_node = node.find('mqtt')
+            mqtt_topic = mqtt_node.find('publish').text
+            if enable:
+                self.thinq = ThinQ(
+                    country_code=node.find('country_code').text,
+                    language_code=node.find('language_code').text,
+                    api_key=node.find('api_key').text,
+                    api_client_id=node.find('api_client_id').text,
+                    refresh_token=node.find('refresh_token').text,
+                    oauth_secret_key=node.find('oauth_secret_key').text,
+                    app_client_id=node.find('app_client_id').text,
+                    app_key=node.find('application_key').text,
+                    robot_cleaner_dev_id=robot_cleaner_dev_id, 
+                    mqtt_topic=mqtt_topic
+                )
+                self.thinq.sig_publish_mqtt.connect(self.onThinqPublishMQTT)
+        except Exception as e:
+            writeLog(f"Failed to load thinq config ({e})", self)
+            traceback.print_exc()
 
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
@@ -433,7 +468,8 @@ class Home:
             """
             self.thread_timer = ThreadTimer(
                 rs485_list,
-                reconnect_limit_sec=self.rs485_reconnect_limit
+                reconnect_limit_sec=self.rs485_reconnect_limit,
+                verbose_regular_publish=self.verbose_mqtt_regular_publish
             )
             self.thread_timer.sig_terminated.connect(self.onThreadTimerTerminated)
             self.thread_timer.sig_publish_regular.connect(self.publish_all)
@@ -895,6 +931,9 @@ class Home:
                 target=message['state']
             )
     """
+
+    def onThinqPublishMQTT(self, topic: str, message: dict):
+        self.mqtt_client.publish(topic, json.dumps(message), 1)
 
 
 home_: Union[Home, None] = None

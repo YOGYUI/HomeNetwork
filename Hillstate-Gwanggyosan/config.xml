@@ -62,6 +62,7 @@
         <username>mosquitto auth id</username>
         <password>mosquitto auth password</password>
         <console_log>0</console_log>
+        <verbose_regular_publish>0</verbose_regular_publish>
     </mqtt>
     <rooms>
         <room1>
@@ -391,6 +392,23 @@
             <height>480</height>
         </ffmpeg>
     </subphone>
+    <thinq>
+        <enable>1</enable>
+        <refresh_token>your LGE refresh token</refresh_token>
+        <api_key>VGhpblEyLjAgU0VSVklDRQ==</api_key>
+        <api_client_id>c713ea8e50f657534ff8b9d373dfebfc2ed70b88285c26b8ade49868c0b164d9</api_client_id>
+        <oauth_secret_key>c053c2a6ddeb7ad97cb0eed0dcb31cf8</oauth_secret_key>
+        <app_client_id>LGAO221A02</app_client_id>
+        <application_key>6V1V8H2BN5P9ZQGOI5DAQ92YZBDO3EK9</application_key>
+        <country_code>KR</country_code>
+        <language_code>ko-KR</language_code>
+        <robot_cleaner>
+            <dev_id>robot cleaner dev id</dev_id>
+        </robot_cleaner>
+        <mqtt>
+            <publish>home/hillstate/thinq</publish>
+        </mqtt>
+    </thinq>
     <airquality>
         <apikey>Your API Key from data.go.kr</apikey>
         <obsname>수지</obsname>
