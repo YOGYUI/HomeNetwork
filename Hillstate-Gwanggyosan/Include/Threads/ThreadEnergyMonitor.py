@@ -20,6 +20,7 @@ def prettifyPacket(packet: bytearray) -> str:
 class ThreadEnergyMonitor(threading.Thread):
     _keepAlive: bool = True
     _home_initialized: bool = False
+    _timeout_cnt: int = 0
 
     def __init__(self, 
         subphone: SubPhone, 
@@ -92,8 +93,14 @@ class ThreadEnergyMonitor(threading.Thread):
                 break
             time.sleep(50e-3)
         if is_timeout:
+            self._timeout_cnt += 1
             writeLog(f'Timeout ({prettifyPacket(packet)})', self)
+            if self._timeout_cnt > 10:
+                writeLog(f'Too many timeout occurred, Try to reconnect RS485', self)
+                self._parser.rs485.reconnect()
+                self._timeout_cnt = 0
         else:
+            self._timeout_cnt = 0
             if sleep_sec > 0:
                 time.sleep(sleep_sec)
 
@@ -108,35 +115,10 @@ class ThreadEnergyMonitor(threading.Thread):
         tm = time.perf_counter()
 
         writeLog(f"Start HEMS Regular Query (interval: {self._interval_regular_ms / 60000} min)", self)
-        self.send_query(HEMSDevType.Electricity, HEMSCategory.History, log_send)
-        self.send_query(HEMSDevType.Electricity, HEMSCategory.OtherAverage, log_send)
-        self.send_query(HEMSDevType.Electricity, HEMSCategory.Fee, log_send)
-        self.send_query(HEMSDevType.Electricity, HEMSCategory.CO2, log_send)
-        self.send_query(HEMSDevType.Electricity, HEMSCategory.Target, log_send)
-        
-        self.send_query(HEMSDevType.Water, HEMSCategory.History, log_send)
-        self.send_query(HEMSDevType.Water, HEMSCategory.OtherAverage, log_send)
-        self.send_query(HEMSDevType.Water, HEMSCategory.Fee, log_send)
-        self.send_query(HEMSDevType.Water, HEMSCategory.CO2, log_send)
-        self.send_query(HEMSDevType.Water, HEMSCategory.Target, log_send)
-        
-        self.send_query(HEMSDevType.Gas, HEMSCategory.History, log_send)
-        self.send_query(HEMSDevType.Gas, HEMSCategory.OtherAverage, log_send)
-        self.send_query(HEMSDevType.Gas, HEMSCategory.Fee, log_send)
-        self.send_query(HEMSDevType.Gas, HEMSCategory.CO2, log_send)
-        self.send_query(HEMSDevType.Gas, HEMSCategory.Target, log_send)
-        
-        self.send_query(HEMSDevType.HotWater, HEMSCategory.History, log_send)
-        self.send_query(HEMSDevType.HotWater, HEMSCategory.OtherAverage, log_send)
-        self.send_query(HEMSDevType.HotWater, HEMSCategory.Fee, log_send)
-        self.send_query(HEMSDevType.HotWater, HEMSCategory.CO2, log_send)
-        self.send_query(HEMSDevType.HotWater, HEMSCategory.Target, log_send)
-        
-        self.send_query(HEMSDevType.Heating, HEMSCategory.History, log_send)
-        self.send_query(HEMSDevType.Heating, HEMSCategory.OtherAverage, log_send)
-        self.send_query(HEMSDevType.Heating, HEMSCategory.Fee, log_send)
-        self.send_query(HEMSDevType.Heating, HEMSCategory.CO2, log_send)
-        self.send_query(HEMSDevType.Heating, HEMSCategory.Target, log_send)
-        
+        dev_list = [HEMSDevType.Electricity, HEMSDevType.Water, HEMSDevType.Gas, HEMSDevType.HotWater, HEMSDevType.Heating]
+        cat_list = [HEMSCategory.History,HEMSCategory.OtherAverage,HEMSCategory.Fee,HEMSCategory.CO2,HEMSCategory.Target]
+        for dev in dev_list:
+            for cat in cat_list:
+                self.send_query(dev, cat, log_send)
         elapsed = time.perf_counter() - tm
         writeLog(f"HEMS Regular Query Finished(elapsed: {elapsed} sec)", self)

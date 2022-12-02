@@ -399,6 +399,7 @@ class Home:
             robot_cleaner_dev_id = robot_cleaner_node.find('dev_id').text
             mqtt_node = node.find('mqtt')
             mqtt_topic = mqtt_node.find('publish').text
+            log_mqtt_message = bool(int(mqtt_node.find('log_message').text))
             if enable:
                 self.thinq = ThinQ(
                     country_code=node.find('country_code').text,
@@ -410,7 +411,8 @@ class Home:
                     app_client_id=node.find('app_client_id').text,
                     app_key=node.find('application_key').text,
                     robot_cleaner_dev_id=robot_cleaner_dev_id, 
-                    mqtt_topic=mqtt_topic
+                    mqtt_topic=mqtt_topic,
+                    log_mqtt_message=log_mqtt_message
                 )
                 self.thinq.sig_publish_mqtt.connect(self.onThinqPublishMQTT)
         except Exception as e:
@@ -461,11 +463,10 @@ class Home:
                 rs485_list.append(self.rs485_light)
             if self.rs485_various_config.enable:
                 rs485_list.append(self.rs485_various)
-            """
-            # 주방 서브폰은 항상 패킷이 송수신되지 않는다 (현관문 등 다른 기기가 작동해야 함)
             if self.rs485_subphone_config.enable:
-                rs485_list.append(self.rs485_subphone)
-            """
+                # 주방 서브폰은 항상 패킷이 송수신되지 않는다 (현관문 등 다른 기기가 작동해야 함)
+                # rs485_list.append(self.rs485_subphone)
+                pass
             self.thread_timer = ThreadTimer(
                 rs485_list,
                 reconnect_limit_sec=self.rs485_reconnect_limit,
@@ -486,7 +487,12 @@ class Home:
 
     def startThreadEnergyMonitor(self):
         if self.thread_energy_monitor is None:
-            self.thread_energy_monitor = ThreadEnergyMonitor(self.subphone, self.parser_subphone)
+            self.thread_energy_monitor = ThreadEnergyMonitor(
+                subphone=self.subphone, 
+                parser=self.parser_subphone,
+                interval_realtime_ms=5000,
+                interval_regular_ms=60*60*1000
+            )
             self.thread_energy_monitor.sig_terminated.connect(self.onThreadEnergyMonitorTerminated)
             self.thread_energy_monitor.setDaemon(True)
             self.thread_energy_monitor.start()
@@ -844,7 +850,7 @@ class Home:
             )
     
     def onMqttCommandSubPhone(self, topic: str, message: dict):
-        writeLog(f"{topic}, {message}", self)
+        # writeLog(f"{topic}, {message}", self)
         splt = topic.split('/')
         if splt[-1] == 'streaming':
             self.command(

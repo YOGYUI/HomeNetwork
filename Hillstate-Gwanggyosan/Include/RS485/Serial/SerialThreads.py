@@ -31,11 +31,13 @@ class ThreadSend(threading.Thread):
                 if not self._queue.empty():
                     data = self._queue.get()
                     sendLen = len(data)
+                    # self._serial.setRTS(True)
                     while sendLen > 0:
                         nLen = self._serial.write(data[(len(data) - sendLen):])
                         sData = data[(len(data) - sendLen):(len(data) - sendLen + nLen)]
                         self.sig_send_data.emit(sData)
                         sendLen -= nLen
+                    # self._serial.setRTS(False)
                 else:
                     time.sleep(1e-3)
             except Exception as e:

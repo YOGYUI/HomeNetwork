@@ -39,6 +39,7 @@ class HEMSCategory(IntEnum):
 class SubPhone(Device):
     state_streaming: int = 0
     state_ringing: StateRinging = StateRinging.IDLE
+    state_ringing_prev: StateRinging = StateRinging.IDLE
     state_doorlock: StateDoorLock = StateDoorLock.Secured
 
     def __init__(self, name: str = 'SubPhone', **kwargs):
@@ -64,10 +65,12 @@ class SubPhone(Device):
             obj = {"state": self.state_streaming}
             self.mqtt_client.publish(topic + '/streaming', json.dumps(obj), 1)
 
-            if self.state_ringing in [StateRinging.FRONT, StateRinging.COMMUNAL]:
-                self.mqtt_client.publish(topic + '/doorbell', 'ON', 1)
-            else:
-                self.mqtt_client.publish(topic + '/doorbell', 'OFF', 1)
+            if self.state_ringing != self.state_ringing_prev:  # 초인종 호출 상태 알림이 반복적으로 뜨는 것 방지 
+                writeLog(f"Ringing Publish: Prev={bool(self.state_ringing.name)}, Current={self.state_ringing_prev.name}", self)
+                if self.state_ringing in [StateRinging.FRONT, StateRinging.COMMUNAL]:
+                    self.mqtt_client.publish(topic + '/doorbell', 'ON', 1)
+                else:
+                    self.mqtt_client.publish(topic + '/doorbell', 'OFF', 1)
 
             obj = {"state": self.state_doorlock.name}  # 도어락은 상태 조회가 안되고 '열기' 기능만 존재한다
             self.mqtt_client.publish(topic + '/doorlock', json.dumps(obj), 1)
@@ -85,6 +88,7 @@ class SubPhone(Device):
             else:
                 self.state_ringing = StateRinging.IDLE
             self.publish_mqtt()
+            self.state_ringing_prev = self.state_ringing
         ringing_communal = kwargs.get('ringing_communal')
         if ringing_communal is not None:
             if ringing_communal:
@@ -92,6 +96,7 @@ class SubPhone(Device):
             else:
                 self.state_ringing = StateRinging.IDLE
             self.publish_mqtt()
+            self.state_ringing_prev = self.state_ringing
         doorlock = kwargs.get('doorlock')
         if doorlock is not None:
             self.state_doorlock = StateDoorLock(doorlock)

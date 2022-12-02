@@ -407,6 +407,7 @@
         </robot_cleaner>
         <mqtt>
             <publish>home/hillstate/thinq</publish>
+            <log_message>0</log_message>
         </mqtt>
     </thinq>
     <airquality>

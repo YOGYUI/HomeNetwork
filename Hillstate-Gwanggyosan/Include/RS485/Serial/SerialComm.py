@@ -1,5 +1,6 @@
 import queue
 import serial
+# import serial.rs485
 import datetime
 from typing import Union
 from SerialThreads import *
@@ -25,7 +26,18 @@ class SerialComm:
         self._serial.bytesize = 8
         self._serial.parity = 'N'
         self._serial.stopbits = 1
-
+        
+        """
+        self._serial.rtscts = True
+        self._serial.exclusive = True
+        self._serial.rs485_mode = serial.rs485.RS485Settings(
+            rts_level_for_tx=True, 
+            rts_level_for_rx=False, 
+            loopback=False, 
+            delay_before_tx=None, 
+            delay_before_rx=None
+        )
+        """
         self._last_recv_time = datetime.datetime.now()
 
         self._queue_send = queue.Queue()
@@ -36,13 +48,13 @@ class SerialComm:
 
     def connect(self, port: str, baudrate: int) -> bool:
         try:
-            if self._serial.isOpen():
+            if self._serial.is_open:
                 return False
             
             self._serial.port = port
             self._serial.baudrate = baudrate
             self._serial.open()
-            if self._serial.isOpen():
+            if self._serial.is_open:
                 self._serial.reset_input_buffer()
                 self._serial.reset_output_buffer()
                 self.clearQueues()
@@ -54,25 +66,25 @@ class SerialComm:
             self.sig_connected.emit(False)
             return False
         except Exception as e:
-            writeLog('Exception::{}'.format(e), self)
+            writeLog('Exception(connect)::{}'.format(e), self)
             self.sig_exception.emit(str(e))
 
     def disconnect(self):
         try:
-            if self._serial.isOpen():
+            if self._serial.is_open:
                 self.stopThreads()
                 self._serial.close()
                 self.sig_disconnected.emit()
                 writeLog(f'"{self._name}" Disconnected', self)
         except Exception as e:
-            writeLog('Exception::{}'.format(e), self)
+            writeLog('Exception(disconnect)::{}'.format(e), self)
             self.sig_exception.emit(str(e))    
 
     def isConnected(self) -> bool:
         try:
-            return self._serial.isOpen()
+            return self._serial.is_open
         except Exception as e:
-            writeLog('Exception::{}'.format(e), self)
+            writeLog('Exception(isConnected)::{}'.format(e), self)
             return False
 
     def startThreads(self):
@@ -127,7 +139,7 @@ class SerialComm:
                 sData = bytes(data)
                 self._queue_send.put(sData)
         except Exception as e:
-            writeLog('Exception::{}'.format(e), self)
+            writeLog('Exception(sendData)::{}'.format(e), self)
             self.sig_exception.emit(str(e))  
 
     def onSendData(self, data: bytes):

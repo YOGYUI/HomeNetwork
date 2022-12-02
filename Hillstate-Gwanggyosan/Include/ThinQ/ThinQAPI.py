@@ -41,6 +41,7 @@ class ThinQ:
 
     subscribe_topics: List[str]
     mqtt_client: mqtt.Client
+    log_mqtt_message: bool = False
     
     device_discover_list: List[dict]
     robot_cleaner_dev_id: str = ''
@@ -71,6 +72,8 @@ class ThinQ:
             self.robot_cleaner_dev_id = kwargs.get('robot_cleaner_dev_id')
         if 'mqtt_topic' in kwargs.keys():
             self.mqtt_topic = kwargs.get('mqtt_topic')
+        if 'log_mqtt_message' in kwargs.keys():
+            self.log_mqtt_message = kwargs.get('log_mqtt_message')
         self.generate_rsa_csr_pemfiles()
         self.get_aws_root_ca_pem()
 
@@ -444,18 +447,26 @@ class ThinQ:
 
     def onMqttClientMessage(self, _, userdata, message):
         msg_dict = json.loads(message.payload.decode("utf-8"))
+        if self.log_mqtt_message:
+            # writeLog('{}'.format(msg_dict), self)
+            pass
+        
         data = msg_dict.get('data')
         deviceId = msg_dict.get('deviceId')
         msg_type = msg_dict.get('type')
         if data is not None and deviceId is not None and msg_type is not None:
             if deviceId == self.robot_cleaner_dev_id:
+                if self.log_mqtt_message:
+                    writeLog('{}'.format(msg_dict), self)
+                    
                 try:
                     state = data.get('state')
                     reported = state.get('reported')
                     robot_state = reported.get('ROBOT_STATE')
                     if robot_state is not None:
-                        # possible state: 'SLEEP', 'CHARGING', 'INITAILIZING', 'CLEAN_SELECT', 'HOMING', 'CLEAN_EDGE', 'PAUSE_EDGE' ...
-                        # {'EMERGENCY': 'ROBOT_LIFT'}
+                        # possible state: 'SLEEP', 'CHARGING', 'INITAILIZING', 'CLEAN_SELECT', 'HOMING', 'CLEAN_EDGE', 
+                        # 'PAUSE_EDGE', 'HOMING_PAUSE', 'PAUSE_SELECT' ...,
+                        # {'EMERGENCY': 'ROBOT_LIFT', 'ROBOT_STUCK'}
                         writeLog(f'Robot Cleaner Current State: {robot_state}', self)
                         topic = self.mqtt_topic + '/robotcleaner/state'
                         if 'CLEAN' in robot_state or robot_state in ['INITAILIZING', 'HOMING']:
