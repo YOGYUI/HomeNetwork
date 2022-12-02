@@ -1,6 +1,6 @@
 import json
 from typing import List
-from Device import Device
+from Device import *
 
 
 class Ventilator(Device):
@@ -25,3 +25,25 @@ class Ventilator(Device):
         repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
         repr_txt += '>'
         return repr_txt
+
+    def make_packet_set_state(self, target: int, timestamp: int = 0) -> bytearray:
+        packet = bytearray([0x02, 0x61, 0x01, timestamp & 0xFF, 0x00])
+        if target:
+            packet.append(0x01)
+        else:
+            packet.append(0x00)
+        packet.extend([0x01, 0x00, 0x00])
+        packet.append(calculate_bestin_checksum(packet))
+        return packet
+
+    def make_packet_query_state(self, timestamp: int = 0) -> bytearray:
+        packet = bytearray([0x02, 0x61, 0x00, timestamp & 0xFF, 0x00])
+        packet.extend([0x00, 0x00, 0x00, 0x00])
+        packet.append(calculate_bestin_checksum(packet))
+        return packet
+    
+    def make_packet_set_rotation_speed(self, target: int, timestamp: int = 0) -> bytearray:
+        target = max(1, min(3, target))
+        packet = bytearray([0x02, 0x61, 0x03, timestamp & 0xFF, 0x00, 0x00, target, 0x00, 0x00])
+        packet.append(calculate_bestin_checksum(packet))
+        return packet

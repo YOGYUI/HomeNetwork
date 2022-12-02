@@ -14,7 +14,6 @@ class ControlParser(PacketParser):
 
             if len(self.buffer) >= 3:
                 packetLen = self.buffer[2] if self.buffer[1] not in [0x31, 0x61] else 10
-            
                 if len(self.buffer) >= packetLen:
                     chunk = self.buffer[:packetLen]
                     if self.chunk_cnt >= self.max_chunk_cnt:
@@ -64,6 +63,7 @@ class ControlParser(PacketParser):
                 return
             header = packet[1]  # [0x28, 0x31, 0x61]
             command = packet[3]
+            self.timestamp = packet[4]
             if header == 0x28 and command in [0x91, 0x92]:
                 # 난방 관련 패킷
                 self.handleThermostat(packet)

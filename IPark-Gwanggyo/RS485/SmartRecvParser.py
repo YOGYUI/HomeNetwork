@@ -10,7 +10,6 @@ class SmartRecvParser(PacketParser):
     hour: int = 0
     minute: int = 0
     second: int = 0
-    timestamp: int = 0
 
     flag_moving: bool = False
     flag_send_up_packet: bool = False

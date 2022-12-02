@@ -12,6 +12,7 @@ class PacketParser:
     max_chunk_cnt: int = 1e6
     max_buffer_size: int = 200
     line_busy: bool = False
+    timestamp: int = 0
 
     def __init__(self, rs485: RS485Comm):
         self.buffer = bytearray()
@@ -23,6 +24,9 @@ class PacketParser:
 
     def release(self):
         self.buffer.clear()
+
+    def sendPacket(self, packet: bytearray):
+        self.rs485.sendData(packet)
 
     def sendPacketString(self, packet_str: str):
         self.rs485.sendData(bytearray([int(x, 16) for x in packet_str.split(' ')]))
@@ -62,6 +66,9 @@ class PacketParser:
         if self.rs485.getType() == RS485HwType.Socket:
             return False  # 무선 송신 레이턴시때문에 언제 라인이 IDLE인지 정확히 파악할 수 없다
         return self.line_busy
+
+    def get_packet_timestamp(self) -> int:
+        return self.timestamp
 
     @staticmethod
     def prettifyPacket(packet: bytearray) -> str:
