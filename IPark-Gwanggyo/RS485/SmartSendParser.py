@@ -38,7 +38,7 @@ class SmartSendParser(PacketParser):
         else:
             self.elevator_down_packets = [''] * 256
         """
-        self.elevator_call_count = elevator_call_count
+        self.elevator_call_count = max(1, elevator_call_count)
 
     def handlePacket(self):
         try:
