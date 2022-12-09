@@ -64,7 +64,7 @@ class SmartSendParser(PacketParser):
             writeLog('handlePacket Exception::{}'.format(e), self)
 
     def setElevatorCallCount(self, count: int):
-        self.elevator_call_count = count
+        self.elevator_call_count = max(1, count)
 
     def setElevatorCallInterval(self, interval: int):
         self.elevator_call_interval = interval
