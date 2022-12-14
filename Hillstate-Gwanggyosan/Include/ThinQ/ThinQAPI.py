@@ -25,6 +25,7 @@ class ThinQ:
     client_id: Union[str, None] = None
     user_no: Union[str, None] = None
     access_token: Union[str, None] = None
+    jsession_id: Union[str, None] = None
 
     country_code: str = 'KR'
     language_code: str = 'ko-KR'
@@ -85,6 +86,8 @@ class ThinQ:
         if not self.query_access_token():
             return
         if not self.query_user_number():
+            return
+        if not self.query_jsession_id():
             return
         if not self.query_home_device_list():
             return
@@ -147,13 +150,24 @@ class ThinQ:
             'x-message-id': self.generate_random_string(22),
             'user-agent': 'okhttp/3.14.9'
         }
-        
         headers['x-client-id'] = self.api_client_id if self.client_id is None else self.client_id
         if self.user_no is not None:
             headers['x-user-no'] = self.user_no
         if self.access_token is not None:
             headers['x-emp-token'] = self.access_token
         return headers
+    
+    def generate_monitor_headers(self) -> dict:
+        headers = {
+            'Accept': 'application/json',
+            'x-thinq-application-key': 'wideq',
+            'x-thinq-security-key': 'nuts_securitykey'
+        }
+        if self.access_token is not None:
+            headers['x-thinq-token'] = self.access_token
+        if self.jsession_id is not None:
+            headers['x-thinq-jsessionId'] = self.jsession_id
+        return headers    
     
     def query_thinq_uris(self) -> bool:
         result: bool
@@ -277,6 +291,39 @@ class ThinQ:
             writeLog(f'failed to query user number ({response.status_code}, {response.text})', self)
             result = False
         return result
+
+    def query_jsession_id(self) -> bool:
+        result: bool
+        if self.access_token is None:
+            writeLog(f'access token is not queried yet!', self)
+            return False
+        url = self.uri_thinq1 + '/member/login'
+        headers = {
+            'x-thinq-application-key': 'wideq',
+            'x-thinq-security-key': 'nuts_securitykey',
+            'Accept': 'application/json',
+            'x-thinq-token': self.access_token
+        }
+        data = {
+            'lgedmRoot': {
+                'countryCode': self.country_code,
+                'langCode': self.language_code,
+                'loginType': 'EMP',
+                'token': self.access_token
+            }
+        }
+        response = requests.post(url, json=data, headers=headers)
+        if response.status_code == 200:
+            response_json = json.loads(response.text)
+            lgemdRoot = response_json.get('lgedmRoot')
+            self.jsession_id = lgemdRoot.get('jsessionId')
+            elapsed = response.elapsed.microseconds
+            writeLog('query jsession id success ({:g} msec)'.format(elapsed / 1000), self)
+            result = True
+        else:
+            writeLog(f'failed to query jsession id ({response.status_code}, {response.text})', self)
+            result = False
+        return result        
 
     def query_home_device_list(self) -> bool:
         result: bool
