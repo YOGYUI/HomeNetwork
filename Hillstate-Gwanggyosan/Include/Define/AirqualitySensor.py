@@ -63,7 +63,7 @@ class AirqualitySensor(Device):
                     if result_code is not None and result_msg is not None:
                         result_code_text = result_code.text
                         result_msg_text = result_msg.text
-                        if result_code_text == '00':
+                        if result_code_text in ['00', '200']:
                             items = xml.findAll("item")
                             if len(list(items)) >= 1:
                                 item = items[0]
