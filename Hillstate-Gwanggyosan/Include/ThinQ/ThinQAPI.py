@@ -40,7 +40,7 @@ class ThinQ:
     uri_oauth: Union[str, None] = None
 
     subscribe_topics: List[str]
-    mqtt_client: mqtt.Client
+    mqtt_client: mqtt.Client = None
     log_mqtt_message: bool = False
     
     device_discover_list: List[dict]
@@ -93,7 +93,19 @@ class ThinQ:
         if not self.connect_mqtt_broker():
             return
 
+    def stop(self):
+        if self.mqtt_client is not None:
+            self.mqtt_client.loop_stop()
+            self.mqtt_client.disconnect()
+            del self.mqtt_client
+            self.mqtt_client = None
+
+    def restart(self):
+        self.stop()
+        self.start()
+
     def release(self):
+        self.stop()
         self.client_id = None
         self.user_no = None
         self.access_token = None
@@ -440,7 +452,7 @@ class ThinQ:
             self.mqtt_client.subscribe(topic)
 
     def onMqttClientDisconnect(self, _, userdata, rc):
-        writeLog('disconnected from aws iot core (mqtt broker): {}, {}, {}'.format(userdata, rc), self)
+        writeLog('disconnected from aws iot core (mqtt broker): {}, {}'.format(userdata, rc), self)
 
     def onMqttClientSubscribe(self, _, userdata, mid, granted_qos):
         writeLog('mqtt subscribe: {}, {}, {}'.format(userdata, mid, granted_qos), self)
@@ -448,17 +460,13 @@ class ThinQ:
     def onMqttClientMessage(self, _, userdata, message):
         msg_dict = json.loads(message.payload.decode("utf-8"))
         if self.log_mqtt_message:
-            # writeLog('{}'.format(msg_dict), self)
-            pass
+            writeLog('{}'.format(msg_dict), self)
         
         data = msg_dict.get('data')
         deviceId = msg_dict.get('deviceId')
         msg_type = msg_dict.get('type')
         if data is not None and deviceId is not None and msg_type is not None:
             if deviceId == self.robot_cleaner_dev_id:
-                if self.log_mqtt_message:
-                    writeLog('{}'.format(msg_dict), self)
-                    
                 try:
                     state = data.get('state')
                     reported = state.get('reported')
@@ -477,3 +485,6 @@ class ThinQ:
                         self.sig_publish_mqtt.emit(topic, message)
                 except Exception:
                     pass
+
+    def setEnableLogMqttMessage(self, enable: bool):
+        self.log_mqtt_message = enable

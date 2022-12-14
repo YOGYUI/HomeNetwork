@@ -636,6 +636,8 @@ class Home:
         for dev in self.device_list:
             for topic in dev.mqtt_subscribe_topics:
                 self.mqtt_client.subscribe(topic)
+        if self.thinq is not None:
+            self.mqtt_client.subscribe('home/hillstate/thinq/command')
 
     def onMqttClientConnect(self, _, userdata, flags, rc):
         if self.enable_mqtt_console_log:
@@ -692,6 +694,8 @@ class Home:
                 self.onMqttCommandElevator(topic, msg_dict)
             if 'subphone/command' in topic:
                 self.onMqttCommandSubPhone(topic, msg_dict)
+            if 'thinq/command' in topic:
+                self.onMqttCommandThinq(topic, msg_dict)
             """
             if 'doorlock/command' in topic:
                 self.onMqttCommandDookLock(topic, msg_dict)
@@ -864,6 +868,15 @@ class Home:
                 category='doorlock',
                 target=message['state']
             )
+
+    def onMqttCommandThinq(self, topic: str, message: dict):
+        if self.thinq is None:
+            return
+        if 'restart' in message.keys():
+            self.thinq.restart()
+            return
+        if 'log_mqtt_message' in message.keys():
+            self.thinq.setEnableLogMqttMessage(int(message.get('log_mqtt_message')))
 
     def onSubphoneStateStreaming(self, state: int):
         # 카메라 응답없음이 해제가 안되므로, 초기화 시에 시작하도록 한다
