@@ -10,7 +10,6 @@ class SmartRecvParser(PacketParser):
     hour: int = 0
     minute: int = 0
     second: int = 0
-    timestamp: int = 0
 
     flag_moving: bool = False
     flag_send_up_packet: bool = False
@@ -30,20 +29,22 @@ class SmartRecvParser(PacketParser):
                 packetLen = self.buffer[2]
                 if len(self.buffer) >= 5:
                     self.timestamp = self.buffer[4]
+                    
                 if len(self.buffer) >= 12:
                     self.flag_moving = bool(self.buffer[11])
                     if self.flag_moving:  # 0 = stopped, 1 = moving, 4 = arrived
                         self.flag_send_up_packet = False
                         self.flag_send_down_packet = False
+
                 if len(self.buffer) >= packetLen:
                     chunk = self.buffer[:packetLen]
-                    if len(chunk) >= 11:
-                        if chunk[3] == 0x11:
-                            if self.flag_send_up_packet:
-                                self.sig_call_elevator.emit(1, self.timestamp)
-                            if self.flag_send_down_packet:
-                                self.sig_call_elevator.emit(0, self.timestamp)
+                    if chunk[3] == 0x11:
+                        if self.flag_send_up_packet:
+                            self.sig_call_elevator.emit(1, self.timestamp)
+                        if self.flag_send_down_packet:
+                            self.sig_call_elevator.emit(0, self.timestamp)
 
+                    if len(chunk) >= 11:
                         if chunk[1] == 0xC1 and chunk[3] == 0x13:
                             self.year = chunk[5]
                             self.month = chunk[6]
@@ -52,12 +53,12 @@ class SmartRecvParser(PacketParser):
                             self.minute = chunk[9]
                             self.second = chunk[10]
 
-                        if self.enable_console_log:
-                            msg = ' '.join(['%02X' % x for x in chunk])
-                            print('[SER 1] ' + msg)
+                    if self.enable_console_log:
+                        msg = ' '.join(['%02X' % x for x in chunk])
+                        print('[SER 1] ' + msg)
 
-                        self.interpretPacket(chunk)
-                        self.buffer = self.buffer[packetLen:]
+                    self.interpretPacket(chunk)
+                    self.buffer = self.buffer[packetLen:]
         except Exception as e:
             writeLog('handlePacket Exception::{}'.format(e), self)
 

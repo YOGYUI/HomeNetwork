@@ -365,18 +365,22 @@ class Home:
                 for j in range(room.light_count):
                     light_node = room_node.find('light{}'.format(j))
                     if light_node is not None:
+                        """
                         room.lights[j].packet_set_state_on = light_node.find('on').text
                         room.lights[j].packet_set_state_off = light_node.find('off').text
                         room.lights[j].packet_get_state = light_node.find('get').text
+                        """
                         mqtt_node = light_node.find('mqtt')
                         room.lights[j].mqtt_publish_topic = mqtt_node.find('publish').text
                         room.lights[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
 
                 thermo_node = room_node.find('thermostat')
                 if thermo_node is not None:
+                    """
                     room.thermostat.packet_set_state_on = thermo_node.find('on').text
                     room.thermostat.packet_set_state_off = thermo_node.find('off').text
                     room.thermostat.packet_get_state = thermo_node.find('get').text
+                    """
                     mqtt_node = thermo_node.find('mqtt')
                     room.thermostat.mqtt_publish_topic = mqtt_node.find('publish').text
                     room.thermostat.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
@@ -389,28 +393,36 @@ class Home:
                 for j in range(room.outlet_count):
                     outlet_node = room_node.find('outlet{}'.format(j))
                     if outlet_node is not None:
+                        """
                         room.outlets[j].packet_set_state_on = outlet_node.find('on').text
                         room.outlets[j].packet_set_state_off = outlet_node.find('off').text
                         room.outlets[j].packet_get_state = outlet_node.find('get').text
+                        """
                         mqtt_node = outlet_node.find('mqtt')
                         room.outlets[j].mqtt_publish_topic = mqtt_node.find('publish').text
                         room.outlets[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
 
         node = root.find('gasvalve')
+        """
         self.gas_valve.packet_set_state_off = node.find('off').text
         self.gas_valve.packet_get_state = node.find('get').text
+        """
         mqtt_node = node.find('mqtt')
         self.gas_valve.mqtt_publish_topic = mqtt_node.find('publish').text
         self.gas_valve.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
 
         node = root.find('ventilator')
+        """
         self.ventilator.packet_set_state_on = node.find('on').text
         self.ventilator.packet_set_state_off = node.find('off').text
         self.ventilator.packet_get_state = node.find('get').text
+        """
         speed_setting_packets = node.find('speed').text.split('\n')
         speed_setting_packets = [x.replace('\t', '').strip() for x in speed_setting_packets]
         speed_setting_packets = list(filter(lambda x: len(x) > 0, speed_setting_packets))
+        """
         self.ventilator.packet_set_rotation_speed = speed_setting_packets
+        """
         mqtt_node = node.find('mqtt')
         self.ventilator.mqtt_publish_topic = mqtt_node.find('publish').text
         self.ventilator.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)

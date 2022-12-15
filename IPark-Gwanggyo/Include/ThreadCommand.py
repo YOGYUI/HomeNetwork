@@ -49,7 +49,7 @@ class ThreadCommand(threading.Thread):
 
                     if isinstance(dev, Light) or isinstance(dev, Outlet):
                         if category == 'state':
-                            self.set_light_state(dev, target, parser)
+                            self.set_light_outlet_state(dev, target, parser)
                     elif isinstance(dev, Thermostat):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
@@ -94,63 +94,87 @@ class ThreadCommand(threading.Thread):
 
     def set_state_common(self, dev: Device, target: int, parser: PacketParser):
         cnt = 0
+        """
         packet1 = dev.packet_set_state_on if target else dev.packet_set_state_off
         packet2 = dev.packet_get_state
+        """
         interval, retry_cnt = self.getSendParams(parser)
         while cnt < retry_cnt:
-            if dev.state == target:
-                break
             if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
                 continue
-            parser.sendPacketString(packet1)
+            if dev.state == target:
+                break
+            packet = dev.make_packet_set_state(target, parser.get_packet_timestamp() + 1)
+            # parser.sendPacketString(packet)
+            parser.sendPacket(packet)
             cnt += 1
             time.sleep(interval)
             if dev.state == target:
                 break
-            parser.sendPacketString(packet2)
+            packet = dev.make_packet_query_state(parser.get_packet_timestamp() + 1)
+            # parser.sendPacketString(packet)
+            parser.sendPacket(packet)
             time.sleep(interval)
         if cnt > 0:
             writeLog('set_state_common::send # = {}'.format(cnt), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_light_state(self, dev: Union[Light, Outlet], target: int, parser: PacketParser):
+    def set_light_outlet_state(self, dev: Union[Light, Outlet], target: int, parser: PacketParser):
         cnt = 0
+        """
         packet1 = dev.packet_set_state_on if target else dev.packet_set_state_off
         packet2 = dev.packet_get_state
+        """
         interval, retry_cnt = self.getSendParams(parser)
         while cnt < retry_cnt:
+            if parser.isRS485LineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
             if dev.state == target:
                 break
-            parser.sendPacketString(packet1)
+            packet = dev.make_packet_set_state(target, parser.get_packet_timestamp() + 1)
+            # parser.sendPacketString(packet)
+            parser.sendPacket(packet)
             cnt += 1
             time.sleep(interval)
             if dev.state == target:
                 break
-            parser.sendPacketString(packet2)
+            packet = dev.make_packet_query_state(parser.get_packet_timestamp() + 1)
+            # parser.sendPacketString(packet)
+            parser.sendPacket(packet)
             time.sleep(interval)
         if cnt > 0:
-            writeLog('set_light_state::send # = {}'.format(cnt), self)
+            writeLog('set_light_outlet_state::send # = {}'.format(cnt), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
     def set_gas_state(self, dev: GasValve, target: int, parser: PacketParser):
         cnt = 0
+        """
         packet1 = dev.packet_set_state_on if target else dev.packet_set_state_off
         packet2 = dev.packet_get_state
+        """
         interval, retry_cnt = self.getSendParams(parser)
         # only closing is permitted, 2 = Opening/Closing (Valve is moving...)
         if target == 0:
             while cnt < retry_cnt:
+                if parser.isRS485LineBusy():
+                    time.sleep(1e-3)  # prevent cpu occupation
+                    continue
                 if dev.state in [target, 2]:
                     break
-                parser.sendPacketString(packet1)
+                packet = dev.make_packet_set_state(parser.get_packet_timestamp() + 1)
+                # parser.sendPacketString(packet)
+                parser.sendPacket(packet)
                 cnt += 1
                 time.sleep(interval)
                 if dev.state in [target, 2]:
                     break
-                parser.sendPacketString(packet2)
+                packet = dev.make_packet_query_state(parser.get_packet_timestamp() + 1)
+                # parser.sendPacketString(packet)
+                parser.sendPacket(packet)
                 time.sleep(interval)
             if cnt > 0:
                 writeLog('set_gas_state::send # = {}'.format(cnt), self)
@@ -159,19 +183,28 @@ class ThreadCommand(threading.Thread):
 
     def set_thermostat_temperature(self, dev: Thermostat, target: float, parser: PacketParser):
         cnt = 0
+        """
         idx = max(0, min(70, int((target - 5.0) / 0.5)))
         packet1 = dev.packet_set_temperature[idx]
         packet2 = dev.packet_get_state
+        """
         interval, retry_cnt = self.getSendParams(parser)
         while cnt < retry_cnt:
+            if parser.isRS485LineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
             if dev.temperature_setting == target:
                 break
-            parser.sendPacketString(packet1)
+            packet = dev.make_packet_set_temperature(target, parser.get_packet_timestamp() + 1)
+            # parser.sendPacketString(packet)
+            parser.sendPacket(packet)
             cnt += 1
             time.sleep(interval)
             if dev.temperature_setting == target:
                 break
-            parser.sendPacketString(packet2)
+            packet = dev.make_packet_query_state(parser.get_packet_timestamp() + 1)
+            # parser.sendPacketString(packet)
+            parser.sendPacket(packet)
             time.sleep(interval)
         if cnt > 0:
             writeLog('set_thermostat_temperature::send # = {}'.format(cnt), self)
@@ -180,18 +213,27 @@ class ThreadCommand(threading.Thread):
 
     def set_ventilator_rotation_speed(self, dev: Ventilator, target: int, parser: PacketParser):
         cnt = 0
+        """
         packet1 = dev.packet_set_rotation_speed[target - 1]
         packet2 = dev.packet_get_state
+        """
         interval, retry_cnt = self.getSendParams(parser)
         while cnt < retry_cnt:
+            if parser.isRS485LineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
             if dev.rotation_speed == target:
                 break
-            parser.sendPacketString(packet1)
+            # parser.sendPacketString(packet1)
+            packet = dev.make_packet_set_rotation_speed(target, parser.get_packet_timestamp() + 1)
+            parser.sendPacket(packet)
             cnt += 1
             time.sleep(interval)
             if dev.rotation_speed == target:
                 break
-            parser.sendPacketString(packet2)
+            # parser.sendPacketString(packet2)
+            packet = dev.make_packet_query_state(parser.get_packet_timestamp() + 1)
+            parser.sendPacket(packet)
             time.sleep(interval)
         if cnt > 0:
             writeLog('set_ventilator_rotation_speed::send # = {}'.format(cnt), self)

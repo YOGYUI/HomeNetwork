@@ -1,5 +1,5 @@
 import json
-from Device import Device
+from Device import *
 
 
 class GasValve(Device):
@@ -15,3 +15,17 @@ class GasValve(Device):
         repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
         repr_txt += '>'
         return repr_txt
+
+    def make_packet_set_state(self, target: int, timestamp: int = 0) -> bytearray:
+        if target:
+            return bytearray([])  # not allowed open valve
+        packet = bytearray([0x02, 0x31, 0x02, timestamp & 0xFF])
+        packet.extend(bytearray([0x00] * 5))
+        packet.append(calculate_bestin_checksum(packet))
+        return packet
+
+    def make_packet_query_state(self, timestamp: int = 0) -> bytearray:
+        packet = bytearray([0x02, 0x31, 0x00, timestamp & 0xFF])
+        packet.extend(bytearray([0x00] * 5))
+        packet.append(calculate_bestin_checksum(packet))
+        return packet

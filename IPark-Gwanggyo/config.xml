@@ -53,6 +53,7 @@
                 <port>8899</port>
             </ew11>
         </smart2>
+        <use_predefined_packet>0</use_predefined_packet>
     </rs485>
 
     <mqtt>

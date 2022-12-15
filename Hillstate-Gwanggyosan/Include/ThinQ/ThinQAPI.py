@@ -25,6 +25,7 @@ class ThinQ:
     client_id: Union[str, None] = None
     user_no: Union[str, None] = None
     access_token: Union[str, None] = None
+    jsession_id: Union[str, None] = None
 
     country_code: str = 'KR'
     language_code: str = 'ko-KR'
@@ -40,7 +41,7 @@ class ThinQ:
     uri_oauth: Union[str, None] = None
 
     subscribe_topics: List[str]
-    mqtt_client: mqtt.Client
+    mqtt_client: mqtt.Client = None
     log_mqtt_message: bool = False
     
     device_discover_list: List[dict]
@@ -86,6 +87,8 @@ class ThinQ:
             return
         if not self.query_user_number():
             return
+        if not self.query_jsession_id():
+            return
         if not self.query_home_device_list():
             return
         if not self.get_certificate_from_server():
@@ -93,7 +96,19 @@ class ThinQ:
         if not self.connect_mqtt_broker():
             return
 
+    def stop(self):
+        if self.mqtt_client is not None:
+            self.mqtt_client.loop_stop()
+            self.mqtt_client.disconnect()
+            del self.mqtt_client
+            self.mqtt_client = None
+
+    def restart(self):
+        self.stop()
+        self.start()
+
     def release(self):
+        self.stop()
         self.client_id = None
         self.user_no = None
         self.access_token = None
@@ -135,13 +150,24 @@ class ThinQ:
             'x-message-id': self.generate_random_string(22),
             'user-agent': 'okhttp/3.14.9'
         }
-        
         headers['x-client-id'] = self.api_client_id if self.client_id is None else self.client_id
         if self.user_no is not None:
             headers['x-user-no'] = self.user_no
         if self.access_token is not None:
             headers['x-emp-token'] = self.access_token
         return headers
+    
+    def generate_monitor_headers(self) -> dict:
+        headers = {
+            'Accept': 'application/json',
+            'x-thinq-application-key': 'wideq',
+            'x-thinq-security-key': 'nuts_securitykey'
+        }
+        if self.access_token is not None:
+            headers['x-thinq-token'] = self.access_token
+        if self.jsession_id is not None:
+            headers['x-thinq-jsessionId'] = self.jsession_id
+        return headers    
     
     def query_thinq_uris(self) -> bool:
         result: bool
@@ -265,6 +291,39 @@ class ThinQ:
             writeLog(f'failed to query user number ({response.status_code}, {response.text})', self)
             result = False
         return result
+
+    def query_jsession_id(self) -> bool:
+        result: bool
+        if self.access_token is None:
+            writeLog(f'access token is not queried yet!', self)
+            return False
+        url = self.uri_thinq1 + '/member/login'
+        headers = {
+            'x-thinq-application-key': 'wideq',
+            'x-thinq-security-key': 'nuts_securitykey',
+            'Accept': 'application/json',
+            'x-thinq-token': self.access_token
+        }
+        data = {
+            'lgedmRoot': {
+                'countryCode': self.country_code,
+                'langCode': self.language_code,
+                'loginType': 'EMP',
+                'token': self.access_token
+            }
+        }
+        response = requests.post(url, json=data, headers=headers)
+        if response.status_code == 200:
+            response_json = json.loads(response.text)
+            lgemdRoot = response_json.get('lgedmRoot')
+            self.jsession_id = lgemdRoot.get('jsessionId')
+            elapsed = response.elapsed.microseconds
+            writeLog('query jsession id success ({:g} msec)'.format(elapsed / 1000), self)
+            result = True
+        else:
+            writeLog(f'failed to query jsession id ({response.status_code}, {response.text})', self)
+            result = False
+        return result        
 
     def query_home_device_list(self) -> bool:
         result: bool
@@ -440,7 +499,7 @@ class ThinQ:
             self.mqtt_client.subscribe(topic)
 
     def onMqttClientDisconnect(self, _, userdata, rc):
-        writeLog('disconnected from aws iot core (mqtt broker): {}, {}, {}'.format(userdata, rc), self)
+        writeLog('disconnected from aws iot core (mqtt broker): {}, {}'.format(userdata, rc), self)
 
     def onMqttClientSubscribe(self, _, userdata, mid, granted_qos):
         writeLog('mqtt subscribe: {}, {}, {}'.format(userdata, mid, granted_qos), self)
@@ -448,17 +507,13 @@ class ThinQ:
     def onMqttClientMessage(self, _, userdata, message):
         msg_dict = json.loads(message.payload.decode("utf-8"))
         if self.log_mqtt_message:
-            # writeLog('{}'.format(msg_dict), self)
-            pass
+            writeLog('{}'.format(msg_dict), self)
         
         data = msg_dict.get('data')
         deviceId = msg_dict.get('deviceId')
         msg_type = msg_dict.get('type')
         if data is not None and deviceId is not None and msg_type is not None:
             if deviceId == self.robot_cleaner_dev_id:
-                if self.log_mqtt_message:
-                    writeLog('{}'.format(msg_dict), self)
-                    
                 try:
                     state = data.get('state')
                     reported = state.get('reported')
@@ -477,3 +532,6 @@ class ThinQ:
                         self.sig_publish_mqtt.emit(topic, message)
                 except Exception:
                     pass
+
+    def setEnableLogMqttMessage(self, enable: bool):
+        self.log_mqtt_message = enable

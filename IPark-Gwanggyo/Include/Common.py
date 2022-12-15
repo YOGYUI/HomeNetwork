@@ -1,6 +1,7 @@
 
 import datetime
 import threading
+from functools import reduce
 
 
 def checkAgrumentType(obj, arg):
@@ -63,3 +64,13 @@ def writeLog(strMsg: str, obj: object = None):
 
     msg = strTime + strObj + ' ' + strMsg
     print(msg)
+
+
+def calculate_bestin_checksum(packet: bytearray) -> int:
+    # special thanks to laz-
+    # https://gist.github.com/laz-/a507af756e13e64ed3aaceb236b5ad49
+    try:
+        return reduce(lambda x, y: ((x ^ y) + 1) & 0xFF, packet, 3)
+    except Exception as e:
+        writeLog(f'Calc Bestin Checksum Error ({e})')
+        return 0

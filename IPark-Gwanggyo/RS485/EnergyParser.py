@@ -22,10 +22,10 @@ class EnergyParser(PacketParser):
                 packetLen = self.buffer[2]
                 if len(self.buffer) >= max(packetLen, 5):
                     header = self.buffer[1]
-                    timestamp = self.buffer[4]
+                    self.timestamp = self.buffer[4]
                     if header == 0xD1 and packetLen == 0x30:  # 
                         idx_lst = []
-                        next_ts = (timestamp + 1) & 0xFF
+                        next_ts = (self.timestamp + 1) & 0xFF
                         # 02 D1 30 XX 시작 패킷은 전체 패킷이 다 수신되지 않는다...
                         for i in range(len(self.buffer)):
                             if self.buffer[i] == next_ts:
