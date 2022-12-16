@@ -35,7 +35,7 @@ class AirConditioner(Device):
             "state": state,
             "currentTemperature": self.temp_current,
             "targetTemperature": self.temp_config,
-            "timer": int(self.isTimerRunning())
+            "timer": int(self.isTimerOnOffRunning())
         }
         if self.rotation_speed == 0x02:  # 미풍
             obj['rotationspeed'] = 50
@@ -150,29 +150,3 @@ class AirConditioner(Device):
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
         return packet
-
-    def initThreadTimer(self):
-        if self.thread_timer is None:
-            self.thread_timer = ThreadAirconditionerTimer(self)
-
-
-class ThreadAirconditionerTimer(ThreadDeviceTimer):
-    def __init__(self, dev: AirConditioner):
-        super().__init__(dev, name='AirConditioner Timer Thread')
-        self._hour_range = range(1, 6 + 1)
-        self._minute_rage = range(0, 5 + 1)
-
-    def loop(self):
-        now = datetime.datetime.now()
-        if now.hour in self._hour_range:
-            if now.minute in self._minute_rage:
-                if not self._dev.state:
-                    writeLog('Set Turn On', self)
-                    self.sig_set_state.emit(1)
-            else:
-                if self._dev.state:
-                    writeLog('Set Turn Off', self)
-                    self.sig_set_state.emit(0)
-
-    def setParams(self, **kwargs):
-        pass

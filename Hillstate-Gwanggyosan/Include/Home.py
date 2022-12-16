@@ -630,6 +630,12 @@ class Home:
                 category='active',
                 target=state
             )
+        elif isinstance(dev, Thermostat):
+            self.command(
+                device=dev,
+                category='state',
+                target='HEAT' if state else 'OFF'
+            )
 
     def startMqttSubscribe(self):
         self.mqtt_client.subscribe('home/hillstate/system/command')
@@ -793,6 +799,11 @@ class Home:
                     category='temperature',
                     target=message['targetTemperature']
                 )
+            if 'timer' in message.keys():
+                if message['timer']:
+                    room.thermostat.startTimerOnOff()
+                else:
+                    room.thermostat.stopTimerOnOff()
 
     def onMqttCommandVentilator(self, topic: str, message: dict):
         if 'state' in message.keys():
@@ -843,7 +854,10 @@ class Home:
                     target=target
                 )
             if 'timer' in message.keys():
-                room.airconditioner.setTimer(message['timer'])
+                if message['timer']:
+                    room.airconditioner.startTimerOnOff()
+                else:
+                    room.airconditioner.stopTimerOnOff()
 
     def onMqttCommandElevator(self, topic: str, message: dict):
         if 'state' in message.keys():
