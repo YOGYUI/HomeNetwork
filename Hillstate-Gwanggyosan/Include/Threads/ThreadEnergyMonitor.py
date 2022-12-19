@@ -80,20 +80,27 @@ class ThreadEnergyMonitor(threading.Thread):
             return
         if self._parser.isRS485LineBusy():
             writeLog(f'RS485 line is busy', self)
+            # for debugging
+            if len(self._parser.buffer) > 0:
+                buffer_str = prettifyPacket(self._parser.buffer)
+                writeLog(f'SubPhone Buffer: {buffer_str}', self)
+            else:
+                writeLog(f'SubPhone Buffer: empty', self)
             return
         packet = self._subphone.makePacketQueryHEMS(dev, category)
         self._parser.sendPacket(packet, log_send)
-        self._parser.line_busy = True
+        self._parser.setRS485LineBusy(True)
         tm = time.perf_counter()
         is_timeout = False
         while self._parser.isRS485LineBusy():
             if time.perf_counter() - tm > timeout:
                 is_timeout = True
-                self._parser.line_busy = False
+                self._parser.setRS485LineBusy(False)
                 break
             time.sleep(50e-3)
         if is_timeout:
             self._timeout_cnt += 1
+            self._parser.setRS485LineBusy(False)
             writeLog(f'Timeout ({prettifyPacket(packet)})', self)
             if self._timeout_cnt > 10:
                 writeLog(f'Too many timeout occurred, Try to reconnect RS485', self)

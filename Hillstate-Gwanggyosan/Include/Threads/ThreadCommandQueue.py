@@ -91,9 +91,6 @@ class ThreadCommandQueue(threading.Thread):
                         if category == 'state':
                             if target == 'Unsecured':
                                 self.set_doorlock_open(dev, parser)
-                    elif isinstance(dev, DoorPhone):
-                        if category == 'cam_power':
-                            self.set_doorphone_camera_power(dev, target, parser)
                     """
                 except Exception as e:
                     writeLog(str(e), self)
@@ -280,10 +277,4 @@ class ThreadCommandQueue(threading.Thread):
         time.sleep(0.3)
         parser.sendPacket(packet_command)
         time.sleep(0.3)
-
-    def set_doorphone_camera_power(self, dev: DoorPhone, target: int, parser: PacketParser):
-        if target:
-            dev.turn_on_camera()
-        else:
-            dev.turn_off_camera()
     """

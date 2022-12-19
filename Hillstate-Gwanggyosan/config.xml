@@ -50,7 +50,10 @@
         <username>mosquitto auth id</username>
         <password>mosquitto auth password</password>
         <console_log>0</console_log>
-        <verbose_regular_publish>1</verbose_regular_publish>
+        <verbose_regular_publish>
+            <enable>1</enable>
+            <interval>100</interval>
+        </verbose_regular_publish>
     </mqtt>
     <rooms>
         <room1>
@@ -362,8 +365,11 @@
     -->
     <subphone>
         <mqtt>
-            <publish>home/hillstate/doorphone/state</publish>
-            <subscribe>home/hillstate/doorphone/command</subscribe>
+            <publish>home/hillstate/subphone/state</publish>
+            <subscribe>
+                home/hillstate/subphone/command/streaming
+                home/hillstate/subphone/command/doorlock
+            </subscribe>
         </mqtt>
         <ffmpeg>
             <conf_file_path>/etc/ffserver_hillstate_door.conf</conf_file_path>

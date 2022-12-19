@@ -41,7 +41,7 @@ class Home:
     mqtt_port: int = 1883
     mqtt_is_connected: bool = False
     enable_mqtt_console_log: bool = True
-    verbose_mqtt_regular_publish: bool = True
+    verbose_mqtt_regular_publish: dict
 
     rs485_list: List[RS485Comm]
     rs485_reconnect_limit: int = 60
@@ -70,6 +70,7 @@ class Home:
         self.rs485_light = RS485Comm('RS485-Light')
         self.rs485_list.append(self.rs485_light)
         self.parser_light = ParserLight(self.rs485_light)
+        self.parser_light.setBufferSize(64)
         self.parser_light.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_light)
 
@@ -78,6 +79,7 @@ class Home:
         self.rs485_various = RS485Comm('RS485-Various')
         self.rs485_list.append(self.rs485_various)
         self.parser_various = ParserVarious(self.rs485_various)
+        self.parser_various.setBufferSize(64)
         self.parser_various.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_various)
 
@@ -87,6 +89,7 @@ class Home:
         self.rs485_subphone.sig_connected.connect(self.onRS485SubPhoneConnected)
         self.rs485_list.append(self.rs485_subphone)
         self.parser_subphone = ParserSubPhone(self.rs485_subphone)
+        self.parser_subphone.setBufferSize(32)
         self.parser_subphone.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_subphone)
 
@@ -309,7 +312,10 @@ class Home:
             self.mqtt_port = int(node.find('port').text)
             self.mqtt_client.username_pw_set(username, password)
             self.enable_mqtt_console_log = bool(int(node.find('console_log').text))
-            self.verbose_mqtt_regular_publish = bool(int(node.find('verbose_regular_publish').text))
+            verbose_node = node.find('verbose_regular_publish')
+            self.verbose_mqtt_regular_publish = dict()
+            self.verbose_mqtt_regular_publish['enable'] = bool(int(verbose_node.find('enable').text))
+            self.verbose_mqtt_regular_publish['interval'] = int(verbose_node.find('interval').text)
         except Exception as e:
             writeLog(f"Failed to load mqtt config ({e})", self)
         
@@ -613,8 +619,6 @@ class Home:
             elif isinstance(dev, SubPhone):
                 kwargs['parser'] = self.parser_subphone
             """
-            elif isinstance(dev, DoorPhone):
-                kwargs['parser'] = self.parser_doorphone
             elif isinstance(dev, DoorLock):
                 kwargs['parser'] = self.parser_light
             """
@@ -623,7 +627,6 @@ class Home:
         self.queue_command.put(kwargs)
 
     def onDeviceSetState(self, dev: Device, state: int):
-        # 에어컨 타이머 기능용
         if isinstance(dev, AirConditioner):
             self.command(
                 device=dev,

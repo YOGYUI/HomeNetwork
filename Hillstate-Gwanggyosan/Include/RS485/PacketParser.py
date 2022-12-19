@@ -87,6 +87,11 @@ class PacketParser:
             pass
         self.enable_console_log = False
 
+    def setRS485LineBusy(self, value: bool):
+        """
+        """
+        self.line_busy = value
+
     def isRS485LineBusy(self) -> bool:
         if self.rs485.getType() == RS485HwType.Socket:
             return False  # 무선 송신 레이턴시때문에 언제 라인이 IDLE인지 정확히 파악할 수 없다
@@ -97,6 +102,12 @@ class PacketParser:
 
     def clearPacketStorage(self):
         self.packet_storage.clear()
+
+    def setBufferSize(self, size: int, clear_buffer: bool = True):
+        self.max_buffer_size = size
+        if clear_buffer:
+            self.buffer.clear()
+        writeLog(f'Recv Buffer Size: {self.max_buffer_size}', self)
 
     @staticmethod
     def prettifyPacket(packet: bytearray) -> str:
