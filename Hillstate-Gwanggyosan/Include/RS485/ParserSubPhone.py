@@ -26,6 +26,9 @@ class ParserSubPhone(PacketParser):
                 packet = self.buffer[:idx2 + 1]
                 self.interpretPacket(packet)
                 self.buffer = self.buffer[idx2 + 1:]
+        elif len(self.buffer) == 1 and self.buffer[0] == 0xEE:
+            self.line_busy = False
+            self.buffer.clear()
 
     def interpretPacket(self, packet: bytearray):
         try:
