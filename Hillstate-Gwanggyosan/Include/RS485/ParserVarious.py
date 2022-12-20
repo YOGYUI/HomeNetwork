@@ -14,6 +14,8 @@ class ParserVarious(PacketParser):
     enable_store_packet_header_48: bool = False
     enable_store_packet_unknown: bool = True
 
+    enable_trace_timestamp_packet: bool = False
+
     def interpretPacket(self, packet: bytearray):
         try:
             store: bool = True
@@ -48,13 +50,13 @@ class ParserVarious(PacketParser):
             elif packet[3] == 0x44:  # maybe current date-time?
                 if packet[4] == 0x0C:  # broadcasting?
                     packet_info['device'] = 'timestamp'
-                    year, month, day = packet[8], packet[9], packet[10]
-                    hour, minute, second = packet[11], packet[12], packet[13]
-                    millis = packet[14] * 100 + packet[15] * 10 + packet[16]
-                    dt = datetime.datetime(year, month, day, hour, minute, second, millis * 1000)
-                    writeLog(f'Timestamp Packet: {self.prettifyPacket(packet)}', self)
-                    # writeLog('>> {:02d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}'.format(year, month, day, hour, minute, second), self)
-                    writeLog(f'>> {dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]}', self)
+                    if self.enable_trace_timestamp_packet:
+                        year, month, day = packet[8], packet[9], packet[10]
+                        hour, minute, second = packet[11], packet[12], packet[13]
+                        millis = packet[14] * 100 + packet[15] * 10 + packet[16]
+                        dt = datetime.datetime(year, month, day, hour, minute, second, millis * 1000)
+                        writeLog(f'Timestamp Packet: {self.prettifyPacket(packet)}', self)
+                        writeLog(f'>> {dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]}', self)
                 else:
                     packet_info['device'] = 'unknown'
                     writeLog(f'Unknown packet (44): {self.prettifyPacket(packet)}', self)

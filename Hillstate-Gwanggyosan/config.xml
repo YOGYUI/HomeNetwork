@@ -46,7 +46,7 @@
     </rs485>
     <mqtt>
         <host>mosquitto ip address</host>
-        <port>mosquitto port</port>
+        <port>1883</port>
         <username>mosquitto auth id</username>
         <password>mosquitto auth password</password>
         <console_log>0</console_log>
@@ -399,6 +399,7 @@
         </mqtt>
     </thinq>
     <airquality>
+        <enable>1</enable>
         <apikey>Your API Key from data.go.kr</apikey>
         <obsname>수지</obsname>
         <mqtt>

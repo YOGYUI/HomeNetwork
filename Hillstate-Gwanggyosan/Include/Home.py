@@ -1,3 +1,4 @@
+import os
 import time
 import json
 import queue
@@ -129,7 +130,6 @@ class Home:
         self.device_list.append(self.elevator)
         # self.device_list.append(self.doorlock)
         self.device_list.append(self.subphone)
-        self.device_list.append(self.airquality)
         
         self.loadConfig(xml_path)
 
@@ -390,11 +390,14 @@ class Home:
 
         node = root.find('airquality')
         try:
-            mqtt_node = node.find('mqtt')
-            self.airquality.mqtt_publish_topic = mqtt_node.find('publish').text
-            apikey = node.find('apikey').text
-            obsname = node.find('obsname').text
-            self.airquality.setApiParams(apikey, obsname)
+            enable = bool(int(node.find('enable').text))
+            if enable:
+                self.device_list.append(self.airquality)
+                mqtt_node = node.find('mqtt')
+                self.airquality.mqtt_publish_topic = mqtt_node.find('publish').text
+                apikey = node.find('apikey').text
+                obsname = node.find('obsname').text
+                self.airquality.setApiParams(apikey, obsname)
         except Exception as e:
             writeLog(f"Failed to load airquality sensor config ({e})", self)
         
@@ -724,7 +727,7 @@ class Home:
         if self.enable_mqtt_console_log:
             writeLog('Mqtt Client Unsubscribe: {}, {}'.format(userdata, mid), self)
 
-    def onMqttCommandSystem(self, topic: str, message: dict):
+    def onMqttCommandSystem(self, _: str, message: dict):
         if 'query_all' in message.keys():
             writeLog('Got query all command', self)
             self.publish_all()
@@ -732,7 +735,6 @@ class Home:
             writeLog('Got restart command', self)
             self.restart()
         if 'reboot' in message.keys():
-            import os
             os.system('sudo reboot')
         if 'publish_interval' in message.keys():
             try:
@@ -777,7 +779,7 @@ class Home:
                     target=message['state']
                 )
 
-    def onMqttCommandGasvalve(self, topic: str, message: dict):
+    def onMqttCommandGasvalve(self, _: str, message: dict):
         if 'state' in message.keys():
             self.command(
                 device=self.gasvalve,
@@ -808,7 +810,7 @@ class Home:
                 else:
                     room.thermostat.stopTimerOnOff()
 
-    def onMqttCommandVentilator(self, topic: str, message: dict):
+    def onMqttCommandVentilator(self, _: str, message: dict):
         if 'state' in message.keys():
             self.command(
                 device=self.ventilator,
@@ -862,7 +864,7 @@ class Home:
                 else:
                     room.airconditioner.stopTimerOnOff()
 
-    def onMqttCommandElevator(self, topic: str, message: dict):
+    def onMqttCommandElevator(self, _: str, message: dict):
         if 'state' in message.keys():
             self.command(
                 device=self.elevator,
@@ -886,14 +888,14 @@ class Home:
                 target=message['state']
             )
 
-    def onMqttCommandThinq(self, topic: str, message: dict):
+    def onMqttCommandThinq(self, _: str, message: dict):
         if self.thinq is None:
             return
         if 'restart' in message.keys():
             self.thinq.restart()
             return
         if 'log_mqtt_message' in message.keys():
-            self.thinq.setEnableLogMqttMessage(int(message.get('log_mqtt_message')))
+            self.thinq.setEnableLogMqttMessage(bool(int(message.get('log_mqtt_message'))))
 
     def onSubphoneStateStreaming(self, state: int):
         # 카메라 응답없음이 해제가 안되므로, 초기화 시에 시작하도록 한다

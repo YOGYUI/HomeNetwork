@@ -128,6 +128,7 @@ class Device:
         self.timer_onoff_params['on_time'] = on_time
         self.timer_onoff_params['off_time'] = off_time
         self.timer_onoff_params['repeat'] = repeat
+        writeLog(f'{self} Set On/Off Timer Params: {self.timer_onoff_params}')
         if self.thread_timer_onoff is not None:
             self.thread_timer_onoff.setParams(on_time, off_time, repeat)
 
@@ -150,7 +151,7 @@ class ThreadDeviceTimerOnOff(threading.Thread):
         writeLog(f'{self.name} Started', self)
         step = 0
         tm: float = 0.
-        wait_for_transition: bool = False
+        wait_for_transition: bool
         while self._keepAlive:
             if step == 0:
                 wait_for_transition = True

@@ -62,7 +62,7 @@ class ThreadCommandQueue(threading.Thread):
                             elif target == 'HEAT':
                                 self.set_state_common(dev, 1, parser)
                         elif category == 'temperature':
-                            self.set_temperature(dev, target, parser)
+                            self.set_target_temperature(dev, target, parser)
                     elif isinstance(dev, Ventilator):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
@@ -75,7 +75,7 @@ class ThreadCommandQueue(threading.Thread):
                                 self.set_airconditioner_mode(dev, 1, parser)  # 최초 가동 시 모드를 '냉방'으로 바꿔준다
                                 # self.set_rotation_speed(dev, 1, parser)  # 최초 가동 시 풍량을 '자동'으로 바꿔준다
                         elif category == 'temperature':
-                            self.set_temperature(dev, target, parser)
+                            self.set_target_temperature(dev, target, parser)
                         elif category == 'rotationspeed':
                             self.set_rotation_speed(dev, target, parser)
                     elif isinstance(dev, Elevator):
@@ -140,7 +140,7 @@ class ThreadCommandQueue(threading.Thread):
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
-    def set_temperature(self, dev: Thermostat, target: float, parser: PacketParser):
+    def set_target_temperature(self, dev: Union[Thermostat, AirConditioner], target: float, parser: PacketParser):
         # 힐스테이트는 온도값 범위가 정수형이므로 올림처리해준다
         tm_start = time.perf_counter()
         cnt = 0
@@ -148,6 +148,13 @@ class ThreadCommandQueue(threading.Thread):
         packet_command = dev.makePacketSetTemperature(target_temp)
         interval, retry_cnt = self.getSendParams(parser)
         while cnt < retry_cnt:
+            if not dev.state:
+                """
+                Issue: OFF 상태에서 희망온도 설정 패킷만 보냈을 때 디바이스가 ON되는 문제 방지
+                (애플 자동화 끄기 - OFF, 희망온도 두 개 명령이 각각 수신되는 경우, 희망온도 명령에 의해 켜지는 문제)
+                TODO: 옵션 플래그로 변경
+                """
+                break
             if dev.temp_config == target_temp:
                 break
             if parser.isRS485LineBusy():
@@ -158,7 +165,7 @@ class ThreadCommandQueue(threading.Thread):
             time.sleep(interval)  # wait for parsing response
         if cnt > 0:
             tm_elapsed = time.perf_counter() - tm_start
-            writeLog('set_temperature::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
+            writeLog('set_target_temperature::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
         dev.publish_mqtt()
 
