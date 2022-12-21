@@ -26,7 +26,7 @@ class ThreadTimer(threading.Thread):
         publish_interval: int = 60,
         interval_ms: int = 2000,
         reconnect_limit_sec: int = 60,
-        verbose_regular_publish: bool = True
+        verbose_regular_publish: dict = None
     ):
         threading.Thread.__init__(self, name='Timer Thread')
         self._rs485_list = rs485_list
@@ -63,8 +63,11 @@ class ThreadTimer(threading.Thread):
                 if time.perf_counter() - tm_publish >= self._publish_interval:
                     self.sig_publish_regular.emit()
                     self._publish_count += 1
-                    if self._verbose_regular_publish:
-                        writeLog(f'Regular Publishing Device State MQTT (#: {self._publish_count}, interval: {self._publish_interval} sec)', self)
+                    if self._verbose_regular_publish is not None:
+                        enable = self._verbose_regular_publish.get('enable')
+                        interval = self._verbose_regular_publish.get('interval')
+                        if enable and self._publish_count % interval == 0:
+                            writeLog(f'Regular Publishing Device State MQTT (#: {self._publish_count}, interval: {self._publish_interval} sec)', self)
                     tm_publish = time.perf_counter()
                 
                 time.sleep(100e-3)

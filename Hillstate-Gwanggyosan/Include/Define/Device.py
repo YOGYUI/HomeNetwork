@@ -27,9 +27,9 @@ class Device:
     mqtt_subscribe_topics: List[str]
 
     last_published_time: float = time.perf_counter()
-    # publish_interval_sec: float = 10.  # legacy (outlet power consumption)
 
-    thread_timer = None
+    thread_timer_onoff = None
+    timer_onoff_params: dict
 
     def __init__(self, name: str = 'Device', **kwargs):
         self.name = name
@@ -39,7 +39,18 @@ class Device:
         self.mqtt_subscribe_topics = list()
 
         self.sig_set_state = Callback(int)
-        self.startThreadTimer()
+        self.timer_onoff_params = {
+            'on_time': 10,  # unit: minute
+            'off_time': 50,  # unit: minute
+            'repeat': True,  # boolean
+            'off_when_terminate': True  # device 켜진 상태에서 타이머 종료될 때 동작
+        }
+        if 'timer_onoff_ontime' in kwargs.keys():
+            self.timer_onoff_params['on_time'] = kwargs.get('timer_onoff_ontime')
+        if 'timer_onoff_offtime' in kwargs.keys():
+            self.timer_onoff_params['off_time'] = kwargs.get('timer_onoff_offtime')
+        if 'timer_onoff_repeat' in kwargs.keys():
+            self.timer_onoff_params['repeat'] = kwargs.get('timer_onoff_repeat')
         writeLog('Device Created >> {}'.format(str(self)), self)
 
     def __repr__(self):
@@ -49,7 +60,7 @@ class Device:
         return repr_txt
 
     def release(self):
-        self.stopThreadTimer()
+        self.stopThreadTimerOnOff()
 
     def updateState(self, state: int, **kwargs):
         self.state = state
@@ -78,68 +89,117 @@ class Device:
         # 디바이스 전원 On/Off
         return bytearray()
     
-    def initThreadTimer(self):
-        pass
+    def startTimerOnOff(self):
+        self.startThreadTimerOnOff()
 
-    # 디바이스 개별 타이머 (에어컨 자동 켜기/끄기 등)
-    def startThreadTimer(self):
-        self.initThreadTimer()
-        if self.thread_timer is not None:
-            self.thread_timer.setDaemon(True)
-            self.thread_timer.sig_set_state.connect(self.sig_set_state.emit)
-            self.thread_timer.sig_terminated.connect(self.onThreadTimerTerminated)
-            self.thread_timer.start()
+    def stopTimerOnOff(self):
+        self.stopThreadTimerOnOff()
 
-    def stopThreadTimer(self):
-        if self.thread_timer is not None:
-            self.thread_timer.stop()
+    def startThreadTimerOnOff(self):
+        if self.thread_timer_onoff is None:
+            self.thread_timer_onoff = ThreadDeviceTimerOnOff(self)
+            self.thread_timer_onoff.setDaemon(True)
+            self.thread_timer_onoff.sig_set_state.connect(self.sig_set_state.emit)
+            self.thread_timer_onoff.sig_terminated.connect(self.onThreadTimerOnOffTerminated)
+            on_time = self.timer_onoff_params['on_time']
+            off_time = self.timer_onoff_params['off_time']
+            repeat = self.timer_onoff_params['repeat']
+            self.thread_timer_onoff.setParams(on_time, off_time, repeat)
+            self.thread_timer_onoff.start()
 
-    def onThreadTimerTerminated(self):
-        del self.thread_timer
-        self.thread_timer = None
+    def stopThreadTimerOnOff(self):
+        if self.thread_timer_onoff is not None:
+            self.thread_timer_onoff.stop()
 
-    def setTimer(self, flag: int):
-        if self.thread_timer is not None:
-            self.thread_timer.setFlagRunning(bool(flag))
+    def onThreadTimerOnOffTerminated(self):
+        del self.thread_timer_onoff
+        self.thread_timer_onoff = None
+        if self.timer_onoff_params['off_when_terminate']:
+            self.sig_set_state.emit(0)
+        else:
+            self.publish_mqtt()
 
-    def isTimerRunning(self) -> bool:
-        if self.thread_timer is not None:
-            return self.thread_timer.is_alive() and self.thread_timer.getFlagRunning()
+    def isTimerOnOffRunning(self) -> bool:
+        if self.thread_timer_onoff is not None:
+            return self.thread_timer_onoff.is_alive()
         return False
+    
+    def setTimerOnOffParams(self, on_time: float, off_time: float, repeat: bool):
+        self.timer_onoff_params['on_time'] = on_time
+        self.timer_onoff_params['off_time'] = off_time
+        self.timer_onoff_params['repeat'] = repeat
+        writeLog(f'{self} Set On/Off Timer Params: {self.timer_onoff_params}')
+        if self.thread_timer_onoff is not None:
+            self.thread_timer_onoff.setParams(on_time, off_time, repeat)
 
 
-class ThreadDeviceTimer(threading.Thread):
+class ThreadDeviceTimerOnOff(threading.Thread):
     _keepAlive: bool = True
     _dev: Device
-    _flag_running: bool = False
+    _on_time: float = 10  # unit: minute
+    _off_time: float = 50  # unit: minute
+    _repeat: bool = True
 
-    def __init__(self, dev: Device, name: str = 'Device Timer Thread'):
-        threading.Thread.__init__(self, name=name)
+    def __init__(self, dev: Device):
+        threading.Thread.__init__(self, name=f'Device({dev}) On/Off Timer Thread')
         self._dev = dev
         self._timer_interval = 1  # unit: second
         self.sig_terminated = Callback()
         self.sig_set_state = Callback(int)
     
     def run(self):
+        writeLog(f'{self.name} Started', self)
+        step = 0
+        tm: float = 0.
+        wait_for_transition: bool
         while self._keepAlive:
-            if self._flag_running:
-                self.loop()
+            if step == 0:
+                wait_for_transition = True
+                self.sig_set_state.emit(1)
+                tm_wait_state = time.perf_counter()
+                while wait_for_transition:
+                    if self._dev.state == 1:
+                        writeLog(f'{self._dev} state changed to {self._dev.state}', self)
+                        wait_for_transition = False
+                    if time.perf_counter() - tm_wait_state > 10:
+                        writeLog('timeout! terminate timer on/off', self)
+                        self._keepAlive = False
+                        break
+                    time.sleep(self._timer_interval)
+                tm = time.perf_counter()
+                step = 1
+            elif step == 1:
+                if time.perf_counter() - tm >= self._on_time * 60:
+                    step = 2
+            elif step == 2:
+                wait_for_transition = True
+                self.sig_set_state.emit(0)
+                tm_wait_state = time.perf_counter()
+                while wait_for_transition:
+                    if self._dev.state == 0:
+                        writeLog(f'{self._dev} state changed to {self._dev.state}', self)
+                        wait_for_transition = False
+                    if time.perf_counter() - tm_wait_state > 10:
+                        writeLog('timeout! terminate timer on/off', self)
+                        self._keepAlive = False
+                        break
+                    time.sleep(self._timer_interval)
+                tm = time.perf_counter()
+                step = 3
+            elif step == 3:
+                if time.perf_counter() - tm >= self._off_time * 60:
+                    if self._repeat:
+                        step = 0
+                    else:
+                        break
             time.sleep(self._timer_interval)
+        writeLog(f'{self.name} Terminated', self)
         self.sig_terminated.emit()
 
     def stop(self):
         self._keepAlive = False
-    
-    def setFlagRunning(self, flag: bool):
-        self._flag_running = flag
-        writeLog(f"<{self._dev}> Set Running: {self._flag_running}", self)
-    
-    def getFlagRunning(self) -> bool:
-        return self._flag_running
 
-    def setParams(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def loop(self):
-        pass
+    def setParams(self, on_time: float, off_time: float, repeat: bool):
+        self._on_time = on_time
+        self._off_time = off_time
+        self._repeat = repeat

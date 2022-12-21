@@ -9,3 +9,5 @@ PyQt5
 pyserial
 requests
 beautifulsoup4
+regex
+pyOpenSSL

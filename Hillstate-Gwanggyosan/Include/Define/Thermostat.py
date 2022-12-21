@@ -23,7 +23,8 @@ class Thermostat(Device):
         obj = {
             "state": 'HEAT' if self.state == 1 else 'OFF',
             "currentTemperature": self.temp_current, 
-            "targetTemperature": self.temp_config
+            "targetTemperature": self.temp_config,
+            "timer": int(self.isTimerOnOffRunning())
         }
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)

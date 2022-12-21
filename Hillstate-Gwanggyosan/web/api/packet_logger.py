@@ -46,7 +46,7 @@ def packet_logger():
         enable_header_various_43=int(parser_various.enable_store_packet_header_43),
         enable_header_various_44=int(parser_various.enable_store_packet_header_44),
         enable_header_various_48=int(parser_various.enable_store_packet_header_48),
-        enable_subphone = int(parser_subphone.enable_store_packets)
+        enable_subphone=int(parser_subphone.enable_store_packets)
     )
 
 

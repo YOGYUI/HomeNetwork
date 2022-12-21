@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>타이머</h1>
+</div>
+<div>
+    <h2>[ 거실 ]</h2>
+    <h3>냉방</h3>
+    <div id="room1_cool">
+        <div>
+            <label>Enable</label>
+            <label class="toggle" for="room1_cool_active">
+                <input class="toggle__input" name="" type="checkbox" id="room1_cool_active" {% if room1.airconditioner_timer_running %} checked {% endif %}>
+                <div class="toggle__fill"></div>
+            </label>
+        </div>
+        <div>
+            <label>On Time</label>
+            <input type="number" id="room1_cool_ontime" value="{{ room1.airconditioner_on_time }}"/>
+            <label>Off Time</label>
+            <input type="number" id="room1_cool_offtime" value="{{ room1.airconditioner_off_time }}"/>
+            <input type="checkbox" id="room1_cool_repeat" {% if room1.airconditioner_repeat %} checked {% endif %}><label>Repeat</label>
+        </div>
+    </div>
+    <h3>난방</h3>
+    <div id="room1_heat">
+        <div>
+            <label>Enable</label>
+            <label class="toggle" for="room1_heat_active">
+                <input class="toggle__input" name="" type="checkbox" id="room1_heat_active" {% if room1.thermostat_timer_running %} checked {% endif %}>
+                <div class="toggle__fill"></div>
+            </label>
+        </div>
+        <div>
+            <label>On Time</label>
+            <input type="number" id="room1_heat_ontime" value="{{ room1.thermostat_on_time }}"/>
+            <label>Off Time</label>
+            <input type="number" id="room1_heat_offtime" value="{{ room1.thermostat_off_time }}"/>
+            <input type="checkbox" id="room1_heat_repeat" {% if room1.thermostat_repeat %} checked {% endif %}><label>Repeat</label>
+        </div>
+    </div>
+    <h2>[ 침실 ]</h2>
+    <h3>냉방</h3>
+    <div id="room2_cool">
+        <div>
+            <label>Enable</label>
+            <label class="toggle" for="room2_cool_active">
+                <input class="toggle__input" name="" type="checkbox" id="room2_cool_active" {% if room2.airconditioner_timer_running %} checked {% endif %}>
+                <div class="toggle__fill"></div>
+            </label>
+        </div>
+        <div>
+            <label>On Time</label>
+            <input type="number" id="room2_cool_ontime" value="{{ room2.airconditioner_on_time }}"/>
+            <label>Off Time</label>
+            <input type="number" id="room2_cool_offtime" value="{{ room2.airconditioner_off_time }}"/>
+            <input type="checkbox" id="room2_cool_repeat" {% if room2.airconditioner_repeat %} checked {% endif %}><label>Repeat</label>
+        </div>
+    </div>
+    <h3>난방</h3>
+    <div id="room2_heat">
+        <div>
+            <label>Enable</label>
+            <label class="toggle" for="room2_heat_active">
+                <input class="toggle__input" name="" type="checkbox" id="room2_heat_active" {% if room2.thermostat_timer_running %} checked {% endif %}>
+                <div class="toggle__fill"></div>
+            </label>
+        </div>
+        <div>
+            <label>On Time</label>
+            <input type="number" id="room2_heat_ontime" value="{{ room2.thermostat_on_time }}"/>
+            <label>Off Time</label>
+            <input type="number" id="room2_heat_offtime" value="{{ room2.thermostat_off_time }}"/>
+            <input type="checkbox" id="room2_heat_repeat" {% if room2.thermostat_repeat %} checked {% endif %}><label>Repeat</label>
+        </div>
+    </div>
+    <h2>[ 컴퓨터방 ]</h2>
+    <h3>냉방</h3>
+    <div id="room4_cool">
+        <div>
+            <label>Enable</label>
+            <label class="toggle" for="room4_cool_active">
+                <input class="toggle__input" name="" type="checkbox" id="room4_cool_active" {% if room4.airconditioner_timer_running %} checked {% endif %}>
+                <div class="toggle__fill"></div>
+            </label>
+        </div>
+        <div>
+            <label>On Time</label>
+            <input type="number" id="room4_cool_ontime" value="{{ room4.airconditioner_on_time }}"/>
+            <label>Off Time</label>
+            <input type="number" id="room4_cool_offtime" value="{{ room4.airconditioner_off_time }}"/>
+            <input type="checkbox" id="room4_cool_repeat" {% if room4.airconditioner_repeat %} checked {% endif %}><label>Repeat</label>
+        </div>
+    </div>
+    <h3>난방</h3>
+    <div id="room4_heat">
+        <div>
+            <label>Enable</label>
+            <label class="toggle" for="room4_heat_active">
+                <input class="toggle__input" name="" type="checkbox" id="room4_heat_active" {% if room4.thermostat_timer_running %} checked {% endif %}>
+                <div class="toggle__fill"></div>
+            </label>
+        </div>
+        <div>
+            <label>On Time</label>
+            <input type="number" id="room4_heat_ontime" value="{{ room4.thermostat_on_time }}"/>
+            <label>Off Time</label>
+            <input type="number" id="room4_heat_offtime" value="{{ room4.thermostat_off_time }}"/>
+            <input type="checkbox" id="room4_heat_repeat" {% if room4.thermostat_repeat %} checked {% endif %}><label>Repeat</label>
+        </div>
+    </div>
+    <h2>[ 서재 ]</h2>
+    <h3>냉방</h3>
+    <div id="room3_cool">
+        <div>
+            <label>Enable</label>
+            <label class="toggle" for="room3_cool_active">
+                <input class="toggle__input" name="" type="checkbox" id="room3_cool_active" {% if room3.airconditioner_timer_running %} checked {% endif %}>
+                <div class="toggle__fill"></div>
+            </label>
+        </div>
+        <div>
+            <label>On Time</label>
+            <input type="number" id="room3_cool_ontime" value="{{ room3.airconditioner_on_time }}"/>
+            <label>Off Time</label>
+            <input type="number" id="room3_cool_offtime" value="{{ room3.airconditioner_off_time }}"/>
+            <input type="checkbox" id="room3_cool_repeat" {% if room3.airconditioner_repeat %} checked {% endif %}><label>Repeat</label>
+        </div>
+    </div>
+    <h3>난방</h3>
+    <div id="room3_heat">
+        <div>
+            <label>Enable</label>
+            <label class="toggle" for="room2_heat_active">
+                <input class="toggle__input" name="" type="checkbox" id="room3_heat_active" {% if room3.thermostat_timer_running %} checked {% endif %}>
+                <div class="toggle__fill"></div>
+            </label>
+        </div>
+        <div>
+            <label>On Time</label>
+            <input type="number" id="room3_heat_ontime" value="{{ room3.thermostat_on_time }}"/>
+            <label>Off Time</label>
+            <input type="number" id="room3_heat_offtime" value="{{ room3.thermostat_off_time }}"/>
+            <input type="checkbox" id="room3_heat_repeat" {% if room3.thermostat_repeat %} checked {% endif %}><label>Repeat</label>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    if (!{{ room1.has_airconditioner }}) {
+        $("#room1_cool *").prop('disabled', true);
+    }
+    if (!{{ room1.has_airconditioner }}) {
+        $("#room1_heat *").prop('disabled', true);
+    }
+});
+
+func_activate = function(idx, dev) {
+    var checked = $('#room' + idx + '_' + dev + '_active').is(":checked");
+    $.ajax({
+        url: '/api/timer/set/' + idx + '/' + dev,
+        type: 'POST',
+        dataType: 'json',
+        data: JSON.stringify({
+            'activate': (checked | 0)
+        }),
+        success: function(response) {},
+        error: function(error) {}
+    });
+};
+
+func_setparam = function(idx, dev) {
+    var on_time = $('#room' + idx + '_' + dev + '_ontime').val();
+    var off_time = $('#room' + idx + '_' + dev + '_offtime').val();
+    var repeat = $('#room' + idx + '_' + dev + '_repeat').is(":checked");
+    $.ajax({
+        url: '/api/timer/set/' + idx + '/' + dev,
+        type: 'POST',
+        dataType: 'json',
+        data: JSON.stringify({
+            'on_time': on_time,
+            'off_time': off_time,
+            'repeat': (repeat | 0)
+        }),
+        success: function(response) {},
+        error: function(error) {}
+    });
+}
+
+for (let idx = 1; idx < 5; idx++) {
+    $('#room' + idx + '_' + 'cool' + '_active').on('click', function(){func_activate(idx, 'cool');});
+    $('#room' + idx + '_' + 'cool' + '_ontime').on('change', function(){func_setparam(idx, 'cool');});
+    $('#room' + idx + '_' + 'cool' + '_offtime').on('change', function(){func_setparam(idx, 'cool');});
+    $('#room' + idx + '_' + 'cool' + '_repeat').on('click', function(){func_setparam(idx, 'cool');});
+
+    $('#room' + idx + '_' + 'heat' + '_active').on('click', function(){func_activate(idx, 'heat');});
+    $('#room' + idx + '_' + 'heat' + '_ontime').on('change', function(){func_setparam(idx, 'heat');});
+    $('#room' + idx + '_' + 'heat' + '_offtime').on('change', function(){func_setparam(idx, 'heat');});
+    $('#room' + idx + '_' + 'heat' + '_repeat').on('click', function(){func_setparam(idx, 'heat');});
+}
+</script>
+{% endblock %}

@@ -31,18 +31,6 @@
                 <port>8899</port>
             </ew11>
         </various>
-        <doorphone>
-            <enable>0</enable>
-            <type>0</type>  <!-- 0 = usb2serial, 1 = ew11 -->
-            <usb2serial>
-                <port>/dev/ttyUSB0</port>
-                <baud>9600</baud>
-            </usb2serial>
-            <ew11>
-                <ipaddr>192.168.0.1</ipaddr>
-                <port>8899</port>
-            </ew11>
-        </doorphone>
         <subphone>
             <enable>1</enable>
             <type>0</type>  <!-- 0 = usb2serial, 1 = ew11 -->
@@ -58,11 +46,14 @@
     </rs485>
     <mqtt>
         <host>mosquitto ip address</host>
-        <port>mosquitto port</port>
+        <port>1883</port>
         <username>mosquitto auth id</username>
         <password>mosquitto auth password</password>
         <console_log>0</console_log>
-        <verbose_regular_publish>0</verbose_regular_publish>
+        <verbose_regular_publish>
+            <enable>1</enable>
+            <interval>100</interval>
+        </verbose_regular_publish>
     </mqtt>
     <rooms>
         <room1>
@@ -126,12 +117,6 @@
                     <publish>home/hillstate/airconditioner/state/1</publish>
                     <subscribe>home/hillstate/airconditioner/command/1</subscribe>
                 </mqtt>
-                <timer>
-                    <target_temperature>26</target_temperature>
-                    <on_time>10</on_time>
-                    <start_hour>1</start_hour>
-                    <stop_hour>7</stop_hour>
-                </timer>
             </airconditioner>
         </room1>
         <room2>
@@ -381,7 +366,10 @@
     <subphone>
         <mqtt>
             <publish>home/hillstate/subphone/state</publish>
-            <subscribe>home/hillstate/subphone/command/#</subscribe>
+            <subscribe>
+                home/hillstate/subphone/command/streaming
+                home/hillstate/subphone/command/doorlock
+            </subscribe>
         </mqtt>
         <ffmpeg>
             <conf_file_path>/etc/ffserver_hillstate_door.conf</conf_file_path>
@@ -411,6 +399,7 @@
         </mqtt>
     </thinq>
     <airquality>
+        <enable>1</enable>
         <apikey>Your API Key from data.go.kr</apikey>
         <obsname>수지</obsname>
         <mqtt>

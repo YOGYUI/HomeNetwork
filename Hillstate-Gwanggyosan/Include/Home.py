@@ -1,3 +1,4 @@
+import os
 import time
 import json
 import queue
@@ -41,7 +42,7 @@ class Home:
     mqtt_port: int = 1883
     mqtt_is_connected: bool = False
     enable_mqtt_console_log: bool = True
-    verbose_mqtt_regular_publish: bool = True
+    verbose_mqtt_regular_publish: dict
 
     rs485_list: List[RS485Comm]
     rs485_reconnect_limit: int = 60
@@ -70,6 +71,7 @@ class Home:
         self.rs485_light = RS485Comm('RS485-Light')
         self.rs485_list.append(self.rs485_light)
         self.parser_light = ParserLight(self.rs485_light)
+        self.parser_light.setBufferSize(64)
         self.parser_light.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_light)
 
@@ -78,6 +80,7 @@ class Home:
         self.rs485_various = RS485Comm('RS485-Various')
         self.rs485_list.append(self.rs485_various)
         self.parser_various = ParserVarious(self.rs485_various)
+        self.parser_various.setBufferSize(64)
         self.parser_various.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_various)
 
@@ -87,6 +90,7 @@ class Home:
         self.rs485_subphone.sig_connected.connect(self.onRS485SubPhoneConnected)
         self.rs485_list.append(self.rs485_subphone)
         self.parser_subphone = ParserSubPhone(self.rs485_subphone)
+        self.parser_subphone.setBufferSize(32)
         self.parser_subphone.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
         self.parser_list.append(self.parser_subphone)
 
@@ -126,7 +130,6 @@ class Home:
         self.device_list.append(self.elevator)
         # self.device_list.append(self.doorlock)
         self.device_list.append(self.subphone)
-        self.device_list.append(self.airquality)
         
         self.loadConfig(xml_path)
 
@@ -309,7 +312,10 @@ class Home:
             self.mqtt_port = int(node.find('port').text)
             self.mqtt_client.username_pw_set(username, password)
             self.enable_mqtt_console_log = bool(int(node.find('console_log').text))
-            self.verbose_mqtt_regular_publish = bool(int(node.find('verbose_regular_publish').text))
+            verbose_node = node.find('verbose_regular_publish')
+            self.verbose_mqtt_regular_publish = dict()
+            self.verbose_mqtt_regular_publish['enable'] = bool(int(verbose_node.find('enable').text))
+            self.verbose_mqtt_regular_publish['interval'] = int(verbose_node.find('interval').text)
         except Exception as e:
             writeLog(f"Failed to load mqtt config ({e})", self)
         
@@ -384,11 +390,14 @@ class Home:
 
         node = root.find('airquality')
         try:
-            mqtt_node = node.find('mqtt')
-            self.airquality.mqtt_publish_topic = mqtt_node.find('publish').text
-            apikey = node.find('apikey').text
-            obsname = node.find('obsname').text
-            self.airquality.setApiParams(apikey, obsname)
+            enable = bool(int(node.find('enable').text))
+            if enable:
+                self.device_list.append(self.airquality)
+                mqtt_node = node.find('mqtt')
+                self.airquality.mqtt_publish_topic = mqtt_node.find('publish').text
+                apikey = node.find('apikey').text
+                obsname = node.find('obsname').text
+                self.airquality.setApiParams(apikey, obsname)
         except Exception as e:
             writeLog(f"Failed to load airquality sensor config ({e})", self)
         
@@ -613,8 +622,6 @@ class Home:
             elif isinstance(dev, SubPhone):
                 kwargs['parser'] = self.parser_subphone
             """
-            elif isinstance(dev, DoorPhone):
-                kwargs['parser'] = self.parser_doorphone
             elif isinstance(dev, DoorLock):
                 kwargs['parser'] = self.parser_light
             """
@@ -623,12 +630,17 @@ class Home:
         self.queue_command.put(kwargs)
 
     def onDeviceSetState(self, dev: Device, state: int):
-        # 에어컨 타이머 기능용
         if isinstance(dev, AirConditioner):
             self.command(
                 device=dev,
                 category='active',
                 target=state
+            )
+        elif isinstance(dev, Thermostat):
+            self.command(
+                device=dev,
+                category='state',
+                target='HEAT' if state else 'OFF'
             )
 
     def startMqttSubscribe(self):
@@ -715,7 +727,7 @@ class Home:
         if self.enable_mqtt_console_log:
             writeLog('Mqtt Client Unsubscribe: {}, {}'.format(userdata, mid), self)
 
-    def onMqttCommandSystem(self, topic: str, message: dict):
+    def onMqttCommandSystem(self, _: str, message: dict):
         if 'query_all' in message.keys():
             writeLog('Got query all command', self)
             self.publish_all()
@@ -723,7 +735,6 @@ class Home:
             writeLog('Got restart command', self)
             self.restart()
         if 'reboot' in message.keys():
-            import os
             os.system('sudo reboot')
         if 'publish_interval' in message.keys():
             try:
@@ -768,7 +779,7 @@ class Home:
                     target=message['state']
                 )
 
-    def onMqttCommandGasvalve(self, topic: str, message: dict):
+    def onMqttCommandGasvalve(self, _: str, message: dict):
         if 'state' in message.keys():
             self.command(
                 device=self.gasvalve,
@@ -793,8 +804,13 @@ class Home:
                     category='temperature',
                     target=message['targetTemperature']
                 )
+            if 'timer' in message.keys():
+                if message['timer']:
+                    room.thermostat.startTimerOnOff()
+                else:
+                    room.thermostat.stopTimerOnOff()
 
-    def onMqttCommandVentilator(self, topic: str, message: dict):
+    def onMqttCommandVentilator(self, _: str, message: dict):
         if 'state' in message.keys():
             self.command(
                 device=self.ventilator,
@@ -843,9 +859,12 @@ class Home:
                     target=target
                 )
             if 'timer' in message.keys():
-                room.airconditioner.setTimer(message['timer'])
+                if message['timer']:
+                    room.airconditioner.startTimerOnOff()
+                else:
+                    room.airconditioner.stopTimerOnOff()
 
-    def onMqttCommandElevator(self, topic: str, message: dict):
+    def onMqttCommandElevator(self, _: str, message: dict):
         if 'state' in message.keys():
             self.command(
                 device=self.elevator,
@@ -869,14 +888,14 @@ class Home:
                 target=message['state']
             )
 
-    def onMqttCommandThinq(self, topic: str, message: dict):
+    def onMqttCommandThinq(self, _: str, message: dict):
         if self.thinq is None:
             return
         if 'restart' in message.keys():
             self.thinq.restart()
             return
         if 'log_mqtt_message' in message.keys():
-            self.thinq.setEnableLogMqttMessage(int(message.get('log_mqtt_message')))
+            self.thinq.setEnableLogMqttMessage(bool(int(message.get('log_mqtt_message'))))
 
     def onSubphoneStateStreaming(self, state: int):
         # 카메라 응답없음이 해제가 안되므로, 초기화 시에 시작하도록 한다
