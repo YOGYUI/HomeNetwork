@@ -349,6 +349,7 @@
         </mqtt>
     </elevator>
     <hems>
+        <enable>0</enable>
         <mqtt>
             <publish>home/hillstate/hems/state</publish>
         </mqtt>

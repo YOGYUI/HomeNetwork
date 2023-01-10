@@ -54,6 +54,7 @@ class Home:
     pid_ffmpeg_proc: int = 0
 
     hems_info: dict
+    enable_hems: bool = False
     topic_hems_publish: str = ''
 
     def __init__(self, name: str = 'Home', init_service: bool = True):
@@ -152,7 +153,8 @@ class Home:
         if self.rs485_subphone_config.enable:
             self.startFFServer()
             self.startFFMpeg()
-            self.startThreadEnergyMonitor()
+            if self.enable_hems:
+                self.startThreadEnergyMonitor()
         
         if connect_rs485:
             self.initRS485Connection()
@@ -352,6 +354,7 @@ class Home:
 
         node = root.find('hems')
         try:
+            self.enable_hems = bool(int(node.find('enable').text))
             mqtt_node = node.find('mqtt')
             self.topic_hems_publish = mqtt_node.find('publish').text
         except Exception as e:

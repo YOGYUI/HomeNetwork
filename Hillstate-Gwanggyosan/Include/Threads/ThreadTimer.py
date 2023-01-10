@@ -25,6 +25,7 @@ class ThreadTimer(threading.Thread):
         rs485_list: List[RS485Comm],
         publish_interval: int = 60,
         interval_ms: int = 2000,
+        check_idle_sec: int = 30,
         reconnect_limit_sec: int = 60,
         verbose_regular_publish: dict = None
     ):
@@ -32,6 +33,7 @@ class ThreadTimer(threading.Thread):
         self._rs485_list = rs485_list
         self._publish_interval = publish_interval  # 단위: 초
         self._interval_ms = interval_ms  # 단위: 밀리초
+        self._check_idle_sec = check_idle_sec
         self._reconnect_limit_sec = reconnect_limit_sec
         self._verbose_regular_publish = verbose_regular_publish
         self.sig_terminated = Callback()
@@ -92,7 +94,7 @@ class ThreadTimer(threading.Thread):
         for obj in self._rs485_list:
             if obj.isConnected():
                 delta = obj.time_after_last_recv()
-                if delta > 10:
+                if delta > self._check_idle_sec:
                     msg = 'Warning!! RS485 <{}> is not receiving for {:.1f} seconds'.format(obj.name, delta)
                     writeLog(msg, self)
                     if delta > self._reconnect_limit_sec:

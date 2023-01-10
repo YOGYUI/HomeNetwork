@@ -62,12 +62,17 @@ class ParserVarious(PacketParser):
                     writeLog(f'Unknown packet (44): {self.prettifyPacket(packet)}', self)
                 store = self.enable_store_packet_header_44
             elif packet[3] == 0x48:  # ??
+                """
+                # F7 0D 01 48 01 40 10 00 71 11 01 83 EE 도 발견됐다!
+                # F7 0D 01 48 01 40 10 00 71 11 02 80 EE
+                # F7 0D 01 48 04 40 10 00 71 11 02 85 EE
                 if packet == bytearray([0xF7, 0x0D, 0x01, 0x48, 0x01, 0x40, 0x10, 0x00, 0x71, 0x11, 0x02, 0x80, 0xEE]):
                     pass
                 elif packet == bytearray([0xF7, 0x0D, 0x01, 0x48, 0x04, 0x40, 0x10, 0x00, 0x71, 0x11, 0x02, 0x85, 0xEE]):
                     pass
                 else:
                     writeLog(f'Unknown packet (48): {self.prettifyPacket(packet)}', self)
+                """
                 packet_info['device'] = 'unknown'
                 store = self.enable_store_packet_header_48
             else:
