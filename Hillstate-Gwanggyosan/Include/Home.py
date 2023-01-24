@@ -57,9 +57,13 @@ class Home:
     enable_hems: bool = False
     topic_hems_publish: str = ''
 
+    discover_device: bool = False
+    discovered_dev_list: List[Device]
+
     def __init__(self, name: str = 'Home', init_service: bool = True):
         self.name = name
         self.device_list = list()
+        self.discovered_dev_list = list()
         self.rooms = list()
         self.queue_command = queue.Queue()
         self.queue_parse_result = queue.Queue()
@@ -525,6 +529,42 @@ class Home:
                 writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
 
     def handlePacketParseResult(self, result: dict):
+        if self.discover_device:
+            self.discoverDevice()
+        else:
+            self.updateDeviceState(result)
+    
+    def discoverDevice(self, result: dict):
+        try:
+            dev_type = result.get('device')
+            dev: Device = None
+            if dev_type == 'light':
+                room_idx = result.get('room_index')
+                dev_idx = result.get('index')
+                dev = Light(name=f'Light {dev_idx + 1}', index=dev_idx, room_index=room_idx, mqtt_client=self.mqtt_client)
+            elif dev_type == 'outlet':
+                room_idx = result.get('room_index')
+                dev_idx = result.get('index')
+                dev = Outlet(name=f'Outlet {dev_idx + 1}', index=dev_idx, room_index=room_idx, mqtt_client=self.mqtt_client)
+            elif dev_type == 'thermostat':
+                room_idx = result.get('room_index')
+                dev = Thermostat(name=f'Thermostat', room_index=room_idx, mqtt_client=self.mqtt_client)
+            elif dev_type == 'airconditioner':
+                room_idx = result.get('room_index')
+                dev = Thermostat(name=f'AirConditioner', room_index=room_idx, mqtt_client=self.mqtt_client)
+            elif dev_type == 'gasvalve':
+                dev = GasValve(name='Gas Valve', mqtt_client=self.mqtt_client)
+            elif dev_type == 'ventilator':
+                dev = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
+            elif dev_type == 'elevator':
+                dev = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
+            # TODO: check duplicated, mqtt topic string, action after stop discovering
+            if dev is not None:
+                self.discovered_dev_list.append(dev)
+        except Exception as e:
+            writeLog('discoverDevice::Exception::{} ({})'.format(e, result), self)
+
+    def updateDeviceState(self, result: dict):
         try:
             dev_type = result.get('device')
             if dev_type in ['light', 'outlet']:
@@ -575,6 +615,7 @@ class Home:
                 state = result.get('state')
                 self.elevator.updateState(
                     state, 
+                    data_type=result.get('data_type'),
                     dev_idx=result.get('dev_idx'),
                     direction=result.get('direction'),
                     floor=result.get('floor')
@@ -975,6 +1016,13 @@ class Home:
 
     def onThinqPublishMQTT(self, topic: str, message: dict):
         self.mqtt_client.publish(topic, json.dumps(message), 1)
+    
+    def startDiscoverDevice(self):
+        self.discovered_dev_list.clear()
+        self.discover_device = True
+    
+    def stopDiscoverDevice(self):
+        self.discover_device = False
 
 
 home_: Union[Home, None] = None

@@ -41,6 +41,8 @@ class Elevator(Device):
     time_call_started: float = 0.
     time_threshold_check_duration: float = 10.
 
+    state_calling: int = 0
+
     def __init__(self, name: str = 'Elevator', **kwargs):
         super().__init__(name, **kwargs)
         self.dev_info_list = list()
@@ -61,19 +63,30 @@ class Elevator(Device):
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
     
     def updateState(self, state: int, **kwargs):
-        dev_idx = kwargs.get('dev_idx')
-        if dev_idx is not None:
+        # TODO: 월패드 오류로 인해 미니패드가 계속 눌린 상태일 때는 어떻게하나?
+        data_type = kwargs.get('data_type')
+        if data_type == 'query':
             # 월패드 -> 복도 미니패드 상태 쿼리 패킷 (packet[4] == 0x01)
+            dev_idx = kwargs.get('dev_idx')
             direction = kwargs.get('direction')
             floor = kwargs.get('floor')
             if dev_idx == 0:  # idle 상태
                 if self.ready_to_clear and len(self.dev_info_list) > 0:
                     self.dev_info_list.clear()
+                """
                 if self.state_prev in [5, 6]:  # '도착' 정보가 담긴 패킷을 놓치는 경우에 대한 처리
                     if time.perf_counter() - self.time_call_started > self.time_threshold_check_duration:
                         writeLog(f"Arrived (Missing Packet) ({self.state}, {self.state_prev})", self)
                         self.state = 1
                         self.state_prev = 0
+                else:
+                    self.state = 0
+                """
+                if self.state_calling != 0:
+                    if self.state_prev in [5, 6]:
+                        writeLog(f"Arrived (Missing Packet) ({self.state}, {self.state_prev})", self)
+                        self.state = 1
+                        self.state_prev = self.state_calling
                 else:
                     self.state = 0
             else:
@@ -96,10 +109,11 @@ class Elevator(Device):
                         writeLog(f"Arrived (#{e.index})", self)
                     self.state = 1
                     break
-        else:
+        elif data_type == 'response':
             # 복도 미니패드 -> 월패드 상태 응답 패킷 (packet[4] == 0x04)
             # state값은 0(idle) 혹은 6(하행 호출)만 전달됨
             self.state = state
+            self.state_calling = state
             if self.state != 0:  # 0이 아니면 미니패드가 엘리베이터를 '호출한 상태'
                 self.time_call_started = time.perf_counter()
                 if self.state_prev == 0:

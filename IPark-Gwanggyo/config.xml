@@ -274,6 +274,11 @@
         <callinterval>0</callinterval>
         <notifyfloor>0</notifyfloor>
     </elevator>
+    <hems>
+        <mqtt>
+            <publish>home/ipark/hems/state</publish>
+        </mqtt>
+    </hems>
     <thermo_temp_packet>
         02 28 0E 12 FE 01 00 05 00 00 00 00 00 D0
         02 28 0E 12 11 01 00 45 00 00 00 00 00 69

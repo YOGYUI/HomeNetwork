@@ -57,6 +57,8 @@ class Home:
     rs485_list: List[RS485Comm]
     parser_list: List[PacketParser]
 
+    topic_hems_publish: str = ''
+
     def __init__(self, name: str = 'Home', init_service: bool = True):
         self.name = name
         self.device_list = list()
@@ -458,6 +460,13 @@ class Home:
         interval_ms = int(node.find('interval').text)
         self.doorlock.setParams(enable, gpio_port, repeat, interval_ms)
 
+        node = root.find('hems')
+        try:
+            mqtt_node = node.find('mqtt')
+            self.topic_hems_publish = mqtt_node.find('publish').text
+        except Exception as e:
+            writeLog(f"Failed to load HEMS config ({e})", self)  
+
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
         if len(find) == 1:
@@ -609,6 +618,12 @@ class Home:
                         dev.publish_mqtt_floor()
                 dev.state_prev = dev.state
                 dev.current_floor_prev = dev.current_floor
+            elif dev_type == 'hems':
+                category = result.get('category')
+                if category is not None:
+                    topic = self.topic_hems_publish + f'/{category}'
+                    value = result.get(value)
+                    self.mqtt_client.publish(topic, json.dumps({"value": value}), 1)
         except Exception as e:
             writeLog('handlePacketParseResult::Exception::{} ({})'.format(e, result), self)
 

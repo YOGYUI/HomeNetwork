@@ -206,6 +206,7 @@ class ParserVarious(PacketParser):
                 
             result = {
                 'device': 'elevator',
+                'data_type': 'query',
                 'state': state,
                 'dev_idx': dev_idx,
                 'direction': direction,
@@ -223,6 +224,7 @@ class ParserVarious(PacketParser):
             state = packet[8] & 0x0F  # 0 = idle, 6 = command (하행) 호출
             result = {
                 'device': 'elevator',
+                'data_type': 'response',
                 'state': state
             }
             # print(f'Response: {self.prettifyPacket(packet)}, {result}')

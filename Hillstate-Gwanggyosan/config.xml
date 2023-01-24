@@ -55,6 +55,8 @@
             <interval>100</interval>
         </verbose_regular_publish>
     </mqtt>
+    <device>
+    </device>
     <rooms>
         <room1>
             <name>Livingroom</name>

@@ -116,8 +116,11 @@ class EnergyParser(PacketParser):
                 pass
             elif header == 0x42:  # 정체파악 못한 패킷
                 pass
-            elif header == 0xD1:  # 정체파악 못한 패킷
-                pass
+            elif header == 0xD1:  # HEMS 패킷?
+                if command == 0x02:  # HEMS 쿼리 
+                    pass
+                elif command == 0x82:
+                    self.handleHEMSPacket(packet)
             else:
                 pass
 
@@ -175,3 +178,54 @@ class EnergyParser(PacketParser):
                 'consumption': consumption
             }
             self.sig_parse_result.emit(result)
+
+    def handleHEMSPacket(self, packet: bytearray):
+        # TODO: 전체 평균/세대 평균?
+        try:
+            # 전기 [13:14]
+            if len(packet) >= 15:
+                v1 = int('{:02X}'.format(packet[13]))
+                v2 = int('{:02X}'.format(packet[14]))
+                self.sig_parse_result.emit({
+                    'device': 'hems',
+                    'category': 'electricity',
+                    'value': v1 * 100 + v2
+                })
+            # 난방 [21:22]
+            if len(packet) >= 23:
+                v1 = int('{:02X}'.format(packet[21]))
+                v2 = int('{:02X}'.format(packet[22]))
+                self.sig_parse_result.emit({
+                    'device': 'hems',
+                    'category': 'heating',
+                    'value': v1 * 100 + v2
+                })
+            # 온수 [29:30]
+            if len(packet) >= 31:
+                v1 = int('{:02X}'.format(packet[29]))
+                v2 = int('{:02X}'.format(packet[30]))
+                self.sig_parse_result.emit({
+                    'device': 'hems',
+                    'category': 'hotwater',
+                    'value': v1 * 100 + v2
+                })
+            # 가스 [37:38]
+            if len(packet) >= 39:
+                v1 = int('{:02X}'.format(packet[37]))
+                v2 = int('{:02X}'.format(packet[38]))
+                self.sig_parse_result.emit({
+                    'device': 'hems',
+                    'category': 'gas',
+                    'value': v1 * 100 + v2
+                })
+            # 수도 [44:45]
+            if len(packet) >= 46:
+                v1 = int('{:02X}'.format(packet[44]))
+                v2 = int('{:02X}'.format(packet[45]))
+                self.sig_parse_result.emit({
+                    'device': 'hems',
+                    'category': 'water',
+                    'value': v1 * 100 + v2
+                })
+        except Exception as e:
+            writeLog('handleHEMSPacket Exception::{}'.format(e), self)

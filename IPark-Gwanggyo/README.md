@@ -108,7 +108,7 @@ Module can be disabled by modifying "enable' tag value as 0.<br>
 ❗Caution❗ EW11-"TCP Server" is only available mode!
 
 Use Multiple RS485 Converter in Same Port
---
+---
 ⚠️It is not recommend to use multiple RS485 converter in same port.⚠️<br>
 You can use different RS485 converters in same functional port by modifying Home.py code like below. <br>
 ('control' rs485 module should be disabled by change config.xml file.)
@@ -133,3 +133,46 @@ class Home:
         self.parser_control.sig_raw_packet.connect(self.onParserControlRawPacket)
         self.parser_list.append(self.parser_control)
 ```
+HEMS Support
+---
+HEMS result would be published (mqtt) like below.<br>
+- electricity (전기)
+  - topic: home/ipark/hems/state/electricity
+  - message(json)
+    ```
+    {
+        value: xxx
+    }
+    ```
+- heating (난방)
+  - topic: home/ipark/hems/state/heating
+  - message(json)
+    ```
+    {
+        value: xxx
+    }
+    ```
+- hot water (온수)
+  - topic: home/ipark/hems/state/hotwater
+  - message(json)
+    ```
+    {
+        value: xxx
+    }
+    ```
+- gas (가스)
+  - topic: home/ipark/hems/state/gas
+  - message(json)
+    ```
+    {
+        value: xxx
+    }
+    ```
+- water (수도)
+  - topic: home/ipark/hems/state/water
+  - message(json)
+    ```
+    {
+        value: xxx
+    }
+    ```
