@@ -72,7 +72,7 @@ class TCPClient:
         if self._threadSend is not None:
             self._threadSend.setSocket(self._sock)
 
-    def connect(self, server_addr: str, server_port: int = 80, disconnect: bool = False) -> bool:
+    def connect(self, server_addr: str, server_port: int = 80, disconnect: bool = False, **kwargs) -> bool:
         if disconnect:
             self.disconnect()
         elif self.isRunning():

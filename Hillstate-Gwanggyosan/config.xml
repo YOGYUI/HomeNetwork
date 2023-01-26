@@ -13,6 +13,9 @@
             <usb2serial>
                 <port>/dev/ttyUSB1</port>
                 <baud>9600</baud>
+                <databit>8</databit>
+                <parity>N</parity>
+                <stopbits>1</stopbits>
             </usb2serial>
             <ew11>
                 <ipaddr>192.168.0.1</ipaddr>
@@ -25,6 +28,9 @@
             <usb2serial>
                 <port>/dev/ttyUSB0</port>
                 <baud>9600</baud>
+                <databit>8</databit>
+                <parity>N</parity>
+                <stopbits>1</stopbits>
             </usb2serial>
             <ew11>
                 <ipaddr>192.168.0.2</ipaddr>
@@ -37,6 +43,9 @@
             <usb2serial>
                 <port>/dev/ttyUSB0</port>
                 <baud>3840</baud>
+                <databit>8</databit>
+                <parity>E</parity>
+                <stopbits>1</stopbits>
             </usb2serial>
             <ew11>
                 <ipaddr>192.168.0.1</ipaddr>
@@ -351,7 +360,7 @@
         </mqtt>
     </elevator>
     <hems>
-        <enable>0</enable>
+        <enable>1</enable>
         <mqtt>
             <publish>home/hillstate/hems/state</publish>
         </mqtt>

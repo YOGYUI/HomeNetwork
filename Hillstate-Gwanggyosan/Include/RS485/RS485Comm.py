@@ -24,6 +24,9 @@ class RS485Config:
     comm_type: RS485HwType
     serial_port: str = '/dev/ttyUSB0'
     serial_baud: int = 9600
+    serial_databit: int = 8
+    serial_parity: str = 'N'
+    serial_stopbits: float = 1.
     socket_ipaddr: str = '127.0.0.1'
     socket_port: int = 80
 
@@ -67,12 +70,12 @@ class RS485Comm:
             del self._comm_obj
         self._comm_obj = None
 
-    def connect(self, addr: str, port: int) -> bool:
+    def connect(self, addr: str, port: int, **kwargs) -> bool:
         # serial - (devport, baud)
         # socket - (ipaddr, port)
         self._last_conn_addr = addr
         self._last_conn_port = port
-        return self._comm_obj.connect(addr, port)
+        return self._comm_obj.connect(addr, port, **kwargs)
 
     def disconnect(self):
         self._comm_obj.disconnect()

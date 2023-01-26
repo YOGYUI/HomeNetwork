@@ -247,7 +247,8 @@ class Home:
                     rs485.setType(cfg.comm_type)
                     if cfg.comm_type == RS485HwType.Serial:
                         port, baud = cfg.serial_port, cfg.serial_baud
-                        rs485.connect(port, baud)
+                        databit, parity, stopbits = cfg.serial_databit, cfg.serial_parity, cfg.serial_stopbits
+                        rs485.connect(port, baud, bytesize=databit, parity=parity, stopbits=stopbits)
                     elif cfg.comm_type == RS485HwType.Socket:
                         ipaddr, port = cfg.socket_ipaddr, cfg.socket_port
                         rs485.connect(ipaddr, port)
@@ -298,6 +299,12 @@ class Home:
                     cfg.serial_port = serial_port_node.text
                     serial_baud_node = usb2serial_node.find('baud')
                     cfg.serial_baud = int(serial_baud_node.text)
+                    serial_databit = usb2serial_node.find('databit')
+                    cfg.serial_databit = int(serial_databit.text)
+                    serial_parity = usb2serial_node.find('parity')
+                    cfg.serial_parity = serial_parity.text
+                    serial_stopbits = usb2serial_node.find('stopbits')
+                    cfg.serial_stopbits = float(serial_stopbits.text)
                     ew11_node = child_node.find('ew11')
                     socket_addr_node = ew11_node.find('ipaddr')
                     cfg.socket_ipaddr = socket_addr_node.text

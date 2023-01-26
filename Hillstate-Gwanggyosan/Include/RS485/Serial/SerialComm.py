@@ -46,13 +46,20 @@ class SerialComm:
     def release(self):
         self.disconnect()
 
-    def connect(self, port: str, baudrate: int) -> bool:
+    def connect(self, port: str, baudrate: int, **kwargs) -> bool:
         try:
             if self._serial.is_open:
                 return False
             
             self._serial.port = port
             self._serial.baudrate = baudrate
+            if 'bytesize' in kwargs.keys():
+                self._serial.bytesize = kwargs.get('bytesize')
+            if 'parity' in kwargs.keys():
+                self._serial.parity = kwargs.get('parity')
+            if 'stopbits' in kwargs.keys():
+                self._serial.stopbits = kwargs.get('stopbits')
+
             self._serial.open()
             if self._serial.is_open:
                 self._serial.reset_input_buffer()
@@ -60,7 +67,7 @@ class SerialComm:
                 self.clearQueues()
                 self.startThreads()
                 self.sig_connected.emit(True)
-                writeLog(f'"{self._name}" Connected to <{port}> (baud: {baudrate})', self)
+                writeLog(f'"{self._name}" Connected to <{port}> (baud: {baudrate}, bytesize: {self._serial.bytesize}, parity: {self._serial.parity}, stopbits: {self._serial.stopbits})', self)
                 self._last_recv_time = datetime.datetime.now()
                 return True
             self.sig_connected.emit(False)
