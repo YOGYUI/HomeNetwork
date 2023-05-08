@@ -51,7 +51,7 @@ class ParserSubPhone(PacketParser):
             writeLog('interpretPacket::Exception::{} ({})'.format(e, packet), self)
 
     def handleFrontDoor(self, packet: bytearray):
-        result = {'device': 'subphone'}
+        result = {'device': DeviceType.SUBPHONE}
         notify: bool = True
         if packet[1] == 0xB5:
             # 현관 도어폰 초인종 호출 (월패드 -> 서브폰)
@@ -86,7 +86,7 @@ class ParserSubPhone(PacketParser):
             self.sig_parse_result.emit(result)
 
     def handleCommunalDoor(self, packet: bytearray):
-        result = {'device': 'subphone'}
+        result = {'device': DeviceType.SUBPHONE}
         notify: bool = True
         if packet[1] == 0x5A:
             # 공동현관문 호출 (월패드 -> 서브폰)
@@ -114,7 +114,7 @@ class ParserSubPhone(PacketParser):
             # 쿼리 패킷 (서브폰 -> 월패드)
             pass
         elif packet_type == 0x01:
-            result = {'device': 'hems', 'packet': packet}
+            result = {'device': DeviceType.HEMS, 'packet': packet}
             notify: bool = True
             # 응답 패킷 (월패드 -> 서브폰)
             devtype = HEMSDevType((packet[2] & 0xF0) >> 4)

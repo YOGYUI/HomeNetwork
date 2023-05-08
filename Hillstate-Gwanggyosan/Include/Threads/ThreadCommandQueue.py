@@ -53,6 +53,12 @@ class ThreadCommandQueue(threading.Thread):
                             if target == 0:
                                 self.set_state_common(dev, target, parser)
                             else:  # 밸브 여는것은 지원되지 않음!
+                                """
+                                packet_test = dev.makePacketSetState(True)
+                                parser.sendPacket(packet_test)
+                                interval, _ = self.getSendParams(parser)
+                                time.sleep(interval)
+                                """
                                 packet_query = dev.makePacketQueryState()
                                 parser.sendPacket(packet_query)
                     elif isinstance(dev, Thermostat):

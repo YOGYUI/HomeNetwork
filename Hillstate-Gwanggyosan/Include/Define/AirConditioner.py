@@ -100,6 +100,17 @@ class AirConditioner(Device):
                 self.publish_mqtt()
             self.rotation_speed_prev = self.rotation_speed
 
+    def makePacketQueryState(self) -> bytearray:
+        # F7 0B 01 1C 01 40 XX 00 00 YY EE
+        # XX: 상위 4비트=공간 인덱스, 하위 4비트=1
+        # YY: Checksum (XOR SUM)
+        packet = bytearray([0xF7, 0x0B, 0x01, 0x1C, 0x01, 0x40])
+        packet.append((self.room_index << 4) + 0x01)
+        packet.extend([0x00, 0x00])
+        packet.append(self.calcXORChecksum(packet))
+        packet.append(0xEE)
+        return packet
+
     def makePacketSetState(self, state: bool) -> bytearray:
         # F7 0B 01 1C 02 40 XX YY 00 ZZ EE
         # XX: 상위 4비트=공간 인덱스, 하위 4비트=1

@@ -1,6 +1,7 @@
 import datetime
 import threading
 from functools import partial
+from enum import IntEnum, auto, unique
 
 
 def checkAgrumentType(obj, arg):
@@ -88,3 +89,17 @@ class bind(partial):
         iargs = iter(args)
         args = (next(iargs) if arg is ... else arg for arg in self.args)
         return self.func(*args, *iargs, **keywords)
+
+
+@unique
+class DeviceType(IntEnum):
+    UNKNOWN = 0
+    LIGHT = auto()
+    OUTLET = auto()
+    THERMOSTAT = auto()
+    AIRCONDITIONER = auto()
+    GASVALVE = auto()
+    VENTILATOR = auto()
+    ELEVATOR = auto()
+    SUBPHONE = auto()
+    HEMS = auto()

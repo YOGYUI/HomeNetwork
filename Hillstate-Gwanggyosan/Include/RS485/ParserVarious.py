@@ -94,7 +94,7 @@ class ParserVarious(PacketParser):
         elif packet[4] == 0x04:  # 상태 응답
             state = 0 if packet[8] == 0x03 else 1
             result = {
-                'device': 'gasvalve',
+                'device': DeviceType.GASVALVE,
                 'state': state
             }
             self.sig_parse_result.emit(result)
@@ -115,7 +115,7 @@ class ParserVarious(PacketParser):
                         temp_current = dev_packet[1]  # 현재 온도
                         temp_config = dev_packet[2]  # 설정 온도
                         result = {
-                            'device': 'thermostat',
+                            'device': DeviceType.THERMOSTAT,
                             'room_index': idx + 1,
                             'state': state,
                             'temp_current': temp_current,
@@ -128,7 +128,7 @@ class ParserVarious(PacketParser):
                     temp_current = packet[9]  # 현재 온도
                     temp_config = packet[10]  # 설정 온도
                     result = {
-                        'device': 'thermostat',
+                        'device': DeviceType.THERMOSTAT,
                         'room_index': room_idx,
                         'state': state,
                         'temp_current': temp_current,
@@ -145,7 +145,7 @@ class ParserVarious(PacketParser):
             state = 0 if packet[8] == 0x02 else 1
             rotation_speed = packet[9]  # 0x01=약, 0x03=중, 0x07=강
             result = {
-                'device': 'ventilator',
+                'device': DeviceType.VENTILATOR,
                 'state': state
             }
             if rotation_speed != 0:
@@ -165,7 +165,7 @@ class ParserVarious(PacketParser):
             mode = packet[11]  # 모드 (0=자동, 1=냉방, 2=제습, 3=공기청정)
             rotation_speed = packet[12]  # 풍량 (1=자동, 2=미풍, 3=약풍, 4=강풍)
             result = {
-                'device': 'airconditioner',
+                'device': DeviceType.AIRCONDITIONER,
                 'room_index': room_idx,
                 'state': state,
                 'temp_current': temp_current,
@@ -205,7 +205,7 @@ class ParserVarious(PacketParser):
                     state = 6
                 
             result = {
-                'device': 'elevator',
+                'device': DeviceType.ELEVATOR,
                 'data_type': 'query',
                 'state': state,
                 'dev_idx': dev_idx,
@@ -223,7 +223,7 @@ class ParserVarious(PacketParser):
             # 미니패드의 '엘리베이터 호출' 버튼의 상태를 반환함
             state = packet[8] & 0x0F  # 0 = idle, 6 = command (하행) 호출
             result = {
-                'device': 'elevator',
+                'device': DeviceType.ELEVATOR,
                 'data_type': 'response',
                 'state': state
             }

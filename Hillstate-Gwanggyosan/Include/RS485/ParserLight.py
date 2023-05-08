@@ -6,6 +6,7 @@ class ParserLight(PacketParser):
     enable_store_packet_header_19: bool = False
     enable_store_packet_header_1E: bool = False
     enable_store_packet_header_1F: bool = False
+    enable_store_packet_header_43: bool = False
     enable_store_packet_unknown: bool = True
 
     def interpretPacket(self, packet: bytearray):
@@ -25,7 +26,9 @@ class ParserLight(PacketParser):
                 packet_info['device'] = 'outlet'
                 store = self.enable_store_packet_header_1F
             elif packet[3] == 0x43:  # 에너지 사용량 쿼리인듯?
-                writeLog(f'Unknown packet (43): {self.prettifyPacket(packet)}', self)
+                self.handleHEMS(packet)
+                packet_info['device'] = 'hems'
+                store = self.enable_store_packet_header_43
             else:
                 writeLog(f'Unknown packet: {self.prettifyPacket(packet)}', self)
                 packet_info['device'] = 'unknown'
@@ -50,7 +53,7 @@ class ParserLight(PacketParser):
                 for idx in range(light_count):
                     state = 0 if packet[8 + idx] == 0x02 else 1
                     result = {
-                        'device': 'light', 
+                        'device': DeviceType.LIGHT, 
                         'index': idx,
                         'room_index': room_idx,
                         'state': state
@@ -59,7 +62,7 @@ class ParserLight(PacketParser):
             else:  # 상태 변경 명령 직후 응답
                 state = 0 if packet[8] == 0x02 else 1
                 result = {
-                    'device': 'light', 
+                    'device': DeviceType.LIGHT, 
                     'index': dev_idx - 1,
                     'room_index': room_idx,
                     'state': state
@@ -85,7 +88,7 @@ class ParserLight(PacketParser):
                     dev_packet = packet[8 + idx * 9: 8 + (idx + 1) * 9]
                     state = 0 if dev_packet[1] == 0x02 else 1
                     result = {
-                        'device': 'outlet',
+                        'device': DeviceType.OUTLET,
                         'index': idx,
                         'room_index': room_idx,
                         'state': state
@@ -94,9 +97,15 @@ class ParserLight(PacketParser):
             else:  # 상태 변경 명령 직후 응답
                 state = 0 if packet[8] == 0x02 else 1
                 result = {
-                    'device': 'outlet',
+                    'device': DeviceType.OUTLET,
                     'index': dev_idx - 1,
                     'room_index': room_idx,
                     'state': state
                 }
                 self.sig_parse_result.emit(result)
+
+    def handleHEMS(self, packet: bytearray):
+        if packet[4] == 0x01:  # 상태 쿼리
+            pass
+        else:
+            writeLog(f'Unknown packet (HEMS): {self.prettifyPacket(packet)}', self)
