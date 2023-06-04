@@ -32,7 +32,8 @@ class ParserVarious(PacketParser):
                 self.handleAirconditioner(packet)
                 store = self.enable_store_packet_header_1C
                 packet_info['device'] = 'airconditioner'
-            elif packet[3] == 0x2A:  # 다기능스위치
+            elif packet[3] == 0x2A:  # 일괄소등 스위치
+                self.handleBatchOffSwitch(packet)
                 packet_info['device'] = 'multi function switch'
                 store = self.enable_store_packet_header_2A
             elif packet[3] == 0x2B:  # 환기 (전열교환기)
@@ -252,3 +253,19 @@ class ParserVarious(PacketParser):
                 # writeLog(f'EMON - Heating: {value}', self)
             else:
                 writeLog(f'> {self.prettifyPacket(packet)}', self)
+
+    def handleBatchOffSwitch(self, packet: bytearray):
+        if packet[4] == 0x01:  # 상태 쿼리
+            pass
+        elif packet[4] == 0x04:
+            # 쿼리 응답
+            # F7 0E 01 2A 04 40 10 00 19 XX 1B 03 YY EE
+            # 명령 응답
+            # F7 0C 01 2A 04 40 11 XX 19 YY ZZ EE
+            # 길이는 다르지만 10번째 패킷이 스위치 상태를 가리킴
+            state = 0 if packet[9] == 0x02 else 1
+            result = {
+                'device': DeviceType.BATCHOFFSWITCH,
+                'state': state
+            }
+            self.sig_parse_result.emit(result)

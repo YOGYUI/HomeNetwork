@@ -103,3 +103,4 @@ class DeviceType(IntEnum):
     ELEVATOR = auto()
     SUBPHONE = auto()
     HEMS = auto()
+    BATCHOFFSWITCH = auto()

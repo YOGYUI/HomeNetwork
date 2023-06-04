@@ -102,6 +102,8 @@ class AirqualitySensor(Device):
                                 except ValueError:
                                     self._measure_data['khaiGrade'] = 0
                                 self._last_query_time = datetime.datetime.now()
+                            else:
+                                writeLog(f"Cannot find 'item' node", self)
                         else:
                             writeLog(f"API Error ({result_code_text, result_msg_text})", self)
                     else:

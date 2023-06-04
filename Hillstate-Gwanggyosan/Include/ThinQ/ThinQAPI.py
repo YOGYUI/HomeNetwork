@@ -45,6 +45,7 @@ class ThinQ:
     log_mqtt_message: bool = False
     
     device_discover_list: List[dict]
+    discovered_device_id_list: List[str]
     robot_cleaner_dev_id: str = ''
     mqtt_topic: str = ''
 
@@ -53,6 +54,7 @@ class ThinQ:
         
         self.subscribe_topics = list()
         self.device_discover_list = list()
+        self.discovered_device_id_list = list()
         if 'country_code' in kwargs.keys():
             self.country_code = kwargs.get('country_code')
         if 'language_code' in kwargs.keys():
@@ -338,6 +340,7 @@ class ThinQ:
             result = response_json.get('result')
             home_list = result.get('item')
             self.device_discover_list.clear()
+            self.discovered_device_id_list.clear()
             for obj in home_list:
                 homeId = obj.get('homeId')
                 url2 = self.uri_thinq2 + '/service/homes/' + homeId
@@ -347,6 +350,7 @@ class ThinQ:
                     result = response_json.get('result')
                     devices = result.get('devices')
                     self.device_discover_list.extend(devices)
+            self.discovered_device_id_list = [x.get('deviceId') for x in self.device_discover_list]
             self.print_device_discover_list()
             result = True
         else:
@@ -512,26 +516,29 @@ class ThinQ:
         data = msg_dict.get('data')
         deviceId = msg_dict.get('deviceId')
         msg_type = msg_dict.get('type')
-        if data is not None and deviceId is not None and msg_type is not None:
-            if deviceId == self.robot_cleaner_dev_id:
-                try:
-                    state = data.get('state')
-                    reported = state.get('reported')
-                    robot_state = reported.get('ROBOT_STATE')
-                    if robot_state is not None:
-                        # possible state: 'SLEEP', 'CHARGING', 'INITAILIZING', 'CLEAN_SELECT', 'HOMING', 'CLEAN_EDGE', 
-                        # 'PAUSE_EDGE', 'HOMING_PAUSE', 'PAUSE_SELECT' ...,
-                        # {'EMERGENCY': 'ROBOT_LIFT', 'ROBOT_STUCK'}
-                        writeLog(f'Robot Cleaner Current State: {robot_state}', self)
-                        topic = self.mqtt_topic + '/robotcleaner/state'
-                        if 'CLEAN' in robot_state or robot_state in ['INITAILIZING', 'HOMING']:
-                            cleaning = 1
-                        else:
-                            cleaning = 0
-                        message = {'cleaning': cleaning}
-                        self.sig_publish_mqtt.emit(topic, message)
-                except Exception:
-                    pass
+        if data is not None:
+            if deviceId is not None and msg_type is not None:
+                if deviceId == self.robot_cleaner_dev_id:
+                    try:
+                        state = data.get('state')
+                        reported = state.get('reported')
+                        robot_state = reported.get('ROBOT_STATE')
+                        if robot_state is not None:
+                            # possible state: 'SLEEP', 'CHARGING', 'INITAILIZING', 'CLEAN_SELECT', 'HOMING', 'CLEAN_EDGE', 
+                            # 'PAUSE_EDGE', 'HOMING_PAUSE', 'PAUSE_SELECT' ...,
+                            # {'EMERGENCY': 'ROBOT_LIFT', 'ROBOT_STUCK'}
+                            writeLog(f'Robot Cleaner Current State: {robot_state}', self)
+                            topic = self.mqtt_topic + '/robotcleaner/state'
+                            if 'CLEAN' in robot_state or robot_state in ['INITAILIZING', 'HOMING']:
+                                cleaning = 1
+                            else:
+                                cleaning = 0
+                            message = {'cleaning': cleaning}
+                            self.sig_publish_mqtt.emit(topic, message)
+                    except Exception:
+                        pass
+            else:
+                print(data)
 
     def setEnableLogMqttMessage(self, enable: bool):
         self.log_mqtt_message = enable

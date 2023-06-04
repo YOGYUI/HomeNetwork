@@ -419,4 +419,10 @@
             <subscribe>home/hillstate/airquality/command</subscribe>
         </mqtt>
     </airquality>
+    <batchoffsw>
+        <mqtt>
+            <publish>home/hillstate/batchoffsw/state</publish>
+            <subscribe>home/hillstate/batchoffsw/command</subscribe>
+        </mqtt>
+    </batchoffsw>
 </config>

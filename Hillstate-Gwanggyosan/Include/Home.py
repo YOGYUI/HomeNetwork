@@ -29,6 +29,7 @@ class Home:
     subphone: SubPhone
     airquality: AirqualitySensor
     thinq: ThinQ = None
+    batchoffsw: BatchOffSwitch
 
     thread_cmd_queue: Union[ThreadCommandQueue, None] = None
     thread_parse_result_queue: Union[ThreadParseResultQueue, None] = None
@@ -126,6 +127,7 @@ class Home:
         self.subphone = SubPhone(name="SubPhone", mqtt_client=self.mqtt_client)
         self.subphone.sig_state_streaming.connect(self.onSubphoneStateStreaming)
         self.airquality = AirqualitySensor(mqtt_client=self.mqtt_client)
+        self.batchoffsw = BatchOffSwitch(mqtt_client=self.mqtt_client)
 
         # append device list
         for room in self.rooms:
@@ -135,6 +137,7 @@ class Home:
         self.device_list.append(self.elevator)
         # self.device_list.append(self.doorlock)
         self.device_list.append(self.subphone)
+        self.device_list.append(self.batchoffsw)
         
         self.loadConfig(xml_path)
 
@@ -442,6 +445,15 @@ class Home:
             writeLog(f"Failed to load thinq config ({e})", self)
             traceback.print_exc()
 
+        node = root.find('batchoffsw')
+        try:
+            mqtt_node = node.find('mqtt')
+            self.batchoffsw.mqtt_publish_topic = mqtt_node.find('publish').text
+            topics = self.splitTopicText(mqtt_node.find('subscribe').text)
+            self.batchoffsw.mqtt_subscribe_topics.extend(topics)
+        except Exception as e:
+            writeLog(f"Failed to load batchoffsw config ({e})", self)
+
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
         if len(find) == 1:
@@ -569,6 +581,8 @@ class Home:
                 dev = SubPhone(name="SubPhone", mqtt_client=self.mqtt_client)
             elif dev_type is DeviceType.HEMS:
                 pass
+            elif dev_type is DeviceType.BATCHOFFSWITCH:
+                dev = BatchOffSwitch(mqtt_client=self.mqtt_client)
             # TODO: define mqtt topic
             if dev is not None and not self.isDeviceDiscovered(dev):
                 self.discovered_dev_list.append(dev)
@@ -647,9 +661,15 @@ class Home:
                     if key in ['electricity_current']:
                         topic = self.topic_hems_publish + f'/{key}'
                         value = result.get(key)
+                        """
                         if value == 0:
                             writeLog(f"zero power consumption? >> {prettifyPacket(result.get('packet'))}", self)
+                        """
                         self.mqtt_client.publish(topic, json.dumps({"value": value}), 1)
+            elif dev_type is DeviceType.BATCHOFFSWITCH:
+                state = result.get('state')
+                self.batchoffsw.updateState(state)
+                
             """
             elif dev_type == 'doorlock':
                 pass
@@ -676,6 +696,8 @@ class Home:
                 kwargs['parser'] = self.parser_various
             elif isinstance(dev, SubPhone):
                 kwargs['parser'] = self.parser_subphone
+            elif isinstance(dev, BatchOffSwitch):
+                kwargs['parser'] = self.parser_various
             """
             elif isinstance(dev, DoorLock):
                 kwargs['parser'] = self.parser_light
@@ -763,6 +785,8 @@ class Home:
                 self.onMqttCommandSubPhone(topic, msg_dict)
             if 'thinq/command' in topic:
                 self.onMqttCommandThinq(topic, msg_dict)
+            if 'batchoffsw/command' in topic:
+                self.onMqttCommandBatchOffSwitch(topic, msg_dict)
             """
             if 'doorlock/command' in topic:
                 self.onMqttCommandDookLock(topic, msg_dict)
@@ -951,6 +975,14 @@ class Home:
             return
         if 'log_mqtt_message' in message.keys():
             self.thinq.setEnableLogMqttMessage(bool(int(message.get('log_mqtt_message'))))
+
+    def onMqttCommandBatchOffSwitch(self, _: str, message: dict):
+        if 'state' in message.keys():
+            self.command(
+                device=self.batchoffsw,
+                category='state',
+                target=message['state']
+            )
 
     def onSubphoneStateStreaming(self, state: int):
         # 카메라 응답없음이 해제가 안되므로, 초기화 시에 시작하도록 한다

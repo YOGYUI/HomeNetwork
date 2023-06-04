@@ -16,3 +16,4 @@ from Elevator import Elevator
 # from DoorLock import DoorLock
 from SubPhone import SubPhone, HEMSDevType, HEMSCategory
 from AirqualitySensor import AirqualitySensor
+from BatchOffSwitch import BatchOffSwitch

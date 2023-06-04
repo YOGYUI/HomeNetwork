@@ -92,6 +92,9 @@ class ThreadCommandQueue(threading.Thread):
                             self.set_subphone_streaming_state(dev, target, parser)
                         elif category == 'doorlock':
                             self.set_doorlock_state(dev, target, parser)
+                    elif isinstance(dev, BatchOffSwitch):
+                        if category == 'state':
+                            self.set_state_common(dev, target, parser)
                     """
                     elif isinstance(dev, DoorLock):
                         if category == 'state':
