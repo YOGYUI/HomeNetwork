@@ -29,6 +29,7 @@ class RS485Config:
     serial_stopbits: float = 1.
     socket_ipaddr: str = '127.0.0.1'
     socket_port: int = 80
+    check_connection: bool = True
 
 
 class RS485Comm:

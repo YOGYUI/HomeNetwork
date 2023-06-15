@@ -7,9 +7,11 @@
     </webserver>
     <rs485>
         <reconnect_limit>30</reconnect_limit>  <!-- 단위: 초 -->
-        <light>
+        <port>
+            <name>light</name>
             <enable>1</enable>
-            <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <hwtype>1</hwtype>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <packettype>0</packettype>  <!-- 0 = regular, 1 = subphone -->
             <usb2serial>
                 <port>/dev/ttyUSB1</port>
                 <baud>9600</baud>
@@ -21,10 +23,14 @@
                 <ipaddr>192.168.0.1</ipaddr>
                 <port>8899</port>
             </ew11>
-        </light>
-        <various>
+            <check>1</check>
+            <buffsize>64</buffsize>
+        </port>
+        <port>
+            <name>various</name>
             <enable>1</enable>
-            <type>1</type>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <hwtype>1</hwtype>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <packettype>0</packettype>  <!-- 0 = regular, 1 = subphone -->
             <usb2serial>
                 <port>/dev/ttyUSB0</port>
                 <baud>9600</baud>
@@ -36,10 +42,14 @@
                 <ipaddr>192.168.0.2</ipaddr>
                 <port>8899</port>
             </ew11>
-        </various>
-        <subphone>
+            <check>1</check>
+            <buffsize>64</buffsize>
+        </port>
+        <port>
+            <name>subphone</name>
             <enable>1</enable>
-            <type>0</type>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <hwtype>0</hwtype>  <!-- 0 = usb2serial, 1 = ew11 -->
+            <packettype>1</packettype>  <!-- 0 = regular, 1 = subphone -->
             <usb2serial>
                 <port>/dev/ttyUSB0</port>
                 <baud>3840</baud>
@@ -51,7 +61,9 @@
                 <ipaddr>192.168.0.1</ipaddr>
                 <port>8899</port>
             </ew11>
-        </subphone>
+            <check>0</check>
+            <buffsize>32</buffsize>
+        </port>
     </rs485>
     <mqtt>
         <host>mosquitto ip address</host>
@@ -376,6 +388,7 @@
     </doorlock>
     -->
     <subphone>
+        <enable>1</enable>
         <mqtt>
             <publish>home/hillstate/subphone/state</publish>
             <subscribe>

@@ -16,6 +16,25 @@ from RS485 import *
 from Common import *
 from Multiprocess import *
 from ThinQ import ThinQ
+CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/include/
+PROJPATH = os.path.dirname(CURPATH)  # {$PROJECT}/
+
+
+class RS485Info:
+    rs485: RS485Comm = None
+    config: RS485Config = None
+    parser: PacketParser = None
+
+    def __init__(self, rs485: RS485Comm, config: RS485Config, parser: PacketParser):
+        self.rs485 = rs485
+        self.config = config
+        self.parser = parser
+
+    def release(self):
+        if self.rs485 is not None:
+            self.rs485.release()
+        if self.parser is not None:
+            self.parser.release()
 
 
 class Home:
@@ -45,10 +64,10 @@ class Home:
     enable_mqtt_console_log: bool = True
     verbose_mqtt_regular_publish: dict
 
-    rs485_list: List[RS485Comm]
+    rs485_info_list: List[RS485Info]
     rs485_reconnect_limit: int = 60
-    parser_list: List[PacketParser]
 
+    enable_subphone: bool = True
     mp_ffserver: Union[multiprocessing.Process, None] = None
     pid_ffserver_proc: int = 0
     mp_ffmpeg: Union[multiprocessing.Process, None] = None
@@ -68,44 +87,40 @@ class Home:
         self.rooms = list()
         self.queue_command = queue.Queue()
         self.queue_parse_result = queue.Queue()
-        self.rs485_list = list()
-        self.parser_list = list()
+        self.rs485_info_list = list()
         self.hems_info = dict()
-
-        # 조명 + 아울렛 포트
-        self.rs485_light_config = RS485Config()
-        self.rs485_light = RS485Comm('RS485-Light')
-        self.rs485_list.append(self.rs485_light)
-        self.parser_light = ParserLight(self.rs485_light)
-        self.parser_light.setBufferSize(64)
-        self.parser_light.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
-        self.parser_list.append(self.parser_light)
-
-        # 가스밸스, 환기, 난방, 시스템에어컨, 엘리베이터 포트
-        self.rs485_various_config = RS485Config()
-        self.rs485_various = RS485Comm('RS485-Various')
-        self.rs485_list.append(self.rs485_various)
-        self.parser_various = ParserVarious(self.rs485_various)
-        self.parser_various.setBufferSize(64)
-        self.parser_various.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
-        self.parser_list.append(self.parser_various)
-
-        # 주방 비디오폰(서브폰) 포트
-        self.rs485_subphone_config = RS485Config()
-        self.rs485_subphone = RS485Comm('RS485-SubPhone')
-        self.rs485_subphone.sig_connected.connect(self.onRS485SubPhoneConnected)
-        self.rs485_list.append(self.rs485_subphone)
-        self.parser_subphone = ParserSubPhone(self.rs485_subphone)
-        self.parser_subphone.setBufferSize(32)
-        self.parser_subphone.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
-        self.parser_list.append(self.parser_subphone)
-
         self.initialize(init_service, False)
     
     def initialize(self, init_service: bool, connect_rs485: bool):
+        xml_path = os.path.join(PROJPATH, 'config.xml')
         self.device_list.clear()
         self.rooms.clear()
+        self.initMQTT()
+        self.initDevices(xml_path)
+        self.loadConfig(xml_path)
 
+        if init_service:
+            self.startThreadCommandQueue()
+            self.startThreadParseResultQueue()
+            self.startThreadTimer()
+            try:
+                self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
+            except Exception as e:
+                writeLog('MQTT Connection Error: {}'.format(e), self)
+            self.mqtt_client.loop_start()
+            if self.thinq is not None:
+                self.thinq.start()
+        if self.enable_subphone:
+            # 카메라 스트리밍
+            self.startFFServer()
+            self.startFFMpeg()
+            if self.enable_hems:
+                self.startThreadEnergyMonitor()
+        if connect_rs485:
+            self.initRS485Connection()
+        writeLog(f'Initialized <{self.name}>', self)
+
+    def initMQTT(self):
         self.mqtt_client = mqtt.Client(client_id="Yogyui_Hillstate_Gwanggyosan")
         self.mqtt_client.on_connect = self.onMqttClientConnect
         self.mqtt_client.on_disconnect = self.onMqttClientDisconnect
@@ -115,11 +130,8 @@ class Home:
         self.mqtt_client.on_message = self.onMqttClientMessage
         self.mqtt_client.on_log = self.onMqttClientLog
 
-        curpath = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/include/
-        projpath = os.path.dirname(curpath)  # {$PROJECT}/
-        xml_path = os.path.join(projpath, 'config.xml')
-
-        self.initRoomsFromConfig(xml_path)
+    def initDevices(self, filepath: str):
+        self.initRooms(filepath)
         self.gasvalve = GasValve(name='Gas Valve', mqtt_client=self.mqtt_client)
         self.ventilator = Ventilator(name='Ventilator', mqtt_client=self.mqtt_client)
         self.elevator = Elevator(name='Elevator', mqtt_client=self.mqtt_client)
@@ -138,38 +150,12 @@ class Home:
         # self.device_list.append(self.doorlock)
         self.device_list.append(self.subphone)
         self.device_list.append(self.batchoffsw)
-        
-        self.loadConfig(xml_path)
 
         for dev in self.device_list:
             dev.sig_set_state.connect(partial(self.onDeviceSetState, dev))
 
-        if init_service:
-            self.startThreadCommandQueue()
-            self.startThreadParseResultQueue()
-            self.startThreadTimer()
-            try:
-                self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
-            except Exception as e:
-                writeLog('MQTT Connection Error: {}'.format(e), self)
-            self.mqtt_client.loop_start()
-            if self.thinq is not None:
-                self.thinq.start()
-        
-        # 카메라 스트리밍
-        if self.rs485_subphone_config.enable:
-            self.startFFServer()
-            self.startFFMpeg()
-            if self.enable_hems:
-                self.startThreadEnergyMonitor()
-        
-        if connect_rs485:
-            self.initRS485Connection()
-
-        writeLog(f'Initialized <{self.name}>', self)
-
     def release(self):
-        if self.rs485_subphone_config.enable:
+        if self.enable_subphone:
             self.stopThreadEnergyMonitor()
             self.stopFFMpeg()
             self.stopFFServer()
@@ -186,10 +172,8 @@ class Home:
         self.stopThreadParseResultQueue()
         self.stopThreadTimer()
 
-        for parser in self.parser_list:
-            parser.release()
-        for rs485 in self.rs485_list:
-            rs485.release()
+        for elem in self.rs485_info_list:
+            elem.release()
         for dev in self.device_list:
             dev.release()
         
@@ -202,7 +186,7 @@ class Home:
         time.sleep(5)
         self.initialize(True, True)
 
-    def initRoomsFromConfig(self, filepath: str):
+    def initRooms(self, filepath: str):
         if not os.path.isfile(filepath):
             return
         root = ET.parse(filepath).getroot()
@@ -237,14 +221,10 @@ class Home:
         writeLog(f'Initializing Room Finished ({len(self.rooms)})', self)
 
     def initRS485Connection(self):
-        rs485_list = [
-            ('light', self.rs485_light_config, self.rs485_light),
-            ('various', self.rs485_various_config, self.rs485_various),
-            ('subphone', self.rs485_subphone_config, self.rs485_subphone)
-        ]
-
-        for elem in rs485_list:
-            name, cfg, rs485 = elem
+        for elem in self.rs485_info_list:
+            cfg = elem.config
+            rs485 = elem.rs485
+            name = elem.parser.name
             try:
                 if cfg.enable:
                     rs485.setType(cfg.comm_type)
@@ -283,40 +263,42 @@ class Home:
 
         node = root.find('rs485')
         try:
-            rs485_list = [
-                ('light', self.rs485_light_config),
-                ('various', self.rs485_various_config),
-                ('subphone', self.rs485_subphone_config)
-            ]
-
-            for elem in rs485_list:
-                name, cfg = elem
-                try:
-                    child_node = node.find(f'{name}')
-                    enable_node = child_node.find('enable')
-                    cfg.enable = bool(int(enable_node.text))
-                    type_node = child_node.find('type')
-                    cfg.comm_type = RS485HwType(int(type_node.text))
-                    usb2serial_node = child_node.find('usb2serial')
-                    serial_port_node = usb2serial_node.find('port')
-                    cfg.serial_port = serial_port_node.text
-                    serial_baud_node = usb2serial_node.find('baud')
-                    cfg.serial_baud = int(serial_baud_node.text)
-                    serial_databit = usb2serial_node.find('databit')
-                    cfg.serial_databit = int(serial_databit.text)
-                    serial_parity = usb2serial_node.find('parity')
-                    cfg.serial_parity = serial_parity.text
-                    serial_stopbits = usb2serial_node.find('stopbits')
-                    cfg.serial_stopbits = float(serial_stopbits.text)
-                    ew11_node = child_node.find('ew11')
-                    socket_addr_node = ew11_node.find('ipaddr')
-                    cfg.socket_ipaddr = socket_addr_node.text
-                    socket_port_node = ew11_node.find('port')
-                    cfg.socket_port = int(socket_port_node.text)
-                except Exception as e:
-                    writeLog(f"Failed to load '{name}' rs485 config ({e})", self)
-                    continue
             self.rs485_reconnect_limit = int(node.find('reconnect_limit').text)
+            self.rs485_info_list.clear()
+            for cnode in list(node):
+                if cnode.tag is not 'port':
+                    continue
+                try:
+                    name = cnode.find('name').text.upper()
+                    enable = bool(int(cnode.find('enable').text))
+                    hwtype = int(cnode.find('hwtype').text)
+                    packettype = int(cnode.find('packettype').text)
+                    usb2serial_node = cnode.find('usb2serial')
+                    ew11_node = cnode.find('ew11')
+                    check = bool(int(cnode.find('check').text))
+                    buffsize = int(cnode.find('buffsize').text)
+
+                    cfg = RS485Config()
+                    cfg.enable = enable
+                    cfg.comm_type = RS485HwType(hwtype)
+                    cfg.serial_port = usb2serial_node.find('port').text
+                    cfg.serial_baud = int(usb2serial_node.find('baud').text)
+                    cfg.serial_databit = int(usb2serial_node.find('databit').text)
+                    cfg.serial_parity = usb2serial_node.find('parity').text
+                    cfg.serial_stopbits = float(usb2serial_node.find('stopbits').text)
+                    cfg.socket_ipaddr = ew11_node.find('ipaddr').text
+                    cfg.socket_port = int(ew11_node.find('port').text)
+                    cfg.check_connection = check
+                    rs485 = RS485Comm(f'RS485-{name}')
+                    if name.lower() == 'subphone':
+                        rs485.sig_connected.connect(self.onRS485SubPhoneConnected)
+                    parser = PacketParser(rs485, name, ParserType(packettype))
+                    parser.setBufferSize(buffsize)
+                    parser.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
+                    self.rs485_info_list.append(RS485Info(rs485, cfg, parser))
+                except Exception as e:
+                    writeLog(f"Failed to load rs485 config ({e})", self)
+                    continue
         except Exception as e:
             writeLog(f"Failed to load rs485 config ({e})", self)
 
@@ -392,6 +374,7 @@ class Home:
         node = root.find('subphone')
         try:
             mqtt_node = node.find('mqtt')
+            self.enable_subphone = bool(int(node.find('enable').text))
             self.subphone.mqtt_publish_topic = mqtt_node.find('publish').text
             topics = self.splitTopicText(mqtt_node.find('subscribe').text)
             self.subphone.mqtt_subscribe_topics.extend(topics)
@@ -493,17 +476,14 @@ class Home:
 
     def startThreadTimer(self):
         if self.thread_timer is None:
-            rs485_list = []
-            if self.rs485_light_config.enable:
-                rs485_list.append(self.rs485_light)
-            if self.rs485_various_config.enable:
-                rs485_list.append(self.rs485_various)
-            if self.rs485_subphone_config.enable:
-                # 주방 서브폰은 항상 패킷이 송수신되지 않는다 (현관문 등 다른 기기가 작동해야 함)
-                # rs485_list.append(self.rs485_subphone)
-                pass
+            rs485_obj_list = []
+            for elem in self.rs485_info_list:
+                rs485 = elem.rs485
+                config = elem.config
+                if config.enable and config.check_connection:
+                    rs485_obj_list.append(rs485)
             self.thread_timer = ThreadTimer(
-                rs485_list,
+                rs485_obj_list,
                 reconnect_limit_sec=self.rs485_reconnect_limit,
                 verbose_regular_publish=self.verbose_mqtt_regular_publish
             )
