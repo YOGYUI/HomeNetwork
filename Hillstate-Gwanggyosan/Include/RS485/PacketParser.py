@@ -63,6 +63,10 @@ class PacketParser:
         self.type_interpret = type_interpret
         self.packet_storage = list()
 
+    def __repr__(self):
+        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})>'
+        return repr_txt
+
     def release(self):
         self.buffer.clear()
 

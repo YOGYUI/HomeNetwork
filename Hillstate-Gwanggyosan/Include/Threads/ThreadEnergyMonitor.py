@@ -10,7 +10,7 @@ sys.path = list(set(sys.path))
 del CURPATH, INCPATH
 from Common import Callback, writeLog
 from Define import *
-from RS485 import ParserSubPhone
+from RS485 import PacketParser
 
 
 def prettifyPacket(packet: bytearray) -> str:
@@ -24,7 +24,7 @@ class ThreadEnergyMonitor(threading.Thread):
 
     def __init__(self, 
         subphone: SubPhone, 
-        parser: ParserSubPhone, 
+        parser: PacketParser, 
         interval_realtime_ms: int = 1 * 1000,
         interval_regular_ms: int = 60 * 60 * 1000
     ):

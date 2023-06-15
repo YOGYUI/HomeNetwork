@@ -9,6 +9,7 @@
         <reconnect_limit>30</reconnect_limit>  <!-- 단위: 초 -->
         <port>
             <name>light</name>
+            <index>0</index>
             <enable>1</enable>
             <hwtype>1</hwtype>  <!-- 0 = usb2serial, 1 = ew11 -->
             <packettype>0</packettype>  <!-- 0 = regular, 1 = subphone -->
@@ -28,6 +29,7 @@
         </port>
         <port>
             <name>various</name>
+            <index>1</index>
             <enable>1</enable>
             <hwtype>1</hwtype>  <!-- 0 = usb2serial, 1 = ew11 -->
             <packettype>0</packettype>  <!-- 0 = regular, 1 = subphone -->
@@ -47,6 +49,7 @@
         </port>
         <port>
             <name>subphone</name>
+            <index>2</index>
             <enable>1</enable>
             <hwtype>0</hwtype>  <!-- 0 = usb2serial, 1 = ew11 -->
             <packettype>1</packettype>  <!-- 0 = regular, 1 = subphone -->
@@ -77,6 +80,18 @@
         </verbose_regular_publish>
     </mqtt>
     <device>
+        <parser_mapping>
+            <light>0</light>
+            <outlet>0</outlet>
+            <gasvalve>1</gasvalve>
+            <thermostat>1</thermostat>
+            <ventilator>1</ventilator>
+            <airconditioner>1</airconditioner>
+            <elevator>1</elevator>
+            <subphone>2</subphone>
+            <batchoffsw>1</batchoffsw>
+            <!-- <doorlock>0</doorlock> -->
+        </parser_mapping>
     </device>
     <rooms>
         <room1>

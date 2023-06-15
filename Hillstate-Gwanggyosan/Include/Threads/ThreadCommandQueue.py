@@ -39,7 +39,11 @@ class ThreadCommandQueue(threading.Thread):
                     category = elem.get('category')
                     target = elem.get('target')
                     parser = elem.get('parser')
-                    if target is None or parser is None:
+                    if target is None:
+                        writeLog('target is not designated', self)
+                        continue
+                    if parser is None:
+                        writeLog('parser is not designated', self)
                         continue
 
                     if isinstance(dev, Light):

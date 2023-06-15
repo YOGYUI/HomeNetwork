@@ -24,11 +24,19 @@ class RS485Info:
     rs485: RS485Comm = None
     config: RS485Config = None
     parser: PacketParser = None
+    index: int = 0
 
-    def __init__(self, rs485: RS485Comm, config: RS485Config, parser: PacketParser):
+    def __init__(self, rs485: RS485Comm, config: RS485Config, parser: PacketParser, index: int):
         self.rs485 = rs485
         self.config = config
         self.parser = parser
+        self.index = index
+
+    def __repr__(self) -> str:
+        repr_txt = f'<{self.parser.name}({self.__class__.__name__} at {hex(id(self))})'
+        repr_txt += f' Index: {self.index}'
+        repr_txt += '>'
+        return repr_txt
 
     def release(self):
         if self.rs485 is not None:
@@ -66,6 +74,7 @@ class Home:
 
     rs485_info_list: List[RS485Info]
     rs485_reconnect_limit: int = 60
+    parser_mapping: dict
 
     enable_subphone: bool = True
     mp_ffserver: Union[multiprocessing.Process, None] = None
@@ -88,6 +97,17 @@ class Home:
         self.queue_command = queue.Queue()
         self.queue_parse_result = queue.Queue()
         self.rs485_info_list = list()
+        self.parser_mapping = {
+            Light: 0,
+            Outlet: 0,
+            GasValve: 0,
+            Thermostat: 0,
+            Ventilator: 0,
+            AirConditioner: 0,
+            Elevator: 0,
+            SubPhone: 0,
+            BatchOffSwitch: 0
+        }
         self.hems_info = dict()
         self.initialize(init_service, False)
     
@@ -220,34 +240,6 @@ class Home:
                 writeLog(f"Failed to initializing room <{child.tag}> ({e})", self)
         writeLog(f'Initializing Room Finished ({len(self.rooms)})', self)
 
-    def initRS485Connection(self):
-        for elem in self.rs485_info_list:
-            cfg = elem.config
-            rs485 = elem.rs485
-            name = elem.parser.name
-            try:
-                if cfg.enable:
-                    rs485.setType(cfg.comm_type)
-                    if cfg.comm_type == RS485HwType.Serial:
-                        port, baud = cfg.serial_port, cfg.serial_baud
-                        databit, parity, stopbits = cfg.serial_databit, cfg.serial_parity, cfg.serial_stopbits
-                        rs485.connect(port, baud, bytesize=databit, parity=parity, stopbits=stopbits)
-                    elif cfg.comm_type == RS485HwType.Socket:
-                        ipaddr, port = cfg.socket_ipaddr, cfg.socket_port
-                        rs485.connect(ipaddr, port)
-                else:
-                    writeLog(f"rs485 '{name}' is disabled", self)
-            except Exception as e:
-                writeLog(f"Failed to initialize '{name}' rs485 connection ({e})", self)
-                continue
-        
-        if self.thread_timer is not None:
-            self.thread_timer.set_home_initialized()
-
-    def onRS485SubPhoneConnected(self):
-        if self.thread_energy_monitor is not None:
-            self.thread_energy_monitor.set_home_initialized()
-
     @staticmethod
     def splitTopicText(text: str) -> List[str]:
         topics = text.split('\n')
@@ -266,10 +258,11 @@ class Home:
             self.rs485_reconnect_limit = int(node.find('reconnect_limit').text)
             self.rs485_info_list.clear()
             for cnode in list(node):
-                if cnode.tag is not 'port':
+                if cnode.tag != 'port':
                     continue
                 try:
                     name = cnode.find('name').text.upper()
+                    index = int(cnode.find('index').text)
                     enable = bool(int(cnode.find('enable').text))
                     hwtype = int(cnode.find('hwtype').text)
                     packettype = int(cnode.find('packettype').text)
@@ -295,10 +288,12 @@ class Home:
                     parser = PacketParser(rs485, name, ParserType(packettype))
                     parser.setBufferSize(buffsize)
                     parser.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
-                    self.rs485_info_list.append(RS485Info(rs485, cfg, parser))
+                    self.rs485_info_list.append(RS485Info(rs485, cfg, parser, index))
+                    writeLog(f"Create RS485 Instance (name: {name})")
                 except Exception as e:
                     writeLog(f"Failed to load rs485 config ({e})", self)
                     continue
+            self.rs485_info_list.sort(key=lambda x: x.index)
         except Exception as e:
             writeLog(f"Failed to load rs485 config ({e})", self)
 
@@ -317,6 +312,21 @@ class Home:
         except Exception as e:
             writeLog(f"Failed to load mqtt config ({e})", self)
         
+        node = root.find('device')
+        try:
+            parser_mapping_node = node.find('parser_mapping')
+            self.parser_mapping[Light] = int(parser_mapping_node.find('light').text)
+            self.parser_mapping[Outlet] = int(parser_mapping_node.find('outlet').text)
+            self.parser_mapping[GasValve] = int(parser_mapping_node.find('gasvalve').text)
+            self.parser_mapping[Thermostat] = int(parser_mapping_node.find('thermostat').text)
+            self.parser_mapping[Ventilator] = int(parser_mapping_node.find('ventilator').text)
+            self.parser_mapping[AirConditioner] = int(parser_mapping_node.find('airconditioner').text)
+            self.parser_mapping[Elevator] = int(parser_mapping_node.find('elevator').text)
+            self.parser_mapping[SubPhone] = int(parser_mapping_node.find('subphone').text)
+            self.parser_mapping[BatchOffSwitch] = int(parser_mapping_node.find('batchoffsw').text)
+        except Exception as e:
+            writeLog(f"Failed to load device config ({e})", self)
+
         node = root.find('rooms')
         for room in self.rooms:
             room.loadConfig(node)
@@ -437,6 +447,34 @@ class Home:
         except Exception as e:
             writeLog(f"Failed to load batchoffsw config ({e})", self)
 
+    def initRS485Connection(self):
+        for elem in self.rs485_info_list:
+            cfg = elem.config
+            rs485 = elem.rs485
+            name = elem.parser.name
+            try:
+                if cfg.enable:
+                    rs485.setType(cfg.comm_type)
+                    if cfg.comm_type == RS485HwType.Serial:
+                        port, baud = cfg.serial_port, cfg.serial_baud
+                        databit, parity, stopbits = cfg.serial_databit, cfg.serial_parity, cfg.serial_stopbits
+                        rs485.connect(port, baud, bytesize=databit, parity=parity, stopbits=stopbits)
+                    elif cfg.comm_type == RS485HwType.Socket:
+                        ipaddr, port = cfg.socket_ipaddr, cfg.socket_port
+                        rs485.connect(ipaddr, port)
+                else:
+                    writeLog(f"rs485 '{name}' is disabled", self)
+            except Exception as e:
+                writeLog(f"Failed to initialize '{name}' rs485 connection ({e})", self)
+                continue
+        
+        if self.thread_timer is not None:
+            self.thread_timer.set_home_initialized()
+
+    def onRS485SubPhoneConnected(self):
+        if self.thread_energy_monitor is not None:
+            self.thread_energy_monitor.set_home_initialized()
+
     def getRoomObjectByIndex(self, index: int) -> Union[Room, None]:
         find = list(filter(lambda x: x.index == index, self.rooms))
         if len(find) == 1:
@@ -504,7 +542,7 @@ class Home:
         if self.thread_energy_monitor is None:
             self.thread_energy_monitor = ThreadEnergyMonitor(
                 subphone=self.subphone, 
-                parser=self.parser_subphone,
+                parser=self.rs485_info_list[2].parser,
                 interval_realtime_ms=5000,
                 interval_regular_ms=60*60*1000
             )
@@ -660,27 +698,31 @@ class Home:
     def command(self, **kwargs):
         try:
             dev = kwargs['device']
+            index = self.parser_mapping.get(type(dev))
+            kwargs['parser'] = self.rs485_info_list[index].parser
+            """
             if isinstance(dev, Light):
-                kwargs['parser'] = self.parser_light
+                kwargs['parser'] = self.rs485_info_list[0].parser
             elif isinstance(dev, Outlet):
-                kwargs['parser'] = self.parser_light
+                kwargs['parser'] = self.rs485_info_list[0].parser
             elif isinstance(dev, GasValve):
-                kwargs['parser'] = self.parser_various
+                kwargs['parser'] = self.rs485_info_list[1].parser
             elif isinstance(dev, Thermostat):
-                kwargs['parser'] = self.parser_various
+                kwargs['parser'] = self.rs485_info_list[1].parser
             elif isinstance(dev, Ventilator):
-                kwargs['parser'] = self.parser_various
+                kwargs['parser'] = self.rs485_info_list[1].parser
             elif isinstance(dev, AirConditioner):
-                kwargs['parser'] = self.parser_various
+                kwargs['parser'] = self.rs485_info_list[1].parser
             elif isinstance(dev, Elevator):
-                kwargs['parser'] = self.parser_various
+                kwargs['parser'] = self.rs485_info_list[1].parser
             elif isinstance(dev, SubPhone):
-                kwargs['parser'] = self.parser_subphone
+                kwargs['parser'] = self.rs485_info_list[2].parser
             elif isinstance(dev, BatchOffSwitch):
-                kwargs['parser'] = self.parser_various
+                kwargs['parser'] = self.rs485_info_list[1].parser
+            """
             """
             elif isinstance(dev, DoorLock):
-                kwargs['parser'] = self.parser_light
+                kwargs['parser'] = self.rs485_info_list[0].parser
             """
         except Exception as e:
             writeLog('command Exception::{}'.format(e), self)
@@ -806,7 +848,7 @@ class Home:
                 idx = message.get('index')
                 packet_str = message.get('packet')
                 packet = bytearray([int(x, 16) for x in packet_str.split(' ')])
-                self.rs485_list[idx].sendData(packet)
+                self.rs485_info_list[idx].rs485.sendData(packet)
             except Exception:
                 pass
         if 'clear_console' in message.keys():
