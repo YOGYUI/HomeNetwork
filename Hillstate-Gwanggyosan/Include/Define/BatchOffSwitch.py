@@ -9,7 +9,10 @@ class BatchOffSwitch(Device):
         self.mqtt_publish_topic = f'home/state/batchoffsw/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/batchoffsw/{self.room_index}/{self.index}'
     
-    def publish_mqtt(self):
+    def setDefaultName(self):
+        self.name = 'BatchOffSW'
+
+    def publishMQTT(self):
         obj = {"state": self.state}
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)

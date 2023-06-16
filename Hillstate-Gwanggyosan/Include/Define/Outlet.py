@@ -3,22 +3,30 @@ from Device import *
 
 
 class Outlet(Device):
+    enable_off_command: bool = False
+
     def __init__(self, name: str = 'Outlet', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.OUTLET
         self.mqtt_publish_topic = f'home/state/outlet/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/outlet/{self.room_index}/{self.index}'
-        self.enable_off_command: bool = False
+
+    def setDefaultName(self):
+        self.name = 'Outlet'
 
     def __repr__(self):
-        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += f' Dev Idx: {self.index}, '
-        repr_txt += f' Room Idx: {self.room_index}, '
-        repr_txt += f' Enable Off Cmd: {self.enable_off_command}'
+        # repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))}) '
+        repr_txt = f'<{self.name} '
+        repr_txt += f'Dev Idx: {self.index}, '
+        repr_txt += f'Room Idx: {self.room_index}, '
+        repr_txt += f'Enable Off Cmd: {self.enable_off_command}'
         repr_txt += '>'
         return repr_txt
     
-    def publish_mqtt(self):
+    def setEnableOffCommand(self, value: bool):
+        self.enable_off_command = value
+
+    def publishMQTT(self):
         obj = {"state": self.state}
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)

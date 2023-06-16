@@ -27,7 +27,10 @@ class AirqualitySensor(Device):
             'pm10Value': 0.0,
             'pm25Value': 0.0,
         }
-        
+    
+    def setDefaultName(self):
+        self.name = 'Airquality'
+
     def setApiParams(self, api_key: str, obs_name: str):
         self._api_key = api_key
         self._obs_name = obs_name
@@ -115,7 +118,7 @@ class AirqualitySensor(Device):
             except requests.exceptions.ConnectionError as e:
                 writeLog(f'{e}', self)
 
-    def publish_mqtt(self):
+    def publishMQTT(self):
         try:
             self.refreshData()
             obj = {

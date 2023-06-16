@@ -56,8 +56,11 @@ class SubPhone(Device):
             'width': 320,
             'height': 240,
         }
-        
-    def publish_mqtt(self):
+    
+    def setDefaultName(self):
+        self.name = 'SubPhone'
+
+    def publishMQTT(self):
         if self.mqtt_client is not None:
             obj = {"streaming_state": self.state_streaming}
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
@@ -80,14 +83,14 @@ class SubPhone(Device):
         if streaming is not None:
             self.state_streaming = streaming
             self.sig_state_streaming.emit(self.state_streaming)
-            self.publish_mqtt()
+            self.publishMQTT()
         ringing_front = kwargs.get('ringing_front')
         if ringing_front is not None:
             if ringing_front:
                 self.state_ringing = StateRinging.FRONT
             else:
                 self.state_ringing = StateRinging.IDLE
-            self.publish_mqtt()
+            self.publishMQTT()
             self.state_ringing_prev = self.state_ringing
         ringing_communal = kwargs.get('ringing_communal')
         if ringing_communal is not None:
@@ -95,12 +98,12 @@ class SubPhone(Device):
                 self.state_ringing = StateRinging.COMMUNAL
             else:
                 self.state_ringing = StateRinging.IDLE
-            self.publish_mqtt()
+            self.publishMQTT()
             self.state_ringing_prev = self.state_ringing
         doorlock = kwargs.get('doorlock')
         if doorlock is not None:
             self.state_doorlock = StateDoorLock(doorlock)
-            self.publish_mqtt()
+            self.publishMQTT()
         writeLog(f"Streaming: {bool(self.state_streaming)}, Ringing: {self.state_ringing.name}, DoorLock: {self.state_doorlock.name}", self)
 
     def makePacketCommon(self, header: int) -> bytearray:

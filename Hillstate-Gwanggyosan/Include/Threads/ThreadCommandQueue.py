@@ -133,7 +133,7 @@ class ThreadCommandQueue(threading.Thread):
         if isinstance(dev, Outlet):
             if target == 0 and not dev.enable_off_command:
                 writeLog(f'set_state_common::{dev} - off command is prohibited', self)
-                dev.publish_mqtt()
+                dev.publishMQTT()
                 return
 
         packet_command = dev.makePacketSetState(bool(target))
@@ -151,7 +151,7 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_state_common::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
-        dev.publish_mqtt()
+        dev.publishMQTT()
 
     def set_target_temperature(self, dev: Union[Thermostat, AirConditioner], target: float, parser: PacketParser):
         # 힐스테이트는 온도값 범위가 정수형이므로 올림처리해준다
@@ -180,7 +180,7 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_target_temperature::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
-        dev.publish_mqtt()
+        dev.publishMQTT()
 
     def set_rotation_speed(self, dev: Union[Ventilator, AirConditioner], target: int, parser: PacketParser):
         tm_start = time.perf_counter()
@@ -218,7 +218,7 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_rotation_speed::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
-        dev.publish_mqtt()
+        dev.publishMQTT()
 
     def set_airconditioner_mode(self, dev: AirConditioner, target: int, parser: PacketParser):
         tm_start = time.perf_counter()
@@ -238,7 +238,7 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_airconditioner_mode::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
-        dev.publish_mqtt()
+        dev.publishMQTT()
     
     def set_elevator_call(self, dev: Elevator, target: int, parser: PacketParser):
         tm_start = time.perf_counter()
@@ -263,7 +263,7 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_elevator_call({})::send # = {}, elapsed = {:g} msec'.format(target, cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
-        dev.publish_mqtt()
+        dev.publishMQTT()
 
     def set_subphone_streaming_state(self, dev: SubPhone, target: int, parser: PacketParser):
         packet = dev.makePacketSetVideoStreamingState(target)

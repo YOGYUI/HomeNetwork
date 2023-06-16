@@ -49,8 +49,11 @@ class Elevator(Device):
         self.mqtt_publish_topic = f'home/state/elevator/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/elevator/{self.room_index}/{self.index}'
         self.dev_info_list = list()
-        
-    def publish_mqtt(self):
+    
+    def setDefaultName(self):
+        self.name = 'Elevator'
+
+    def publishMQTT(self):
         obj = {
             "state": self.state, 
             "index": [x.index for x in self.dev_info_list],
@@ -118,7 +121,7 @@ class Elevator(Device):
                     writeLog("Called", self)
         
         if not self.init:
-            self.publish_mqtt()
+            self.publishMQTT()
             self.init = True
 
         if self.state != self.state_prev:
@@ -126,7 +129,7 @@ class Elevator(Device):
                 self.ready_to_clear = False
                 self.time_arrived = time.perf_counter()
                 writeLog("State changed as <arrived>, elapsed: {:g} sec".format(self.time_arrived - self.time_call_started), self)
-                self.publish_mqtt()
+                self.publishMQTT()
                 self.state_prev = self.state
             else:
                 if self.state_prev == 1:
@@ -136,10 +139,10 @@ class Elevator(Device):
                     if time_elapsed_last_arrived > self.time_threshold_arrived_change:
                         writeLog(f"Ready to rollback state (idle) ({self.state}, {self.state_prev})", self)
                         self.ready_to_clear = True
-                        self.publish_mqtt()
+                        self.publishMQTT()
                         self.state_prev = self.state
                 else:
-                    self.publish_mqtt()
+                    self.publishMQTT()
                     self.state_prev = self.state
     
     def makePacketCallDownside(self) -> bytearray:

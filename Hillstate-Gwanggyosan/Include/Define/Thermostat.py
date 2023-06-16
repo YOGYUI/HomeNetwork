@@ -15,8 +15,11 @@ class Thermostat(Device):
         self.mqtt_publish_topic = f'home/state/thermostat/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/thermostat/{self.room_index}/{self.index}'
         self.temp_range = [0, 100]
-        
-    def publish_mqtt(self):
+
+    def setDefaultName(self):
+        self.name = 'Thermostat'
+
+    def publishMQTT(self):
         obj = {
             "state": 'HEAT' if self.state == 1 else 'OFF',
             "currentTemperature": self.temp_current, 
@@ -31,15 +34,15 @@ class Thermostat(Device):
         self.temp_range[1] = range_max
         self.temp_current = max(range_min, min(range_max, self.temp_current))
         self.temp_config = max(range_min, min(range_max, self.temp_config))
-        writeLog(f"Set Temperature Range ({self.temp_range[0]}~{self.temp_range[1]}), {self.temp_current}, {self.temp_config}", self)
+        writeLog(f"{str(self)} Set Temperature Range ({self.temp_range[0]}~{self.temp_range[1]}), {self.temp_current}, {self.temp_config}", self)
 
     def updateState(self, state: int, **kwargs):
         self.state = state
         if not self.init:
-            self.publish_mqtt()
+            self.publishMQTT()
             self.init = True
         if self.state != self.state_prev:
-            self.publish_mqtt()
+            self.publishMQTT()
         self.state_prev = self.state
         # 현재온도
         temp_current = kwargs.get('temp_current')
@@ -47,7 +50,7 @@ class Thermostat(Device):
             # self.temp_current = temp_current
             self.temp_current = max(self.temp_range[0], min(self.temp_range[1], temp_current))
             if self.temp_current != self.temp_current_prev:
-                self.publish_mqtt()
+                self.publishMQTT()
             self.temp_current_prev = self.temp_current
         # 희망온도
         temp_config = kwargs.get('temp_config')
@@ -55,7 +58,7 @@ class Thermostat(Device):
             # self.temp_config = temp_config
             self.temp_config = max(self.temp_range[0], min(self.temp_range[1], temp_config))
             if self.temp_config != self.temp_config_prev:
-                self.publish_mqtt()
+                self.publishMQTT()
             self.temp_config_prev = self.temp_config
     
     def makePacketQueryState(self) -> bytearray:

@@ -10,8 +10,11 @@ class Ventilator(Device):
         self.mqtt_subscribe_topic = f'home/command/ventilator/{self.room_index}/{self.index}'
         self.rotation_speed: int = -1
         self.rotation_speed_prev: int = -1
-        
-    def publish_mqtt(self):
+    
+    def setDefaultName(self):
+        self.name = 'Ventilator'
+
+    def publishMQTT(self):
         obj = {"state": self.state}
         if self.state:
             if self.rotation_speed == 0x01:
@@ -26,17 +29,17 @@ class Ventilator(Device):
     def updateState(self, state: int, **kwargs):
         self.state = state
         if not self.init:
-            self.publish_mqtt()
+            self.publishMQTT()
             self.init = True
         if self.state != self.state_prev:
-            self.publish_mqtt()
+            self.publishMQTT()
         self.state_prev = self.state
         # 풍량 인자
         rotation_speed = kwargs.get('rotation_speed')
         if rotation_speed is not None:
             self.rotation_speed = rotation_speed
             if self.rotation_speed != self.rotation_speed_prev:
-                self.publish_mqtt()
+                self.publishMQTT()
             self.rotation_speed_prev = self.rotation_speed
     
     def makePacketQueryState(self) -> bytearray:

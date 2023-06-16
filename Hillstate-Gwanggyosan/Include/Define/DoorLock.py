@@ -37,8 +37,11 @@ class DoorLock(Device):
         self.mqtt_subscribe_topic = f'home/command/doorlock/{self.room_index}/{self.index}'
         self.state = 1
         self.setParams(True, 23)
-        
-    def publish_mqtt(self):
+    
+    def setDefaultName(self):
+        self.name = 'Doorlock'
+
+    def publishMQTT(self):
         # 'Unsecured', 'Secured', 'Jammed', 'Unknown'
         state_str = 'Unknown'
         if self.state == 0:
@@ -58,10 +61,10 @@ class DoorLock(Device):
     def updateState(self, state: int, **kwargs):
         self.state = state
         if not self.init:
-            self.publish_mqtt()
+            self.publishMQTT()
             self.init = True
         if self.state != self.state_prev:
-            self.publish_mqtt()
+            self.publishMQTT()
         self.state_prev = self.state
 
     def startThreadOpen(self):

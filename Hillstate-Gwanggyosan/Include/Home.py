@@ -67,7 +67,7 @@ class Home:
     rs485_reconnect_limit: int = 60
     parser_mapping: dict
 
-    enable_subphone: bool = True
+    enable_subphone: bool = False
     mp_ffserver: Union[multiprocessing.Process, None] = None
     pid_ffserver_proc: int = 0
     mp_ffmpeg: Union[multiprocessing.Process, None] = None
@@ -251,41 +251,100 @@ class Home:
         node = root.find('device')
         try:
             parser_mapping_node = node.find('parser_mapping')
-            self.parser_mapping[Light] = int(parser_mapping_node.find('light').text)
-            self.parser_mapping[Outlet] = int(parser_mapping_node.find('outlet').text)
-            self.parser_mapping[GasValve] = int(parser_mapping_node.find('gasvalve').text)
-            self.parser_mapping[Thermostat] = int(parser_mapping_node.find('thermostat').text)
-            self.parser_mapping[Ventilator] = int(parser_mapping_node.find('ventilator').text)
-            self.parser_mapping[AirConditioner] = int(parser_mapping_node.find('airconditioner').text)
-            self.parser_mapping[Elevator] = int(parser_mapping_node.find('elevator').text)
-            self.parser_mapping[SubPhone] = int(parser_mapping_node.find('subphone').text)
-            self.parser_mapping[BatchOffSwitch] = int(parser_mapping_node.find('batchoffsw').text)
+            if parser_mapping_node is not None:
+                self.parser_mapping[Light] = int(parser_mapping_node.find('light').text)
+                self.parser_mapping[Outlet] = int(parser_mapping_node.find('outlet').text)
+                self.parser_mapping[GasValve] = int(parser_mapping_node.find('gasvalve').text)
+                self.parser_mapping[Thermostat] = int(parser_mapping_node.find('thermostat').text)
+                self.parser_mapping[Ventilator] = int(parser_mapping_node.find('ventilator').text)
+                self.parser_mapping[AirConditioner] = int(parser_mapping_node.find('airconditioner').text)
+                self.parser_mapping[Elevator] = int(parser_mapping_node.find('elevator').text)
+                self.parser_mapping[SubPhone] = int(parser_mapping_node.find('subphone').text)
+                self.parser_mapping[BatchOffSwitch] = int(parser_mapping_node.find('batchoffsw').text)
 
-            list_node = node.find('list')
-            for dev_node in list(list_node):
+            entry_node = node.find('entry')
+            for dev_node in list(entry_node):
                 try:
-                    name = dev_node.find('name').text
-                    index = int(dev_node.find('index').text)
-                    room = int(dev_node.find('room').text)
+                    tag_name = dev_node.tag.lower()
+                    name_node = dev_node.find('name')
+                    name = name_node.text if name_node is not None else 'Nonamed'
+                    index_node = dev_node.find('index')
+                    index = int(index_node.text) if index_node is not None else 0
+                    room_node = dev_node.find('room')
+                    room = int(room_node.text) if room_node is not None else 0
+
                     device: Device = None
-                    if dev_node.tag.lower() == 'light':
+                    if tag_name == 'light':
                         device = Light(name, index, room)
-                    elif dev_node.tag.lower() == 'airquality':
-                        device = AirqualitySensor(name, index, room)
-                        apikey = dev_node.find('apikey').text
-                        obsname = dev_node.find('obsname').text
-                        device.setApiParams(apikey, obsname)
+                    elif tag_name == 'outlet':
+                        device = Outlet(name, index, room)
+                        enable_off_cmd_node = dev_node.find('enable_off_cmd')
+                        if enable_off_cmd_node is not None:
+                            enable_off_cmd = bool(int(enable_off_cmd_node.text))
+                            device.setEnableOffCommand(enable_off_cmd)
+                    elif tag_name == 'thermostat':
+                        device = Thermostat(name, index, room)
+                        range_min_node = dev_node.find('range_min')
+                        range_min = int(range_min_node.text) if range_min_node is not None else 0
+                        range_max_node = dev_node.find('range_max')
+                        range_max = int(range_max_node.text) if range_max_node is not None else 100
+                        device.setTemperatureRange(range_min, range_max)
+                    elif tag_name == 'airconditioner':
+                        device = AirConditioner(name, index, room)
+                        range_min_node = dev_node.find('range_min')
+                        range_min = int(range_min_node.text) if range_min_node is not None else 0
+                        range_max_node = dev_node.find('range_max')
+                        range_max = int(range_max_node.text) if range_max_node is not None else 100
+                        device.setTemperatureRange(range_min, range_max)
+                    elif tag_name == 'gasvalve':
+                        device = GasValve(name, index, room)
+                    elif tag_name == 'ventilator':
+                        device = Ventilator(name, index, room)
+                    elif tag_name == 'elevator':
+                        device = Elevator(name, index, room)
+                    elif tag_name == 'batchoffsw':
+                        device = BatchOffSwitch(name, index, room)
+                    elif tag_name == 'subphone':
+                        enable_node = dev_node.find('enable')
+                        self.enable_subphone = bool(int(enable_node.text)) if enable_node is not None else False
+                        if self.enable_subphone:
+                            device = SubPhone(name, index, room)
+                            device.sig_state_streaming.connect(self.onSubphoneStateStreaming)
+                            ffmpeg_node = dev_node.find('ffmpeg')
+                            device.streaming_config['conf_file_path'] = ffmpeg_node.find('conf_file_path').text
+                            device.streaming_config['feed_path'] = ffmpeg_node.find('feed_path').text
+                            device.streaming_config['input_device'] = ffmpeg_node.find('input_device').text
+                            device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
+                            device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
+                            device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
+                    elif tag_name == 'airquality':
+                        enable_node = dev_node.find('enable')
+                        enable = bool(int(enable_node.text)) if enable_node is not None else False
+                        if enable:
+                            device = AirqualitySensor(name, index, room)
+                            apikey = dev_node.find('apikey').text
+                            obsname = dev_node.find('obsname').text
+                            device.setApiParams(apikey, obsname)
+                    
                     if device is not None:
-                        mqtt_node = dev_node.find('mqtt')
-                        if mqtt_node is not None:
-                            device.setMqttPublishTopic(mqtt_node.find('publish').text)
-                            device.setMqttSubscribeTopic(mqtt_node.find('subscribe').text)
-                        self.device_list.append(device)
+                        if self.findDevice(device.getType(), device.getIndex(), device.getRoomIndex()) is None:
+                            # prevent duplicated device list
+                            mqtt_node = dev_node.find('mqtt')
+                            if mqtt_node is not None:
+                                device.setMqttPublishTopic(mqtt_node.find('publish').text)
+                                device.setMqttSubscribeTopic(mqtt_node.find('subscribe').text)
+                            self.device_list.append(device)
+                        else:
+                            writeLog(f"Already Exist! {str(device)}", self)
                 except Exception as e:
                     writeLog(f"Failed to load device entry ({e})", self)
                     continue
         except Exception as e:
             writeLog(f"Failed to load device config ({e})", self)
+        if len(self.device_list) > 1:
+            writeLog(f"Total {len(self.device_list)} Devices added", self)
+        elif len(self.device_list) == 1:
+            writeLog(f"Total {len(self.device_list)} Device added", self)
 
         node = root.find('hems')
         try:
@@ -409,7 +468,7 @@ class Home:
 
     def startThreadEnergyMonitor(self):
         if self.thread_energy_monitor is None:
-            device = self.getDevice(DeviceType.SUBPHONE, 0, 0)
+            device = self.findDevice(DeviceType.SUBPHONE, 0, 0)
             if device is not None:
                 index = self.parser_mapping.get(SubPhone)
                 parser = self.rs485_info_list[index].parser
@@ -434,7 +493,7 @@ class Home:
     def publish_all(self):
         for dev in self.device_list:
             try:
-                dev.publish_mqtt()
+                dev.publishMQTT()
             except ValueError as e:
                 writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
 
@@ -444,7 +503,7 @@ class Home:
         else:
             self.updateDeviceState(result)
     
-    def getDevice(self, dev_type: DeviceType, index: int, room_index: int) -> Device:
+    def findDevice(self, dev_type: DeviceType, index: int, room_index: int) -> Device:
         find = list(filter(lambda x: 
             x.getType() == dev_type and x.getIndex() == index and x.getRoomIndex() == room_index, 
             self.device_list))
@@ -461,7 +520,7 @@ class Home:
             room_idx: int = result.get('room_index')
             if room_idx is None:
                 room_idx = 0
-            device = self.getDevice(dev_type, dev_idx, room_idx)
+            device = self.findDevice(dev_type, dev_idx, room_idx)
             if device is None:
                 # writeLog(f'handlePacketParseResult::Cannot find device ({dev_type}, {dev_idx}, {room_idx})', self)
                 return
@@ -478,10 +537,6 @@ class Home:
                     temp_current=temp_current, 
                     temp_config=temp_config
                 )
-            elif dev_type is DeviceType.VENTILATOR:
-                state = result.get('state')
-                rotation_speed = result.get('rotation_speed')
-                device.updateState(state, rotation_speed=rotation_speed)
             elif dev_type is DeviceType.AIRCONDITIONER:
                 state = result.get('state')
                 temp_current = result.get('temp_current')
@@ -495,6 +550,10 @@ class Home:
                     mode=mode,
                     rotation_speed=rotation_speed
                 )
+            elif dev_type is DeviceType.VENTILATOR:
+                state = result.get('state')
+                rotation_speed = result.get('rotation_speed')
+                device.updateState(state, rotation_speed=rotation_speed)
             elif dev_type is DeviceType.ELEVATOR:
                 state = result.get('state')
                 device.updateState(
@@ -673,7 +732,7 @@ class Home:
         except Exception as e:
             writeLog(f'onMqttCommandLight::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
-        device = self.getDevice(DeviceType.LIGHT, dev_idx, room_idx)
+        device = self.findDevice(DeviceType.LIGHT, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
                 self.command(
@@ -690,7 +749,7 @@ class Home:
         except Exception as e:
             writeLog(f'onMqttCommandOutlet::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
-        device = self.getDevice(DeviceType.OUTLET, dev_idx, room_idx)
+        device = self.findDevice(DeviceType.OUTLET, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
                 self.command(
@@ -707,7 +766,7 @@ class Home:
         except Exception as e:
             writeLog(f'onMqttCommandGasvalve::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
-        device = self.getDevice(DeviceType.GASVALVE, dev_idx, room_idx)
+        device = self.findDevice(DeviceType.GASVALVE, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
                 self.command(
@@ -724,7 +783,7 @@ class Home:
         except Exception as e:
             writeLog(f'onMqttCommandThermostat::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
-        device = self.getDevice(DeviceType.THERMOSTAT, dev_idx, room_idx)
+        device = self.findDevice(DeviceType.THERMOSTAT, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
                 self.command(
@@ -752,7 +811,7 @@ class Home:
         except Exception as e:
             writeLog(f'onMqttCommandVentilator::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
-        device = self.getDevice(DeviceType.VENTILATOR, dev_idx, room_idx)
+        device = self.findDevice(DeviceType.VENTILATOR, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
                 self.command(
@@ -778,7 +837,7 @@ class Home:
         except Exception as e:
             writeLog(f'onMqttCommandAirconditioner::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
-        device = self.getDevice(DeviceType.AIRCONDITIONER, dev_idx, room_idx)
+        device = self.findDevice(DeviceType.AIRCONDITIONER, dev_idx, room_idx)
         if device is not None:
             if 'active' in message.keys():
                 self.command(
@@ -820,7 +879,7 @@ class Home:
         except Exception as e:
             writeLog(f'onMqttCommandElevator::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
-        device = self.getDevice(DeviceType.ELEVATOR, dev_idx, room_idx)
+        device = self.findDevice(DeviceType.ELEVATOR, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
                 self.command(
@@ -837,7 +896,7 @@ class Home:
         except Exception as e:
             writeLog(f'onMqttCommandSubPhone::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
-        device = self.getDevice(DeviceType.SUBPHONE, dev_idx, room_idx)
+        device = self.findDevice(DeviceType.SUBPHONE, dev_idx, room_idx)
         if device is not None:
             if 'streaming_state' in message.keys():
                 self.command(
@@ -869,7 +928,7 @@ class Home:
         except Exception as e:
             writeLog(f'onMqttCommandBatchOffSwitch::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
-        device = self.getDevice(DeviceType.BATCHOFFSWITCH, dev_idx, room_idx)
+        device = self.findDevice(DeviceType.BATCHOFFSWITCH, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
                 self.command(
@@ -889,7 +948,7 @@ class Home:
 
     def startFFServer(self):
         try:
-            subphone: SubPhone = self.getDevice(DeviceType.SUBPHONE, 0, 0)
+            subphone: SubPhone = self.findDevice(DeviceType.SUBPHONE, 0, 0)
             if subphone is None:
                 return
 
@@ -919,7 +978,7 @@ class Home:
 
     def startFFMpeg(self):
         try:
-            subphone: SubPhone = self.getDevice(DeviceType.SUBPHONE, 0, 0)
+            subphone: SubPhone = self.findDevice(DeviceType.SUBPHONE, 0, 0)
             if subphone is None:
                 return
             

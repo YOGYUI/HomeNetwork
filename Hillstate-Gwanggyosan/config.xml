@@ -92,325 +92,387 @@
             <batchoffsw>1</batchoffsw>
             <!-- <doorlock>0</doorlock> -->
         </parser_mapping>
-    </device>
-    <rooms>
-        <room1>
-            <name>Livingroom</name>
+        <entry>
+            <light>
+                <name>Living Room Ceil 1</name>
+                <index>0</index>
+                <room>1</room>
+                <!--
+                <mqtt>
+                    <publish>home/state/light/1/0</publish>
+                    <subscribe>home/command/light/1/0</subscribe>
+                </mqtt>
+                -->
+            </light>
+            <light>
+                <name>Living Room Ceil 2</name>
             <index>1</index>
-            <lights>
-                <light1>
-                    <name>ceil 1</name>
+                <room>1</room>
+                <!--
                     <mqtt>
-                        <publish>home/hillstate/light/state/1/1</publish>
-                        <subscribe>home/hillstate/light/command/1/1</subscribe>
+                    <publish>home/state/light/1/1</publish>
+                    <subscribe>home/command/light/1/1</subscribe>
                     </mqtt>
-                </light1>
-                <light2>
-                    <name>ceil 2</name>
+                -->
+            </light>
+            <light>
+                <name>Hallway</name>
+                <index>2</index>
+                <room>1</room>
+                <!--
                     <mqtt>
-                        <publish>home/hillstate/light/state/1/2</publish>
-                        <subscribe>home/hillstate/light/command/1/2</subscribe>
+                    <publish>home/state/light/1/2</publish>
+                    <subscribe>home/command/light/1/2</subscribe>
                     </mqtt>
-                </light2>
-                <light3>
-                    <name>hallway</name>
+                -->
+            </light>
+            <light>
+                <name>Bedroom Ceil</name>
+                <index>0</index>
+                <room>2</room>
+                <!--
                     <mqtt>
-                        <publish>home/hillstate/light/state/1/3</publish>
-                        <subscribe>home/hillstate/light/command/1/3</subscribe>
+                    <publish>home/state/light/2/0</publish>
+                    <subscribe>home/command/light/2/0</subscribe>
                     </mqtt>
-                </light3>
-            </lights>
-            <outlets>
-                <outlet1>
-                    <name>outlet 1</name>
+                -->
+            </light>
+            <light>
+                <name>Outdoor Unit Room Ceil</name>
+                <index>1</index>
+                <room>2</room>
+                <!--
+                    <mqtt>
+                    <publish>home/state/light/2/1</publish>
+                    <subscribe>home/command/light/2/1</subscribe>
+                    </mqtt>
+                -->
+            </light>
+            <light>
+                <name>Library Ceil</name>
+                <index>0</index>
+                <room>3</room>
+                <!--
+                    <mqtt>
+                    <publish>home/state/light/3/0</publish>
+                    <subscribe>home/command/light/3/0</subscribe>
+                    </mqtt>
+                -->
+            </light>
+            <light>
+                <name>PC Room Ceil</name>
+                <index>0</index>
+                <room>4</room>
+                <!--
+                <mqtt>
+                    <publish>home/state/light/4/0</publish>
+                    <subscribe>home/command/light/4/0</subscribe>
+                </mqtt>
+                -->
+            </light>
+            <light>
+                <name>Kitchen Table</name>
+                <index>0</index>
+                <room>6</room>
+                <!--
+                <mqtt>
+                    <publish>home/state/light/6/0</publish>
+                    <subscribe>home/command/light/6/0</subscribe>
+                </mqtt>
+                -->
+            </light>
+            <light>
+                <name>Kitchen Countertop</name>
+                <index>1</index>
+                <room>6</room>
+                <!--
+                <mqtt>
+                    <publish>home/state/light/6/1</publish>
+                    <subscribe>home/command/light/6/1</subscribe>
+                </mqtt>
+                -->
+            </light>
+
+            <outlet>
+                <name>Livingroom Outlet 1</name>
+                <index>0</index>
+                <room>1</room>
+                <enable_off_cmd>0</enable_off_cmd>
+                <!--
+                    <mqtt>
+                    <publish>home/state/outlet/1/0</publish>
+                    <subscribe>home/command/outlet/1/0</subscribe>
+                    </mqtt>
+                -->
+            </outlet>
+            <outlet>
+                <name>Livingroom Outlet 2</name>
+                <index>1</index>
+                <room>1</room>
+                <enable_off_cmd>0</enable_off_cmd>
+                <!--
+                    <mqtt>
+                    <publish>home/state/outlet/1/1</publish>
+                    <subscribe>home/command/outlet/1/1</subscribe>
+                    </mqtt>
+                -->
+            </outlet>
+            <outlet>
+                <name>Bedroom Outlet 1</name>
+                <index>0</index>
+                <room>2</room>
                     <enable_off_cmd>0</enable_off_cmd>
+                <!--
                     <mqtt>
-                        <publish>home/hillstate/outlet/state/1/1</publish>
-                        <subscribe>home/hillstate/outlet/command/1/1</subscribe>
+                    <publish>home/state/outlet/2/0</publish>
+                    <subscribe>home/command/outlet/2/0</subscribe>
                     </mqtt>
-                </outlet1>
-                <outlet2>
-                    <name>outlet 2</name>
+                -->
+            </outlet>
+            <outlet>
+                <name>Bedroom Outlet 2</name>
+                <index>1</index>
+                <room>2</room>
                     <enable_off_cmd>0</enable_off_cmd>
+                <!--
                     <mqtt>
-                        <publish>home/hillstate/outlet/state/1/2</publish>
-                        <subscribe>home/hillstate/outlet/command/1/2</subscribe>
+                    <publish>home/state/outlet/2/1</publish>
+                    <subscribe>home/command/outlet/2/1</subscribe>
                     </mqtt>
-                </outlet2>
-            </outlets>
+                -->
+            </outlet>
+            <outlet>
+                <name>Library Outlet 1</name>
+                <index>0</index>
+                <room>3</room>
+                <enable_off_cmd>0</enable_off_cmd>
+                <!--
+                <mqtt>
+                    <publish>home/state/outlet/3/0</publish>
+                    <subscribe>home/command/outlet/3/0</subscribe>
+                </mqtt>
+                -->
+            </outlet>
+            <outlet>
+                <name>Library Outlet 2</name>
+                <index>1</index>
+                <room>3</room>
+                <enable_off_cmd>0</enable_off_cmd>
+                <!--
+                <mqtt>
+                    <publish>home/state/outlet/3/1</publish>
+                    <subscribe>home/command/outlet/3/1</subscribe>
+                </mqtt>
+                -->
+            </outlet>
+            <outlet>
+                <name>PC Room Outlet 1</name>
+                <index>0</index>
+                <room>4</room>
+                <enable_off_cmd>0</enable_off_cmd>
+                <!--
+                    <mqtt>
+                    <publish>home/state/outlet/4/0</publish>
+                    <subscribe>home/command/outlet/4/0</subscribe>
+                    </mqtt>
+                -->
+            </outlet>
+            <outlet>
+                <name>PC Room Outlet 2</name>
+                <index>1</index>
+                <room>4</room>
+                    <enable_off_cmd>0</enable_off_cmd>
+                <!--
+                    <mqtt>
+                    <publish>home/state/outlet/4/1</publish>
+                    <subscribe>home/command/outlet/4/1</subscribe>
+                    </mqtt>
+                -->
+            </outlet>
+            <outlet>
+                <name>Kitchen Outlet 1</name>
+                <index>0</index>
+                <room>6</room>
+                    <enable_off_cmd>0</enable_off_cmd>
+                <!--
+                    <mqtt>
+                    <publish>home/state/outlet/6/0</publish>
+                    <subscribe>home/command/outlet/6/0</subscribe>
+                    </mqtt>
+                -->
+            </outlet>
+            <outlet>
+                <name>Kitchen Outlet 2</name>
+                <index>1</index>
+                <room>6</room>
+                <enable_off_cmd>1</enable_off_cmd>
+                <!--
+                <mqtt>
+                    <publish>home/state/outlet/6/1</publish>
+                    <subscribe>home/command/outlet/6/1</subscribe>
+                </mqtt>
+                -->
+            </outlet>
+
             <thermostat>
-                <exist>1</exist>
+                <name>Livingroom Thermostat</name>
+                <index>0</index>
+                <room>1</room>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
+                <!--
                 <mqtt>
-                    <publish>home/hillstate/thermostat/state/1</publish>
-                    <subscribe>home/hillstate/thermostat/command/1</subscribe>
+                    <publish>home/state/thermostat/1/0</publish>
+                    <subscribe>home/command/thermostat/1/0</subscribe>
                 </mqtt>
+                -->
             </thermostat>
-            <airconditioner>
-                <exist>1</exist>
-                <range_min>18</range_min>
-                <range_max>35</range_max>
-                <mqtt>
-                    <publish>home/hillstate/airconditioner/state/1</publish>
-                    <subscribe>home/hillstate/airconditioner/command/1</subscribe>
-                </mqtt>
-            </airconditioner>
-        </room1>
-        <room2>
-            <name>Bedroom</name>
-            <index>2</index>
-            <lights>
-                <light1>
-                    <name>ceil</name>
-                    <mqtt>
-                        <publish>home/hillstate/light/state/2/1</publish>
-                        <subscribe>home/hillstate/light/command/2/1</subscribe>
-                    </mqtt>
-                </light1>
-                <light2>
-                    <name>outdoor unit room</name>
-                    <mqtt>
-                        <publish>home/hillstate/light/state/2/2</publish>
-                        <subscribe>home/hillstate/light/command/2/2</subscribe>
-                    </mqtt>
-                </light2>
-            </lights>
-            <outlets>
-                <outlet1>
-                    <name>outlet 1</name>
-                    <enable_off_cmd>0</enable_off_cmd>
-                    <mqtt>
-                        <publish>home/hillstate/outlet/state/2/1</publish>
-                        <subscribe>home/hillstate/outlet/command/2/1</subscribe>
-                    </mqtt>
-                </outlet1>
-                <outlet2>
-                    <name>outlet 2</name>
-                    <enable_off_cmd>0</enable_off_cmd>
-                    <mqtt>
-                        <publish>home/hillstate/outlet/state/2/2</publish>
-                        <subscribe>home/hillstate/outlet/command/2/2</subscribe>
-                    </mqtt>
-                </outlet2>
-            </outlets>
             <thermostat>
-                <exist>1</exist>
+                <name>Bedroom Thermostat</name>
+                <index>0</index>
+                <room>2</room>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
+                <!--
                 <mqtt>
-                    <publish>home/hillstate/thermostat/state/2</publish>
-                    <subscribe>home/hillstate/thermostat/command/2</subscribe>
+                    <publish>home/state/thermostat/2/0</publish>
+                    <subscribe>home/command/thermostat/2/0</subscribe>
                 </mqtt>
+                -->
             </thermostat>
-            <airconditioner>
-                <exist>1</exist>
-                <range_min>18</range_min>
-                <range_max>35</range_max>
-                <mqtt>
-                    <publish>home/hillstate/airconditioner/state/2</publish>
-                    <subscribe>home/hillstate/airconditioner/command/2</subscribe>
-                </mqtt>
-            </airconditioner>
-        </room2>
-        <room3>
-            <name>Library</name>
-            <index>3</index>
-            <lights>
-                <light1>
-                    <name>ceil</name>
-                    <mqtt>
-                        <publish>home/hillstate/light/state/3/1</publish>
-                        <subscribe>home/hillstate/light/command/3/1</subscribe>
-                    </mqtt>
-                </light1>
-            </lights>
-            <outlets>
-                <outlet1>
-                    <name>outlet 1</name>
-                    <enable_off_cmd>0</enable_off_cmd>
-                    <mqtt>
-                        <publish>home/hillstate/outlet/state/3/1</publish>
-                        <subscribe>home/hillstate/outlet/command/3/1</subscribe>
-                    </mqtt>
-                </outlet1>
-                <outlet2>
-                    <name>outlet 2</name>
-                    <enable_off_cmd>0</enable_off_cmd>
-                    <mqtt>
-                        <publish>home/hillstate/outlet/state/3/2</publish>
-                        <subscribe>home/hillstate/outlet/command/3/2</subscribe>
-                    </mqtt>
-                </outlet2>
-            </outlets>
             <thermostat>
-                <exist>1</exist>
+                <name>Library Thermostat</name>
+                <index>0</index>
+                <room>3</room>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
-                <mqtt>
-                    <publish>home/hillstate/thermostat/state/3</publish>
-                    <subscribe>home/hillstate/thermostat/command/3</subscribe>
-                </mqtt>
+                <!--
+                    <mqtt>
+                    <publish>home/state/thermostat/3/0</publish>
+                    <subscribe>home/command/thermostat/3/0</subscribe>
+                    </mqtt>
+                -->
             </thermostat>
-            <airconditioner>
-                <exist>1</exist>
-                <range_min>18</range_min>
-                <range_max>35</range_max>
-                <mqtt>
-                    <publish>home/hillstate/airconditioner/state/3</publish>
-                    <subscribe>home/hillstate/airconditioner/command/3</subscribe>
-                </mqtt>
-            </airconditioner>
-        </room3>
-        <room4>
-            <name>PC Room</name>
-            <index>4</index>
-            <lights>
-                <light1>
-                    <name>ceil</name>
-                    <mqtt>
-                        <publish>home/hillstate/light/state/4/1</publish>
-                        <subscribe>home/hillstate/light/command/4/1</subscribe>
-                    </mqtt>
-                </light1>
-            </lights>
-            <outlets>
-                <outlet1>
-                    <name>outlet 1</name>
-                    <enable_off_cmd>0</enable_off_cmd>
-                    <mqtt>
-                        <publish>home/hillstate/outlet/state/4/1</publish>
-                        <subscribe>home/hillstate/outlet/command/4/1</subscribe>
-                    </mqtt>
-                </outlet1>
-                <outlet2>
-                    <name>outlet 2</name>
-                    <enable_off_cmd>0</enable_off_cmd>
-                    <mqtt>
-                        <publish>home/hillstate/outlet/state/4/2</publish>
-                        <subscribe>home/hillstate/outlet/command/4/2</subscribe>
-                    </mqtt>
-                </outlet2>
-            </outlets>
             <thermostat>
-                <exist>1</exist>
+                <name>PC Room Thermostat</name>
+                <index>0</index>
+                <room>4</room>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
+                <!--
                 <mqtt>
-                    <publish>home/hillstate/thermostat/state/4</publish>
-                    <subscribe>home/hillstate/thermostat/command/4</subscribe>
+                    <publish>home/state/thermostat/4/0</publish>
+                    <subscribe>home/command/thermostat/4/0</subscribe>
                 </mqtt>
+                -->
             </thermostat>
+
             <airconditioner>
-                <exist>1</exist>
+                <name>Livingroom Airconditioner</name>
+                <index>0</index>
+                <room>1</room>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
+                <!--
                 <mqtt>
-                    <publish>home/hillstate/airconditioner/state/4</publish>
-                    <subscribe>home/hillstate/airconditioner/command/4</subscribe>
+                    <publish>home/state/airconditioner/1/0</publish>
+                    <subscribe>home/command/airconditioner/1/0</subscribe>
                 </mqtt>
+                -->
             </airconditioner>
-        </room4>
-        <room6>
-            <name>Kitchen</name>
-            <index>6</index>
-            <lights>
-                <light1>
-                    <name>table</name>
-                    <mqtt>
-                        <publish>home/hillstate/light/state/6/1</publish>
-                        <subscribe>home/hillstate/light/command/6/1</subscribe>
-                    </mqtt>
-                </light1>
-                <light2>
-                    <name>countertop</name>
-                    <mqtt>
-                        <publish>home/hillstate/light/state/6/2</publish>
-                        <subscribe>home/hillstate/light/command/6/2</subscribe>
-                    </mqtt>
-                </light2>
-            </lights>
-            <outlets>
-                <outlet1>
-                    <name>outlet 1</name>
-                    <enable_off_cmd>0</enable_off_cmd>
-                    <mqtt>
-                        <publish>home/hillstate/outlet/state/6/1</publish>
-                        <subscribe>home/hillstate/outlet/command/6/1</subscribe>
-                    </mqtt>
-                </outlet1>
-                <outlet2>
-                    <name>outlet 2</name>
-                    <enable_off_cmd>0</enable_off_cmd>
-                    <mqtt>
-                        <publish>home/hillstate/outlet/state/6/2</publish>
-                        <subscribe>home/hillstate/outlet/command/6/2</subscribe>
-                    </mqtt>
-                </outlet2>
-            </outlets>
-            <thermostat>
-                <exist>0</exist>
-                <range_min>18</range_min>
-                <range_max>35</range_max>
-                <mqtt>
-                    <publish>home/hillstate/thermostat/state/6</publish>
-                    <subscribe>home/hillstate/thermostat/command/6</subscribe>
-                </mqtt>
-            </thermostat>
             <airconditioner>
-                <exist>0</exist>
+                <name>Bedroom Airconditioner</name>
+                <index>0</index>
+                <room>2</room>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
-                <mqtt>
-                    <publish>home/hillstate/airconditioner/state/6</publish>
-                    <subscribe>home/hillstate/airconditioner/command/6</subscribe>
-                </mqtt>
+                <!--
+                    <mqtt>
+                    <publish>home/state/airconditioner/2/0</publish>
+                    <subscribe>home/command/airconditioner/2/0</subscribe>
+                    </mqtt>
+                -->
             </airconditioner>
-        </room6>
-    </rooms>
+            <airconditioner>
+                <name>Library Airconditioner</name>
+                <index>0</index>
+                <room>3</room>
+                <range_min>18</range_min>
+                <range_max>35</range_max>
+                <!--
+                <mqtt>
+                    <publish>home/state/airconditioner/3/0</publish>
+                    <subscribe>home/command/airconditioner/3/0</subscribe>
+                </mqtt>
+                -->
+            </airconditioner>
+            <airconditioner>
+                <name>PC Room Airconditioner</name>
+                <index>0</index>
+                <room>4</room>
+                <range_min>18</range_min>
+                <range_max>35</range_max>
+                <!--
+                <mqtt>
+                    <publish>home/state/airconditioner/4/0</publish>
+                    <subscribe>home/command/airconditioner/4/0</subscribe>
+                </mqtt>
+                -->
+            </airconditioner>
+            
     <gasvalve>
+                <name>Kitchen Gas Valve</name>
+                <index>0</index>
+                <room>0</room>
+                <!--
         <mqtt>
-            <publish>home/hillstate/gasvalve/state</publish>
-            <subscribe>home/hillstate/gasvalve/command</subscribe>
+                    <publish>home/state/gasvalve/0/0</publish>
+                    <subscribe>home/command/gasvalve/0/0</subscribe>
         </mqtt>
+                -->
     </gasvalve>
+
     <ventilator>
+                <name>Ventilator</name>
+                <index>0</index>
+                <room>0</room>
+                <!--
         <mqtt>
-            <publish>home/hillstate/ventilator/state</publish>
-            <subscribe>home/hillstate/ventilator/command</subscribe>
+                    <publish>home/state/ventilator/0/0</publish>
+                    <subscribe>home/command/ventilator/0/0</subscribe>
         </mqtt>
+                -->
     </ventilator>
+
     <elevator>
+                <name>Elevator</name>
+                <index>0</index>
+                <room>0</room>
+                <!--
         <mqtt>
-            <publish>home/hillstate/elevator/state</publish>
-            <subscribe>home/hillstate/elevator/command</subscribe>
+                    <publish>home/state/elevator/0/0</publish>
+                    <subscribe>home/command/elevator/0/0</subscribe>
         </mqtt>
+                -->
     </elevator>
-    <hems>
-        <enable>1</enable>
-        <mqtt>
-            <publish>home/hillstate/hems/state</publish>
-        </mqtt>
-    </hems>
+
+            <batchoffsw>
+                <name>Batch Off Switch</name>
+                <index>0</index>
+                <room>0</room>
     <!--
-    <doorlock>
-        <enable>1</enable>
-        <gpio>23</gpio>
         <mqtt>
-            <publish>home/hillstate/doorlock/state</publish>
-            <subscribe>home/hillstate/doorlock/command</subscribe>
+                    <publish>home/state/batchoffsw/0/0</publish>
+                    <subscribe>home/command/batchoffsw/0/0</subscribe>
         </mqtt>
-    </doorlock>
     -->
+            </batchoffsw>
+
     <subphone>
+                <name>Kitchen Subphone</name>
+                <index>0</index>
+                <room>0</room>
         <enable>1</enable>
-        <mqtt>
-            <publish>home/hillstate/subphone/state</publish>
-            <subscribe>
-                home/hillstate/subphone/command/streaming
-                home/hillstate/subphone/command/doorlock
-            </subscribe>
-        </mqtt>
         <ffmpeg>
             <conf_file_path>/etc/ffserver_hillstate_door.conf</conf_file_path>
             <feed_path>http://0.0.0.0:8090/feed.ffm</feed_path>
@@ -419,7 +481,44 @@
             <width>640</width>
             <height>480</height>
         </ffmpeg>
+                <!--
+                <mqtt>
+                    <publish>home/state/subphone/0/0</publish>
+                    <subscribe>home/command/subphone/0/0</subscribe>
+                </mqtt>
+                -->
     </subphone>
+
+            <doorlock>
+                <name>Front Door Lock</name>
+                <index>0</index>
+                <room>0</room>
+                <enable>1</enable>
+                <gpio>23</gpio>
+                <!--
+                <mqtt>
+                    <publish>home/state/doorlock/0/0</publish>
+                    <subscribe>home/command/doorlock/0/0</subscribe>
+                </mqtt>
+                -->
+            </doorlock>
+
+            <airquality>
+                <name>Airquality Sensor</name>
+                <index>0</index>
+                <room>0</room>
+                <enable>1</enable>
+                <apikey>SV5xOdOCXxDs5yZxOsanMwoY9Jeht7UPM%2BnKqBY3tFIpAivokjm4XMm7Dr9QvXMgWXdwkxIeFRDHpgQaSQtmig%3D%3D</apikey>
+                <obsname>수지</obsname>
+                <!--
+                <mqtt>
+                    <publish>home/state/airquality/0/0</publish>
+                    <subscribe>home/command/airquality/0/0</subscribe>
+                </mqtt>
+                -->
+            </airquality>
+        </entry>
+    </device>
     <thinq>
         <enable>1</enable>
         <refresh_token>your LGE refresh token</refresh_token>
@@ -434,7 +533,7 @@
             <dev_id>robot cleaner dev id</dev_id>
         </robot_cleaner>
         <mqtt>
-            <publish>home/hillstate/thinq</publish>
+            <publish>home/state/thinq</publish>
             <log_message>0</log_message>
         </mqtt>
     </thinq>

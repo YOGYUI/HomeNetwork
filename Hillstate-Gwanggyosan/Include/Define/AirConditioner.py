@@ -20,8 +20,11 @@ class AirConditioner(Device):
         self.mqtt_publish_topic = f'home/state/airconditioner/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/airconditioner/{self.room_index}/{self.index}'
         self.temp_range = [0, 100]
-        
-    def publish_mqtt(self):
+    
+    def setDefaultName(self):
+        self.name = 'AirConditioner'
+
+    def publishMQTT(self):
         # https://ddhometech.wordpress.com/2021/01/03/ha-mqtt-hvac-integration-using-tasmota-ir-bridge/
         if self.state:
             state = 'COOLING'
@@ -54,15 +57,15 @@ class AirConditioner(Device):
         self.temp_range[1] = range_max
         self.temp_current = max(range_min, min(range_max, self.temp_current))
         self.temp_config = max(range_min, min(range_max, self.temp_config))
-        writeLog(f"Set Temperature Range ({self.temp_range[0]}~{self.temp_range[1]}), {self.temp_current}, {self.temp_config}", self)
+        writeLog(f"{str(self)} Set Temperature Range ({self.temp_range[0]}~{self.temp_range[1]}), {self.temp_current}, {self.temp_config}", self)
     
     def updateState(self, state: int, **kwargs):
         self.state = state
         if not self.init:
-            self.publish_mqtt()
+            self.publishMQTT()
             self.init = True
         if self.state != self.state_prev:
-            self.publish_mqtt()
+            self.publishMQTT()
         self.state_prev = self.state
         # 현재온도
         temp_current = kwargs.get('temp_current')
@@ -70,7 +73,7 @@ class AirConditioner(Device):
             # self.temp_current = temp_current
             self.temp_current = max(self.temp_range[0], min(self.temp_range[1], temp_current))
             if self.temp_current != self.temp_current_prev:
-                self.publish_mqtt()
+                self.publishMQTT()
             self.temp_current_prev = self.temp_current
         # 희망온도
         temp_config = kwargs.get('temp_config')
@@ -78,7 +81,7 @@ class AirConditioner(Device):
             # self.temp_config = temp_config
             self.temp_config = max(self.temp_range[0], min(self.temp_range[1], temp_config))
             if self.temp_config != self.temp_config_prev:
-                self.publish_mqtt()
+                self.publishMQTT()
             self.temp_config_prev = self.temp_config
         # 모드
         # 0=자동, 1=냉방, 2=제습, 3=공기청정
@@ -86,7 +89,7 @@ class AirConditioner(Device):
         if mode is not None:
             self.mode = mode
             if self.mode != self.mode_prev:
-                self.publish_mqtt()
+                self.publishMQTT()
             self.mode_prev = self.mode
         # 풍량
         # 1=자동, 2=미풍, 3=약풍, 4=강풍
@@ -94,7 +97,7 @@ class AirConditioner(Device):
         if rotation_speed is not None:
             self.rotation_speed = rotation_speed
             if self.rotation_speed != self.rotation_speed_prev:
-                self.publish_mqtt()
+                self.publishMQTT()
             self.rotation_speed_prev = self.rotation_speed
 
     def makePacketQueryState(self) -> bytearray:

@@ -34,9 +34,12 @@ class Device:
     timer_onoff_params: dict
 
     def __init__(self, name: str = 'Device', index: int = 0, room_index: int = 0):
-        self.name = name
         self.index = index
         self.room_index = room_index
+        if name is None:
+            self.setDefaultName()
+        else:
+            self.name = name
 
         self.sig_set_state = Callback(int)
         self.timer_onoff_params = {
@@ -45,10 +48,11 @@ class Device:
             'repeat': True,  # boolean
             'off_when_terminate': True  # device 켜진 상태에서 타이머 종료될 때 동작
         }
-        writeLog('Device Created: {}'.format(str(self)), self)
+        writeLog(f'{str(self)} Created', self)
 
     def __repr__(self) -> str:
-        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))}) '
+        # repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))}) '
+        repr_txt = f'<{self.name} '
         repr_txt += f'Dev Idx: {self.index}, '
         repr_txt += f'Room Idx: {self.room_index}'
         repr_txt += '>'
@@ -57,13 +61,16 @@ class Device:
     def release(self):
         self.stopThreadTimerOnOff()
 
+    def setDefaultName(self):
+        self.name = 'Device'
+
     def updateState(self, state: int, **kwargs):
         self.state = state
         if not self.init:
-            self.publish_mqtt()
+            self.publishMQTT()
             self.init = True
         if self.state != self.state_prev:
-            self.publish_mqtt()
+            self.publishMQTT()
         self.state_prev = self.state
 
     def getType(self) -> DeviceType:
@@ -98,7 +105,7 @@ class Device:
         return reduce(lambda x, y: x ^ y, data, 0)
 
     @abstractmethod
-    def publish_mqtt(self):
+    def publishMQTT(self):
         pass
 
     @abstractmethod
@@ -139,7 +146,7 @@ class Device:
         if self.timer_onoff_params['off_when_terminate']:
             self.sig_set_state.emit(0)
         else:
-            self.publish_mqtt()
+            self.publishMQTT()
 
     def isTimerOnOffRunning(self) -> bool:
         if self.thread_timer_onoff is not None:
