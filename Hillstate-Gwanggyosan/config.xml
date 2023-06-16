@@ -98,6 +98,7 @@
                 <name>Living Room Ceil 1</name>
                 <index>0</index>
                 <room>1</room>
+                <enable>1</enable>
                 <!--
                 <mqtt>
                     <publish>home/state/light/1/0</publish>
@@ -109,6 +110,7 @@
                 <name>Living Room Ceil 2</name>
             <index>1</index>
                 <room>1</room>
+                <enable>1</enable>
                 <!--
                     <mqtt>
                     <publish>home/state/light/1/1</publish>
@@ -120,6 +122,7 @@
                 <name>Hallway</name>
                 <index>2</index>
                 <room>1</room>
+                <enable>1</enable>
                 <!--
                     <mqtt>
                     <publish>home/state/light/1/2</publish>
@@ -131,6 +134,7 @@
                 <name>Bedroom Ceil</name>
                 <index>0</index>
                 <room>2</room>
+                <enable>1</enable>
                 <!--
                     <mqtt>
                     <publish>home/state/light/2/0</publish>
@@ -142,6 +146,7 @@
                 <name>Outdoor Unit Room Ceil</name>
                 <index>1</index>
                 <room>2</room>
+                <enable>1</enable>
                 <!--
                     <mqtt>
                     <publish>home/state/light/2/1</publish>
@@ -153,6 +158,7 @@
                 <name>Library Ceil</name>
                 <index>0</index>
                 <room>3</room>
+                <enable>1</enable>
                 <!--
                     <mqtt>
                     <publish>home/state/light/3/0</publish>
@@ -164,6 +170,7 @@
                 <name>PC Room Ceil</name>
                 <index>0</index>
                 <room>4</room>
+                <enable>1</enable>
                 <!--
                 <mqtt>
                     <publish>home/state/light/4/0</publish>
@@ -175,6 +182,7 @@
                 <name>Kitchen Table</name>
                 <index>0</index>
                 <room>6</room>
+                <enable>1</enable>
                 <!--
                 <mqtt>
                     <publish>home/state/light/6/0</publish>
@@ -186,6 +194,7 @@
                 <name>Kitchen Countertop</name>
                 <index>1</index>
                 <room>6</room>
+                <enable>1</enable>
                 <!--
                 <mqtt>
                     <publish>home/state/light/6/1</publish>
@@ -198,6 +207,7 @@
                 <name>Livingroom Outlet 1</name>
                 <index>0</index>
                 <room>1</room>
+                <enable>1</enable>
                 <enable_off_cmd>0</enable_off_cmd>
                 <!--
                     <mqtt>
@@ -210,6 +220,7 @@
                 <name>Livingroom Outlet 2</name>
                 <index>1</index>
                 <room>1</room>
+                <enable>1</enable>
                 <enable_off_cmd>0</enable_off_cmd>
                 <!--
                     <mqtt>
@@ -222,6 +233,7 @@
                 <name>Bedroom Outlet 1</name>
                 <index>0</index>
                 <room>2</room>
+                <enable>1</enable>
                     <enable_off_cmd>0</enable_off_cmd>
                 <!--
                     <mqtt>
@@ -234,6 +246,7 @@
                 <name>Bedroom Outlet 2</name>
                 <index>1</index>
                 <room>2</room>
+                <enable>1</enable>
                     <enable_off_cmd>0</enable_off_cmd>
                 <!--
                     <mqtt>
@@ -246,6 +259,7 @@
                 <name>Library Outlet 1</name>
                 <index>0</index>
                 <room>3</room>
+                <enable>1</enable>
                 <enable_off_cmd>0</enable_off_cmd>
                 <!--
                 <mqtt>
@@ -258,6 +272,7 @@
                 <name>Library Outlet 2</name>
                 <index>1</index>
                 <room>3</room>
+                <enable>1</enable>
                 <enable_off_cmd>0</enable_off_cmd>
                 <!--
                 <mqtt>
@@ -270,6 +285,7 @@
                 <name>PC Room Outlet 1</name>
                 <index>0</index>
                 <room>4</room>
+                <enable>1</enable>
                 <enable_off_cmd>0</enable_off_cmd>
                 <!--
                     <mqtt>
@@ -282,6 +298,7 @@
                 <name>PC Room Outlet 2</name>
                 <index>1</index>
                 <room>4</room>
+                <enable>1</enable>
                     <enable_off_cmd>0</enable_off_cmd>
                 <!--
                     <mqtt>
@@ -294,6 +311,7 @@
                 <name>Kitchen Outlet 1</name>
                 <index>0</index>
                 <room>6</room>
+                <enable>1</enable>
                     <enable_off_cmd>0</enable_off_cmd>
                 <!--
                     <mqtt>
@@ -306,6 +324,7 @@
                 <name>Kitchen Outlet 2</name>
                 <index>1</index>
                 <room>6</room>
+                <enable>1</enable>
                 <enable_off_cmd>1</enable_off_cmd>
                 <!--
                 <mqtt>
@@ -319,6 +338,7 @@
                 <name>Livingroom Thermostat</name>
                 <index>0</index>
                 <room>1</room>
+                <enable>1</enable>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
                 <!--
@@ -332,6 +352,7 @@
                 <name>Bedroom Thermostat</name>
                 <index>0</index>
                 <room>2</room>
+                <enable>1</enable>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
                 <!--
@@ -345,6 +366,7 @@
                 <name>Library Thermostat</name>
                 <index>0</index>
                 <room>3</room>
+                <enable>1</enable>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
                 <!--
@@ -358,6 +380,7 @@
                 <name>PC Room Thermostat</name>
                 <index>0</index>
                 <room>4</room>
+                <enable>1</enable>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
                 <!--
@@ -372,6 +395,7 @@
                 <name>Livingroom Airconditioner</name>
                 <index>0</index>
                 <room>1</room>
+                <enable>1</enable>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
                 <!--
@@ -385,6 +409,7 @@
                 <name>Bedroom Airconditioner</name>
                 <index>0</index>
                 <room>2</room>
+                <enable>1</enable>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
                 <!--
@@ -398,6 +423,7 @@
                 <name>Library Airconditioner</name>
                 <index>0</index>
                 <room>3</room>
+                <enable>1</enable>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
                 <!--
@@ -411,6 +437,7 @@
                 <name>PC Room Airconditioner</name>
                 <index>0</index>
                 <room>4</room>
+                <enable>1</enable>
                 <range_min>18</range_min>
                 <range_max>35</range_max>
                 <!--
@@ -425,6 +452,7 @@
                 <name>Kitchen Gas Valve</name>
                 <index>0</index>
                 <room>0</room>
+                <enable>1</enable>
                 <!--
         <mqtt>
                     <publish>home/state/gasvalve/0/0</publish>
@@ -437,6 +465,7 @@
                 <name>Ventilator</name>
                 <index>0</index>
                 <room>0</room>
+                <enable>1</enable>
                 <!--
         <mqtt>
                     <publish>home/state/ventilator/0/0</publish>
@@ -449,6 +478,7 @@
                 <name>Elevator</name>
                 <index>0</index>
                 <room>0</room>
+                <enable>1</enable>
                 <!--
         <mqtt>
                     <publish>home/state/elevator/0/0</publish>
@@ -461,6 +491,7 @@
                 <name>Batch Off Switch</name>
                 <index>0</index>
                 <room>0</room>
+                <enable>1</enable>
     <!--
         <mqtt>
                     <publish>home/state/batchoffsw/0/0</publish>
@@ -507,7 +538,7 @@
                 <name>Front Door Lock</name>
                 <index>0</index>
                 <room>0</room>
-                <enable>1</enable>
+                <enable>0</enable>
                 <gpio>23</gpio>
                 <!--
                 <mqtt>

@@ -67,13 +67,10 @@ class Home:
     rs485_reconnect_limit: int = 60
     parser_mapping: dict
 
-    enable_subphone: bool = False
     mp_ffserver: Union[multiprocessing.Process, None] = None
     pid_ffserver_proc: int = 0
     mp_ffmpeg: Union[multiprocessing.Process, None] = None
     pid_ffmpeg_proc: int = 0
-
-    enable_hems: bool = False
 
     discover_device: bool = False
     discovered_dev_list: List[Device]
@@ -115,11 +112,11 @@ class Home:
             self.mqtt_client.loop_start()
             if self.thinq is not None:
                 self.thinq.start()
-        if self.enable_subphone:
+        if self.isSubphoneActivated():
             # 카메라 스트리밍
             self.startFFServer()
             self.startFFMpeg()
-            if self.enable_hems:
+            if self.isHEMSActivated():
                 self.startThreadEnergyMonitor()
         if connect_rs485:
             self.initRS485Connection()
@@ -141,7 +138,7 @@ class Home:
             dev.sig_set_state.connect(partial(self.onDeviceSetState, dev))
 
     def release(self):
-        if self.enable_subphone:
+        if self.isSubphoneActivated():
             self.stopThreadEnergyMonitor()
             self.stopFFMpeg()
             self.stopFFServer()
@@ -245,6 +242,7 @@ class Home:
             writeLog(f"Failed to load mqtt config ({e})", self)
         
         self.device_list.clear()
+        dev_entry_cnt = 0
         node = root.find('device')
         try:
             parser_mapping_node = node.find('parser_mapping')
@@ -261,6 +259,8 @@ class Home:
                 self.parser_mapping[HEMS] = int(parser_mapping_node.find('hems').text)
 
             entry_node = node.find('entry')
+            dev_entry_cnt = len(list(entry_node))
+            
             for dev_node in list(entry_node):
                 try:
                     tag_name = dev_node.tag.lower()
@@ -270,7 +270,11 @@ class Home:
                     index = int(index_node.text) if index_node is not None else 0
                     room_node = dev_node.find('room')
                     room = int(room_node.text) if room_node is not None else 0
-
+                    enable_node = dev_node.find('enable')
+                    enable = bool(int(enable_node.text)) if enable_node is not None else False
+                    if not enable:
+                        continue
+                    
                     device: Device = None
                     if tag_name == 'light':
                         device = Light(name, index, room)
@@ -303,31 +307,22 @@ class Home:
                     elif tag_name == 'batchoffsw':
                         device = BatchOffSwitch(name, index, room)
                     elif tag_name == 'subphone':
-                        enable_node = dev_node.find('enable')
-                        self.enable_subphone = bool(int(enable_node.text)) if enable_node is not None else False
-                        if self.enable_subphone:
-                            device = SubPhone(name, index, room)
-                            device.sig_state_streaming.connect(self.onSubphoneStateStreaming)
-                            ffmpeg_node = dev_node.find('ffmpeg')
-                            device.streaming_config['conf_file_path'] = ffmpeg_node.find('conf_file_path').text
-                            device.streaming_config['feed_path'] = ffmpeg_node.find('feed_path').text
-                            device.streaming_config['input_device'] = ffmpeg_node.find('input_device').text
-                            device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
-                            device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
-                            device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
+                        device = SubPhone(name, index, room)
+                        device.sig_state_streaming.connect(self.onSubphoneStateStreaming)
+                        ffmpeg_node = dev_node.find('ffmpeg')
+                        device.streaming_config['conf_file_path'] = ffmpeg_node.find('conf_file_path').text
+                        device.streaming_config['feed_path'] = ffmpeg_node.find('feed_path').text
+                        device.streaming_config['input_device'] = ffmpeg_node.find('input_device').text
+                        device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
+                        device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
+                        device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
                     elif tag_name == 'hems':
-                        enable_node = dev_node.find('enable')
-                        self.enable_hems = bool(int(enable_node.text)) if enable_node is not None else False
-                        if self.enable_hems:
-                            device = HEMS(name, index, room)
+                        device = HEMS(name, index, room)
                     elif tag_name == 'airquality':
-                        enable_node = dev_node.find('enable')
-                        enable = bool(int(enable_node.text)) if enable_node is not None else False
-                        if enable:
-                            device = AirqualitySensor(name, index, room)
-                            apikey = dev_node.find('apikey').text
-                            obsname = dev_node.find('obsname').text
-                            device.setApiParams(apikey, obsname)
+                        device = AirqualitySensor(name, index, room)
+                        apikey = dev_node.find('apikey').text
+                        obsname = dev_node.find('obsname').text
+                        device.setApiParams(apikey, obsname)
                     
                     if device is not None:
                         if self.findDevice(device.getType(), device.getIndex(), device.getRoomIndex()) is None:
@@ -345,10 +340,11 @@ class Home:
         except Exception as e:
             writeLog(f"Failed to load device config ({e})", self)
         
-        if len(self.device_list) > 1:
-            writeLog(f"Total {len(self.device_list)} Devices added", self)
-        elif len(self.device_list) == 1:
-            writeLog(f"Total {len(self.device_list)} Device added", self)
+        dev_cnt = len(self.device_list)
+        if dev_cnt > 1:
+            writeLog(f"Total {dev_cnt} Devices added (tag #: {dev_entry_cnt})", self)
+        elif dev_cnt == 1:
+            writeLog(f"Total {dev_cnt} Device added (tag #: {dev_entry_cnt})", self)
 
         node = root.find('thinq')
         try:
@@ -577,6 +573,12 @@ class Home:
                 pass
         except Exception as e:
             writeLog('handlePacketParseResult::Exception::{} ({})'.format(e, result), self)
+
+    def isSubphoneActivated(self) -> bool:
+        return self.findDevice(DeviceType.SUBPHONE, 0, 0) is not None
+    
+    def isHEMSActivated(self) -> bool:
+        return self.findDevice(DeviceType.HEMS, 0, 0) is not None
 
     def command(self, **kwargs):
         try:

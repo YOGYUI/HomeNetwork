@@ -10,8 +10,7 @@ INCPATH = os.path.dirname(CURPATH)  # {$PROJECT}/Include/
 sys.path.extend([CURPATH, INCPATH])
 sys.path = list(set(sys.path))
 del CURPATH, INCPATH
-from Common import DeviceType
-from Define import HEMSDevType, HEMSCategory
+from Common import DeviceType, HEMSDevType, HEMSCategory
 
 
 @unique
@@ -572,11 +571,10 @@ class PacketParser:
             self.sig_parse_result.emit(result)
 
     def handleHEMS(self, packet: bytearray):
-        packet_type = packet[1] & 0x0F
-        if packet_type == 0x00:
+        if packet[1] == 0xE0:
             # 쿼리 패킷 (서브폰 -> 월패드)
             pass
-        elif packet_type == 0x01:
+        elif packet[1] == 0xE1:
             result = {'device': DeviceType.HEMS, 'packet': packet}
             notify: bool = True
             # 응답 패킷 (월패드 -> 서브폰)
@@ -609,5 +607,12 @@ class PacketParser:
                 self.log(f'{self.prettifyPacket(packet)} >> ???')
             if notify:
                 self.sig_parse_result.emit(result)
+        elif packet[1] == 0xE2:
+            if self.enable_trace_timestamp_packet:
+                year, month, day = int('%02X' % packet[2]), int('%02X' % packet[3]), int('%02X' % packet[4])
+                hour, minute, second = int('%02X' % packet[5]), int('%02X' % packet[6]), int('%02X' % packet[7])
+                dt = datetime.datetime(year, month, day, hour, minute, second)
+                self.log(f'Timestamp Packet: {self.prettifyPacket(packet)}')
+                self.log(f'>> {dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]}')
         else:
             self.log(f'{self.prettifyPacket(packet)} >> ???')

@@ -109,78 +109,38 @@ file. <br>
 1. Device Configuration <br>
     MQTT topics to get/set control should be carefully modified in this section. <br>
     These topics should be matched to your home network platform's(like homebridge, homeassistant) configuration. <br>
-    **publish** topic means updating current state **to** home network accessories. <br>
-    **subscribe** topic means receiving state changing command **from** home network platform. <br>
-    - Room with Light, Outlet, Thermostat, Airconditioner
-        ```xml
-        <config>
-            <rooms>
-                <room1>
-                    <name>Livingroom</name>
-                    <index>1</index>
-                    <lights>
-                        <light1>
-                            <name>ceil 1</name>
-                            <mqtt>
-                                <publish>home/hillstate/light/state/1/1</publish>
-                                <subscribe>home/hillstate/light/command/1/1</subscribe>
-                            </mqtt>
-                        </light1>
-                        <light2>
-                            <name>ceil 2</name>
-                            <mqtt>
-                                <publish>home/hillstate/light/state/1/2</publish>
-                                <subscribe>home/hillstate/light/command/1/2</subscribe>
-                            </mqtt>
-                        </light2>
-                    </lights>
-                    <outlets>
-                        <outlet1>
-                            <name>outlet 1</name>
-                            <enable_off_cmd>0</enable_off_cmd>
-                            <mqtt>
-                                <publish>home/hillstate/outlet/state/1/1</publish>
-                                <subscribe>home/hillstate/outlet/command/1/1</subscribe>
-                            </mqtt>
-                        </outlet1>
-                    </outlets>
-                    <thermostat>
-                        <exist>1</exist>
-                        <range_min>18</range_min>
-                        <range_max>35</range_max>
-                        <mqtt>
-                            <publish>home/hillstate/thermostat/state/1</publish>
-                            <subscribe>home/hillstate/thermostat/command/1</subscribe>
-                        </mqtt>
-                    </thermostat>
-                    <airconditioner>
-                        <exist>1</exist>
-                        <range_min>18</range_min>
-                        <range_max>35</range_max>
-                        <mqtt>
-                            <publish>home/hillstate/airconditioner/state/1</publish>
-                            <subscribe>home/hillstate/airconditioner/command/1</subscribe>
-                        </mqtt>
-                    </airconditioner>
-                </room1>
-            </rooms>
-        </config>
-        ```
-        **'Room'** object can have four type devices. <br>
-        If thermostat or airconditioner is not exist in a room, **exist** tag should be modified as **0**.<br>
-    - Other Devices
-        ```xml
-        <config>
-            <gasvalve>...</gasvalve>
-            <ventilator>...</ventilator>
-            <elevator>...</elevator>
-            <hems>...</hems>
-            <subphone>...</subphone>
-            <batchoffsw>...</batchoffsw>
-        </config>
-        ```
-        Please take a look template.
-1. Parser Mapping
+    ```xml
+    <config>
+        <device>
+            <entry>
+                <dev_type>
+                    <name>Device Name</name>
+                    <index>Device Index</index>
+                    <room>Room Index</room>
+                    <enable>1</enable>
+                    <!--
+                    <mqtt>
+                        <publish>home/state/dev_type/room_index/dev_index</publish>
+                        <subscribe>home/command/dev_type/1room_index/dev_index</subscribe>
+                    </mqtt>
+                    -->
+                </dev_type>
+                <dev_type>
+                    <!-- ... -->
+                </dev_type>
+            </entry>
+        </device>
+    </config>
+    ```
+    - Supported 'dev_type': light, outlet, thermostat, airconditioner, gasvalve, ventilator, elevator, subphone, hems, batchoffsw
+    - 'index' and 'room' tag value is **0-based** integer. <br>
+    - 'enable' tag means whether or not add this device. (1=enable, 2=disable)
+    - MQTT topic is automatically assigned when device is created. <br>
+      If you want to customize topic, uncomment and modify pub/sub topic.<br>
+      **publish** topic means updating current state **to** home network accessories. <br>
+      **subscribe** topic means receiving state changing command **from** home network platform. <br>
+    - You can find other optional tags for various device types in xml file in repository. Please take a look for a moment before building your own environment.
+1. **Parser Mapping**
     ```xml
     <config>
         <device>
@@ -194,6 +154,7 @@ file. <br>
                 <elevator>1</elevator>
                 <subphone>2</subphone>
                 <batchoffsw>1</batchoffsw>
+                <hems>2</hems>
             </parser_mapping>
         </device>
     </config>
@@ -201,17 +162,6 @@ file. <br>
     Index(number) which is configured in **rs485** tag should be matched to related devices. <br>
     Script example above means that **'Light'** related RS-485 packets are streaming on index 0 converter and **'Gas Valve'** related packets are streaming on index 1 converter.<br>
     If you are using only one converter, these values should be all set to 0.
-1. ETC
-    ```xml
-    <config>
-        <subphone>
-            <enable>1</enable>
-            <!-- ... -->
-        </subphone>
-    </config>
-    ```
-    If kitchen subphone is not utilized, it is recommended to modify **enable** value as 0. <br>
-    (If subphone is enabled, application will try to initiate **FFMPEG and FFServer** which are required to stream video from door-bell.)
 
 Run Application
 ---
@@ -223,6 +173,13 @@ Run Application
     ```
     $ /usr/local/bin/uwsgi ~/repos/HomeNetwork/Hillstate-Gwanggyosan/uwsgi.ini
     ```
+
+Homebridge & Home Assistant 
+---
+You can find home IoT platform configuration template (json for homebridge, yaml for HA) is this repository. 
+- Homebridge: [homebridge_config.json](https://github.com/YOGYUI/HomeNetwork/blob/main/Hillstate-Gwanggyosan/Template/homebridge/homebridge_config.json) 
+- Home Assistant: [ha_configuration.yaml](https://github.com/YOGYUI/HomeNetwork/blob/main/Hillstate-Gwanggyosan/Template/homeassistant/ha_configuration.yaml) 
+
 
 Reference URLs
 ---
@@ -239,5 +196,4 @@ Reference URLs
 
 TODO
 ---
-- Refactoring Device class (remove 'Room' class).
 - Finalize auto detecting device implementation.
