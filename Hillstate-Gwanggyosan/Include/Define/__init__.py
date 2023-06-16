@@ -14,7 +14,7 @@ from Ventilator import Ventilator
 from AirConditioner import AirConditioner
 from Elevator import Elevator
 # from DoorLock import DoorLock
-from SubPhone import SubPhone, HEMSDevType, HEMSCategory
+from SubPhone import SubPhone
 from AirqualitySensor import AirqualitySensor
 from BatchOffSwitch import BatchOffSwitch
 from HEMS import HEMS

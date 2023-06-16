@@ -115,6 +115,7 @@ class HEMSDevType(IntEnum):
     Gas = 3  # 가스
     HotWater = 4  # 온수
     Heating = 5  # 난방
+    Reserved = 10  # ?
 
 
 @unique

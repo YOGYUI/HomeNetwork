@@ -1,6 +1,7 @@
+import json
+import datetime
 from Device import *
 from Common import HEMSDevType, HEMSCategory
-import datetime
 
 
 class HEMS(Device):
@@ -20,7 +21,7 @@ class HEMS(Device):
         pass
 
     def updateState(self, _: int, **kwargs):
-        if monitor_data in kwargs.keys():
+        if 'monitor_data' in kwargs.keys():
             monitor_data = kwargs.get('monitor_data')
             self.data['last_recv_time'] = datetime.datetime.now()
             for key in list(monitor_data.keys()):

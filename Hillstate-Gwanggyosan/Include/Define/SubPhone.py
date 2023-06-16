@@ -43,7 +43,10 @@ class SubPhone(Device):
 
     def publishMQTT(self):
         if self.mqtt_client is not None:
-            obj = {"streaming_state": self.state_streaming}
+            obj = {
+                "streaming_state": self.state_streaming,
+                "doorlock_state": self.state_doorlock.name,  # 도어락은 상태 조회가 안되고 '열기' 기능만 존재한다
+            }
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
 
             if self.state_ringing != self.state_ringing_prev:  # 초인종 호출 상태 알림이 반복적으로 뜨는 것 방지 
@@ -55,9 +58,6 @@ class SubPhone(Device):
                 else:
                     # obj = {"doorbell_state": 'OFF'}
                     self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'OFF', 1)
-
-            obj = {"doorlock_state": self.state_doorlock.name}  # 도어락은 상태 조회가 안되고 '열기' 기능만 존재한다
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
 
     def updateState(self, _: int, **kwargs):
         streaming = kwargs.get('streaming')

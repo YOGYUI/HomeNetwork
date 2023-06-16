@@ -6,3 +6,4 @@
 /MosquittoTest
 /Hillstate-Gwanggyosan/Include/ThinQ/*.pem
 *.sock
+*.pid
