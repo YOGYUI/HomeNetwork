@@ -102,11 +102,9 @@ class Home:
         self.initialize(init_service, False)
     
     def initialize(self, init_service: bool, connect_rs485: bool):
-        xml_path = os.path.join(PROJPATH, 'config.xml')
-        self.device_list.clear()
         self.initMQTT()
-        self.initDevices(xml_path)
-        self.loadConfig(xml_path)
+        self.loadConfig()
+        self.initDevices()
 
         if init_service:
             self.startThreadCommandQueue()
@@ -139,8 +137,7 @@ class Home:
         self.mqtt_client.on_message = self.onMqttClientMessage
         self.mqtt_client.on_log = self.onMqttClientLog
 
-    def initDevices(self, filepath: str):
-        # append device list
+    def initDevices(self):
         for dev in self.device_list:
             dev.setMqttClient(self.mqtt_client)
             dev.sig_set_state.connect(partial(self.onDeviceSetState, dev))
@@ -185,10 +182,11 @@ class Home:
         topics = list(filter(lambda x: len(x) > 0, topics))
         return topics
 
-    def loadConfig(self, filepath: str):
-        if not os.path.isfile(filepath):
+    def loadConfig(self):
+        xml_path = os.path.join(PROJPATH, 'config.xml')
+        if not os.path.isfile(xml_path):
             return
-        root = ET.parse(filepath).getroot()
+        root = ET.parse(xml_path).getroot()
 
         node = root.find('rs485')
         try:
@@ -249,6 +247,7 @@ class Home:
         except Exception as e:
             writeLog(f"Failed to load mqtt config ({e})", self)
         
+        self.device_list.clear()
         node = root.find('device')
         try:
             parser_mapping_node = node.find('parser_mapping')
@@ -261,6 +260,30 @@ class Home:
             self.parser_mapping[Elevator] = int(parser_mapping_node.find('elevator').text)
             self.parser_mapping[SubPhone] = int(parser_mapping_node.find('subphone').text)
             self.parser_mapping[BatchOffSwitch] = int(parser_mapping_node.find('batchoffsw').text)
+
+            list_node = node.find('list')
+            for dev_node in list(list_node):
+                try:
+                    name = dev_node.find('name').text
+                    index = int(dev_node.find('index').text)
+                    room = int(dev_node.find('room').text)
+                    device: Device = None
+                    if dev_node.tag.lower() == 'light':
+                        device = Light(name, index, room)
+                    elif dev_node.tag.lower() == 'airquality':
+                        device = AirqualitySensor(name, index, room)
+                        apikey = dev_node.find('apikey').text
+                        obsname = dev_node.find('obsname').text
+                        device.setApiParams(apikey, obsname)
+                    if device is not None:
+                        mqtt_node = dev_node.find('mqtt')
+                        if mqtt_node is not None:
+                            device.setMqttPublishTopic(mqtt_node.find('publish').text)
+                            device.setMqttSubscribeTopic(mqtt_node.find('subscribe').text)
+                        self.device_list.append(device)
+                except Exception as e:
+                    writeLog(f"Failed to load device entry ({e})", self)
+                    continue
         except Exception as e:
             writeLog(f"Failed to load device config ({e})", self)
 
@@ -386,15 +409,19 @@ class Home:
 
     def startThreadEnergyMonitor(self):
         if self.thread_energy_monitor is None:
-            self.thread_energy_monitor = ThreadEnergyMonitor(
-                subphone=self.subphone, 
-                parser=self.rs485_info_list[2].parser,
-                interval_realtime_ms=5000,
-                interval_regular_ms=60*60*1000
-            )
-            self.thread_energy_monitor.sig_terminated.connect(self.onThreadEnergyMonitorTerminated)
-            self.thread_energy_monitor.setDaemon(True)
-            self.thread_energy_monitor.start()
+            device = self.getDevice(DeviceType.SUBPHONE, 0, 0)
+            if device is not None:
+                index = self.parser_mapping.get(SubPhone)
+                parser = self.rs485_info_list[index].parser
+                self.thread_energy_monitor = ThreadEnergyMonitor(
+                    subphone=device, 
+                    parser=parser,
+                    interval_realtime_ms=5000,
+                    interval_regular_ms=60*60*1000
+                )
+                self.thread_energy_monitor.sig_terminated.connect(self.onThreadEnergyMonitorTerminated)
+                self.thread_energy_monitor.setDaemon(True)
+                self.thread_energy_monitor.start()
     
     def stopThreadEnergyMonitor(self):
         if self.thread_energy_monitor is not None:
@@ -417,46 +444,6 @@ class Home:
         else:
             self.updateDeviceState(result)
     
-    def updateDiscoverDeviceList(self, result: dict):
-        try:
-            dev_type = result.get('device')
-            dev_idx: int = result.get('index')
-            if dev_idx is None:
-                dev_idx = 0
-            room_idx: int = result.get('room_index')
-            if room_idx is None:
-                room_idx = 0
-            
-            if self.isDeviceDiscovered(dev):
-                return
-            
-            dev: Device = None
-            if dev_type is DeviceType.LIGHT:
-                dev = Light(f'Light {dev_idx + 1}', dev_idx, room_idx)
-            elif dev_type is DeviceType.OUTLET:
-                dev = Outlet(f'Outlet {dev_idx + 1}', dev_idx, room_idx)
-            elif dev_type is DeviceType.THERMOSTAT:
-                dev = Thermostat(f'Thermostat', dev_idx, room_idx)
-            elif dev_type is DeviceType.AIRCONDITIONER:
-                dev = AirConditioner(f'AirConditioner', dev_idx, room_idx)
-            elif dev_type is DeviceType.GASVALVE:
-                dev = GasValve('Gas Valve', dev_idx, room_idx)
-            elif dev_type is DeviceType.VENTILATOR:
-                dev = Ventilator('Ventilator', dev_idx, room_idx)
-            elif dev_type is DeviceType.ELEVATOR:
-                dev = Elevator('Elevator', dev_idx, room_idx)
-            elif dev_type is DeviceType.SUBPHONE:
-                dev = SubPhone("SubPhone", dev_idx, room_idx)
-            elif dev_type is DeviceType.BATCHOFFSWITCH:
-                dev = BatchOffSwitch("BatchOffSW", dev_idx, room_idx)
-            elif dev_type is DeviceType.HEMS:
-                pass
-            if dev is not None:
-                dev.setMqttClient(self.mqtt_client)
-                self.discovered_dev_list.append(dev)
-        except Exception as e:
-            writeLog('updateDiscoverDeviceList::Exception::{} ({})'.format(e, result), self)
-
     def getDevice(self, dev_type: DeviceType, index: int, room_index: int) -> Device:
         find = list(filter(lambda x: 
             x.getType() == dev_type and x.getIndex() == index and x.getRoomIndex() == room_index, 
@@ -476,7 +463,7 @@ class Home:
                 room_idx = 0
             device = self.getDevice(dev_type, dev_idx, room_idx)
             if device is None:
-                writeLog(f'handlePacketParseResult::Cannot find device ({dev_type}, {dev_idx}, {room_idx})', self)
+                # writeLog(f'handlePacketParseResult::Cannot find device ({dev_type}, {dev_idx}, {room_idx})', self)
                 return
             
             if dev_type in [DeviceType.LIGHT, DeviceType.OUTLET, DeviceType.GASVALVE, DeviceType.BATCHOFFSWITCH]:
@@ -568,12 +555,11 @@ class Home:
             )
 
     def startMqttSubscribe(self):
-        self.mqtt_client.subscribe('home/hillstate/system/command')
+        self.mqtt_client.subscribe('home/command/system')
         for dev in self.device_list:
-            for topic in dev.mqtt_subscribe_topics:
-                self.mqtt_client.subscribe(topic)
+            self.mqtt_client.subscribe(dev.mqtt_subscribe_topic)
         if self.thinq is not None:
-            self.mqtt_client.subscribe('home/hillstate/thinq/command')
+            self.mqtt_client.subscribe('home/command/thinq')
 
     def onMqttClientConnect(self, _, userdata, flags, rc):
         if self.enable_mqtt_console_log:
@@ -612,30 +598,30 @@ class Home:
             topic = message.topic
             msg_dict = json.loads(message.payload.decode("utf-8"))
             writeLog(f'MQTT Message: {topic}: {msg_dict}', self)
-            if 'system/command' in topic:
+            if 'command/system' in topic:
                 self.onMqttCommandSystem(topic, msg_dict)
-            if 'light/command' in topic:
+            if 'command/light' in topic:
                 self.onMqttCommandLight(topic, msg_dict)
-            if 'outlet/command' in topic:
+            if 'command/outlet' in topic:
                 self.onMqttCommandOutlet(topic, msg_dict)
-            if 'gasvalve/command' in topic:
+            if 'command/gasvalve' in topic:
                 self.onMqttCommandGasvalve(topic, msg_dict)
-            if 'thermostat/command' in topic:
+            if 'command/thermostat' in topic:
                 self.onMqttCommandThermostat(topic, msg_dict)
-            if 'ventilator/command' in topic:
+            if 'command/ventilator' in topic:
                 self.onMqttCommandVentilator(topic, msg_dict)
-            if 'airconditioner/command' in topic:
+            if 'command/airconditioner' in topic:
                 self.onMqttCommandAirconditioner(topic, msg_dict)
-            if 'elevator/command' in topic:
+            if 'command/elevator' in topic:
                 self.onMqttCommandElevator(topic, msg_dict)
-            if 'subphone/command' in topic:
+            if 'command/subphone' in topic:
                 self.onMqttCommandSubPhone(topic, msg_dict)
-            if 'thinq/command' in topic:
+            if 'command/thinq' in topic:
                 self.onMqttCommandThinq(topic, msg_dict)
-            if 'batchoffsw/command' in topic:
+            if 'command/batchoffsw' in topic:
                 self.onMqttCommandBatchOffSwitch(topic, msg_dict)
             """
-            if 'doorlock/command' in topic:
+            if 'command/doorlock' in topic:
                 self.onMqttCommandDookLock(topic, msg_dict)
             """
         except Exception as e:
@@ -681,8 +667,12 @@ class Home:
 
     def onMqttCommandLight(self, topic: str, message: dict):
         splt = topic.split('/')
-        room_idx = int(splt[-2])
-        dev_idx = int(splt[-1])
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandLight::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
         device = self.getDevice(DeviceType.LIGHT, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
@@ -694,8 +684,12 @@ class Home:
 
     def onMqttCommandOutlet(self, topic: str, message: dict):
         splt = topic.split('/')
-        room_idx = int(splt[-2])
-        dev_idx = int(splt[-1])
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandOutlet::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
         device = self.getDevice(DeviceType.OUTLET, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
@@ -707,8 +701,12 @@ class Home:
 
     def onMqttCommandGasvalve(self, topic: str, message: dict):
         splt = topic.split('/')
-        room_idx = int(splt[-2])
-        dev_idx = int(splt[-1])
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandGasvalve::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
         device = self.getDevice(DeviceType.GASVALVE, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
@@ -720,8 +718,12 @@ class Home:
 
     def onMqttCommandThermostat(self, topic: str, message: dict):
         splt = topic.split('/')
-        room_idx = int(splt[-2])
-        dev_idx = int(splt[-1])
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandThermostat::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
         device = self.getDevice(DeviceType.THERMOSTAT, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
@@ -744,8 +746,12 @@ class Home:
 
     def onMqttCommandVentilator(self, topic: str, message: dict):
         splt = topic.split('/')
-        room_idx = int(splt[-2])
-        dev_idx = int(splt[-1])
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandVentilator::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
         device = self.getDevice(DeviceType.VENTILATOR, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
@@ -766,8 +772,12 @@ class Home:
 
     def onMqttCommandAirconditioner(self, topic: str, message: dict):
         splt = topic.split('/')
-        room_idx = int(splt[-2])
-        dev_idx = int(splt[-1])
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandAirconditioner::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
         device = self.getDevice(DeviceType.AIRCONDITIONER, dev_idx, room_idx)
         if device is not None:
             if 'active' in message.keys():
@@ -804,8 +814,12 @@ class Home:
 
     def onMqttCommandElevator(self, topic: str, message: dict):
         splt = topic.split('/')
-        room_idx = int(splt[-2])
-        dev_idx = int(splt[-1])
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandElevator::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
         device = self.getDevice(DeviceType.ELEVATOR, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
@@ -817,18 +831,26 @@ class Home:
     
     def onMqttCommandSubPhone(self, topic: str, message: dict):
         splt = topic.split('/')
-        if splt[-1] == 'streaming':
-            self.command(
-                device=self.subphone,
-                category='streaming',
-                target=message['state']
-            )
-        if splt[-1] == 'doorlock':
-            self.command(
-                device=self.subphone,
-                category='doorlock',
-                target=message['state']
-            )
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandSubPhone::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
+        device = self.getDevice(DeviceType.SUBPHONE, dev_idx, room_idx)
+        if device is not None:
+            if 'streaming_state' in message.keys():
+                self.command(
+                    device=device,
+                    category='streaming',
+                    target=message['streaming_state']
+                )
+            if 'doorlock_state' in message.keys():
+                self.command(
+                    device=device,
+                    category='doorlock',
+                    target=message['doorlock_state']
+                )
 
     def onMqttCommandThinq(self, _: str, message: dict):
         if self.thinq is None:
@@ -841,8 +863,12 @@ class Home:
 
     def onMqttCommandBatchOffSwitch(self, topic: str, message: dict):
         splt = topic.split('/')
-        room_idx = int(splt[-2])
-        dev_idx = int(splt[-1])
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandBatchOffSwitch::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
         device = self.getDevice(DeviceType.BATCHOFFSWITCH, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
@@ -863,8 +889,12 @@ class Home:
 
     def startFFServer(self):
         try:
+            subphone: SubPhone = self.getDevice(DeviceType.SUBPHONE, 0, 0)
+            if subphone is None:
+                return
+
             pipe1, pipe2 = multiprocessing.Pipe(duplex=True)
-            args = [self.subphone.streaming_config, pipe1]
+            args = [subphone.streaming_config, pipe1]
             self.mp_ffserver = multiprocessing.Process(target=procFFServer, name='FFServer', args=tuple(args))
             self.mp_ffserver.start()
             while True:
@@ -889,8 +919,12 @@ class Home:
 
     def startFFMpeg(self):
         try:
+            subphone: SubPhone = self.getDevice(DeviceType.SUBPHONE, 0, 0)
+            if subphone is None:
+                return
+            
             pipe1, pipe2 = multiprocessing.Pipe(duplex=True)
-            args = [self.subphone.streaming_config, pipe1]
+            args = [subphone.streaming_config, pipe1]
             self.mp_ffmpeg = multiprocessing.Process(target=procFFMpeg, name='FFMpeg', args=tuple(args))
             self.mp_ffmpeg.start()
             while True:
@@ -945,6 +979,46 @@ class Home:
             x.getType() == dev_type and x.getIndex() == index and x.getRoomIndex() == room_index, 
             self.discovered_dev_list))
         return len(find) > 0
+
+    def updateDiscoverDeviceList(self, result: dict):
+        try:
+            dev_type = result.get('device')
+            dev_idx: int = result.get('index')
+            if dev_idx is None:
+                dev_idx = 0
+            room_idx: int = result.get('room_index')
+            if room_idx is None:
+                room_idx = 0
+            
+            if self.isDeviceDiscovered(dev):
+                return
+            
+            dev: Device = None
+            if dev_type is DeviceType.LIGHT:
+                dev = Light(f'Light {dev_idx + 1}', dev_idx, room_idx)
+            elif dev_type is DeviceType.OUTLET:
+                dev = Outlet(f'Outlet {dev_idx + 1}', dev_idx, room_idx)
+            elif dev_type is DeviceType.THERMOSTAT:
+                dev = Thermostat(f'Thermostat', dev_idx, room_idx)
+            elif dev_type is DeviceType.AIRCONDITIONER:
+                dev = AirConditioner(f'AirConditioner', dev_idx, room_idx)
+            elif dev_type is DeviceType.GASVALVE:
+                dev = GasValve('Gas Valve', dev_idx, room_idx)
+            elif dev_type is DeviceType.VENTILATOR:
+                dev = Ventilator('Ventilator', dev_idx, room_idx)
+            elif dev_type is DeviceType.ELEVATOR:
+                dev = Elevator('Elevator', dev_idx, room_idx)
+            elif dev_type is DeviceType.SUBPHONE:
+                dev = SubPhone("SubPhone", dev_idx, room_idx)
+            elif dev_type is DeviceType.BATCHOFFSWITCH:
+                dev = BatchOffSwitch("BatchOffSW", dev_idx, room_idx)
+            elif dev_type is DeviceType.HEMS:
+                pass
+            if dev is not None:
+                dev.setMqttClient(self.mqtt_client)
+                self.discovered_dev_list.append(dev)
+        except Exception as e:
+            writeLog('updateDiscoverDeviceList::Exception::{} ({})'.format(e, result), self)
 
 
 home_: Union[Home, None] = None

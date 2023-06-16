@@ -6,6 +6,8 @@ class GasValve(Device):
     def __init__(self, name: str = 'Gas Valve', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.GASVALVE
+        self.mqtt_publish_topic = f'home/state/gasvalve/{self.room_index}/{self.index}'
+        self.mqtt_subscribe_topic = f'home/command/gasvalve/{self.room_index}/{self.index}'
 
     def publish_mqtt(self):
         obj = {"state": self.state}

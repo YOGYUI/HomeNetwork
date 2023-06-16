@@ -32,6 +32,9 @@ class DoorLock(Device):
 
     def __init__(self, name: str = 'Doorlock', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
+        self.dev_type = DeviceType.DOORLOCK
+        self.mqtt_publish_topic = f'home/state/doorlock/{self.room_index}/{self.index}'
+        self.mqtt_subscribe_topic = f'home/command/doorlock/{self.room_index}/{self.index}'
         self.state = 1
         self.setParams(True, 23)
         

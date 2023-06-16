@@ -16,6 +16,8 @@ class AirqualitySensor(Device):
 
     def __init__(self, name: str = 'Airquality', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
+        self.mqtt_publish_topic = f'home/state/airquality/{self.room_index}/{self.index}'
+        self.mqtt_subscribe_topic = f'home/command/airquality/{self.room_index}/{self.index}'
         self._measure_data = {
             'khaiGrade': -1,
             'so2Value': 0.0,

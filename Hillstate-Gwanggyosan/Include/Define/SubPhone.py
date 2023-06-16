@@ -45,6 +45,8 @@ class SubPhone(Device):
     def __init__(self, name: str = 'SubPhone', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.SUBPHONE
+        self.mqtt_publish_topic = f'home/state/subphone/{self.room_index}/{self.index}'
+        self.mqtt_subscribe_topic = f'home/command/subphone/{self.room_index}/{self.index}'
         self.sig_state_streaming = Callback(int)
         self.streaming_config = {
             'conf_file_path': '',
@@ -56,22 +58,24 @@ class SubPhone(Device):
         }
         
     def publish_mqtt(self):
-        topic = self.mqtt_publish_topic
         if self.mqtt_client is not None:
-            obj = {"state": self.state_streaming}
-            self.mqtt_client.publish(topic + '/streaming', json.dumps(obj), 1)
+            obj = {"streaming_state": self.state_streaming}
+            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
 
             if self.state_ringing != self.state_ringing_prev:  # 초인종 호출 상태 알림이 반복적으로 뜨는 것 방지 
                 writeLog(f"Ringing Publish: Prev={bool(self.state_ringing.name)}, Current={self.state_ringing_prev.name}", self)
+                obj = {"doorbell_state": 'ON'}
                 if self.state_ringing in [StateRinging.FRONT, StateRinging.COMMUNAL]:
-                    self.mqtt_client.publish(topic + '/doorbell', 'ON', 1)
+                    # obj = {"doorbell_state": 'ON'}
+                    self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'ON', 1)
                 else:
-                    self.mqtt_client.publish(topic + '/doorbell', 'OFF', 1)
+                    # obj = {"doorbell_state": 'OFF'}
+                    self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'OFF', 1)
 
-            obj = {"state": self.state_doorlock.name}  # 도어락은 상태 조회가 안되고 '열기' 기능만 존재한다
-            self.mqtt_client.publish(topic + '/doorlock', json.dumps(obj), 1)
+            obj = {"doorlock_state": self.state_doorlock.name}  # 도어락은 상태 조회가 안되고 '열기' 기능만 존재한다
+            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
 
-    def updateState(self, state: int, **kwargs):
+    def updateState(self, _: int, **kwargs):
         streaming = kwargs.get('streaming')
         if streaming is not None:
             self.state_streaming = streaming

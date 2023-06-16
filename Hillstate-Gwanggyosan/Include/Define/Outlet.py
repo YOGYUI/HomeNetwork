@@ -6,6 +6,8 @@ class Outlet(Device):
     def __init__(self, name: str = 'Outlet', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.OUTLET
+        self.mqtt_publish_topic = f'home/state/outlet/{self.room_index}/{self.index}'
+        self.mqtt_subscribe_topic = f'home/command/outlet/{self.room_index}/{self.index}'
         self.enable_off_command: bool = False
 
     def __repr__(self):

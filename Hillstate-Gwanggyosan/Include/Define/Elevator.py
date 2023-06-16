@@ -46,6 +46,8 @@ class Elevator(Device):
     def __init__(self, name: str = 'Elevator', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.ELEVATOR
+        self.mqtt_publish_topic = f'home/state/elevator/{self.room_index}/{self.index}'
+        self.mqtt_subscribe_topic = f'home/command/elevator/{self.room_index}/{self.index}'
         self.dev_info_list = list()
         
     def publish_mqtt(self):

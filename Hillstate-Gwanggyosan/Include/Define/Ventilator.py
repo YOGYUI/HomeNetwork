@@ -6,6 +6,8 @@ class Ventilator(Device):
     def __init__(self, name: str = 'Ventilator', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.VENTILATOR
+        self.mqtt_publish_topic = f'home/state/ventilator/{self.room_index}/{self.index}'
+        self.mqtt_subscribe_topic = f'home/command/ventilator/{self.room_index}/{self.index}'
         self.rotation_speed: int = -1
         self.rotation_speed_prev: int = -1
         

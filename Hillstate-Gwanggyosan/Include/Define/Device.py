@@ -26,7 +26,7 @@ class Device:
     state_prev: int = 0
     mqtt_client: mqtt.Client = None
     mqtt_publish_topic: str = ''
-    mqtt_subscribe_topics: str = ''
+    mqtt_subscribe_topic: str = ''
 
     last_published_time: float = time.perf_counter()
 
@@ -37,7 +37,6 @@ class Device:
         self.name = name
         self.index = index
         self.room_index = room_index
-        self.mqtt_subscribe_topics = list()
 
         self.sig_set_state = Callback(int)
         self.timer_onoff_params = {
@@ -46,12 +45,12 @@ class Device:
             'repeat': True,  # boolean
             'off_when_terminate': True  # device 켜진 상태에서 타이머 종료될 때 동작
         }
-        writeLog('Device Created >> {}'.format(str(self)), self)
+        writeLog('Device Created: {}'.format(str(self)), self)
 
     def __repr__(self) -> str:
-        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += f' Dev Idx: {self.index}, '
-        repr_txt += f' Room Idx: {self.room_index}'
+        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))}) '
+        repr_txt += f'Dev Idx: {self.index}, '
+        repr_txt += f'Room Idx: {self.room_index}'
         repr_txt += '>'
         return repr_txt
 
@@ -78,6 +77,12 @@ class Device:
 
     def setMqttClient(self, client: mqtt.Client):
         self.mqtt_client = client
+
+    def setMqttPublishTopic(self, topic: str):
+        self.mqtt_publish_topic = topic
+
+    def setMqttSubscribeTopic(self, topic: str):
+        self.mqtt_subscribe_topic = topic
 
     def setTimerOnOffOnTime(self, value: int):
         self.timer_onoff_params['on_time'] = value

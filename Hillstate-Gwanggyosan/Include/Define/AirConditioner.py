@@ -17,6 +17,8 @@ class AirConditioner(Device):
     def __init__(self, name: str = 'AirConditioner', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.AIRCONDITIONER
+        self.mqtt_publish_topic = f'home/state/airconditioner/{self.room_index}/{self.index}'
+        self.mqtt_subscribe_topic = f'home/command/airconditioner/{self.room_index}/{self.index}'
         self.temp_range = [0, 100]
         
     def publish_mqtt(self):
