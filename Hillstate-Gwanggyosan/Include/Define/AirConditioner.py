@@ -1,6 +1,5 @@
 import json
 from Device import *
-import datetime
 
 
 class AirConditioner(Device):

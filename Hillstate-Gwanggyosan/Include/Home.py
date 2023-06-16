@@ -73,9 +73,7 @@ class Home:
     mp_ffmpeg: Union[multiprocessing.Process, None] = None
     pid_ffmpeg_proc: int = 0
 
-    hems_info: dict
     enable_hems: bool = False
-    topic_hems_publish: str = ''
 
     discover_device: bool = False
     discovered_dev_list: List[Device]
@@ -96,9 +94,9 @@ class Home:
             AirConditioner: 0,
             Elevator: 0,
             SubPhone: 0,
-            BatchOffSwitch: 0
+            BatchOffSwitch: 0,
+            HEMS: 0,
         }
-        self.hems_info = dict()
         self.initialize(init_service, False)
     
     def initialize(self, init_service: bool, connect_rs485: bool):
@@ -164,8 +162,7 @@ class Home:
             elem.release()
         for dev in self.device_list:
             dev.release()
-        
-        self.hems_info.clear()
+
         writeLog(f'Released', self)
     
     def restart(self):
@@ -261,6 +258,7 @@ class Home:
                 self.parser_mapping[Elevator] = int(parser_mapping_node.find('elevator').text)
                 self.parser_mapping[SubPhone] = int(parser_mapping_node.find('subphone').text)
                 self.parser_mapping[BatchOffSwitch] = int(parser_mapping_node.find('batchoffsw').text)
+                self.parser_mapping[HEMS] = int(parser_mapping_node.find('hems').text)
 
             entry_node = node.find('entry')
             for dev_node in list(entry_node):
@@ -317,6 +315,11 @@ class Home:
                             device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
                             device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
                             device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
+                    elif tag_name == 'hems':
+                        enable_node = dev_node.find('enable')
+                        self.enable_hems = bool(int(enable_node.text)) if enable_node is not None else False
+                        if self.enable_hems:
+                            device = HEMS(name, index, room)
                     elif tag_name == 'airquality':
                         enable_node = dev_node.find('enable')
                         enable = bool(int(enable_node.text)) if enable_node is not None else False
@@ -341,18 +344,11 @@ class Home:
                     continue
         except Exception as e:
             writeLog(f"Failed to load device config ({e})", self)
+        
         if len(self.device_list) > 1:
             writeLog(f"Total {len(self.device_list)} Devices added", self)
         elif len(self.device_list) == 1:
             writeLog(f"Total {len(self.device_list)} Device added", self)
-
-        node = root.find('hems')
-        try:
-            self.enable_hems = bool(int(node.find('enable').text))
-            mqtt_node = node.find('mqtt')
-            self.topic_hems_publish = mqtt_node.find('publish').text
-        except Exception as e:
-            writeLog(f"Failed to load HEMS config ({e})", self)  
 
         node = root.find('thinq')
         try:
@@ -468,12 +464,12 @@ class Home:
 
     def startThreadEnergyMonitor(self):
         if self.thread_energy_monitor is None:
-            device = self.findDevice(DeviceType.SUBPHONE, 0, 0)
+            device: HEMS = self.findDevice(DeviceType.HEMS, 0, 0)
             if device is not None:
-                index = self.parser_mapping.get(SubPhone)
+                index = self.parser_mapping.get(HEMS)
                 parser = self.rs485_info_list[index].parser
                 self.thread_energy_monitor = ThreadEnergyMonitor(
-                    subphone=device, 
+                    hems=device, 
                     parser=parser,
                     interval_realtime_ms=5000,
                     interval_regular_ms=60*60*1000
@@ -573,17 +569,10 @@ class Home:
                 )
             elif dev_type is DeviceType.HEMS:
                 result.pop('device')
-                self.hems_info['last_recv_time'] = datetime.datetime.now()
-                for key in list(result.keys()):
-                    self.hems_info[key] = result.get(key)
-                    if key in ['electricity_current']:
-                        topic = self.topic_hems_publish + f'/{key}'
-                        value = result.get(key)
-                        """
-                        if value == 0:
-                            writeLog(f"zero power consumption? >> {prettifyPacket(result.get('packet'))}", self)
-                        """
-                        self.mqtt_client.publish(topic, json.dumps({"value": value}), 1)
+                device.updateState(
+                    0,
+                    monitor_data=result
+                )
             elif dev_type is DeviceType.DOORLOCK:
                 pass
         except Exception as e:
@@ -1072,7 +1061,7 @@ class Home:
             elif dev_type is DeviceType.BATCHOFFSWITCH:
                 dev = BatchOffSwitch("BatchOffSW", dev_idx, room_idx)
             elif dev_type is DeviceType.HEMS:
-                pass
+                dev = HEMS("HEMS", dev_idx, room_idx)
             if dev is not None:
                 dev.setMqttClient(self.mqtt_client)
                 self.discovered_dev_list.append(dev)

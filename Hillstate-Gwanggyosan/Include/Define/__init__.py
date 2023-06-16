@@ -17,3 +17,4 @@ from Elevator import Elevator
 from SubPhone import SubPhone, HEMSDevType, HEMSCategory
 from AirqualitySensor import AirqualitySensor
 from BatchOffSwitch import BatchOffSwitch
+from HEMS import HEMS

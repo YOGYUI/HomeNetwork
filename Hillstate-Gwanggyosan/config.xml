@@ -90,6 +90,7 @@
             <elevator>1</elevator>
             <subphone>2</subphone>
             <batchoffsw>1</batchoffsw>
+            <hems>2</hems>
             <!-- <doorlock>0</doorlock> -->
         </parser_mapping>
         <entry>
@@ -489,6 +490,19 @@
                 -->
     </subphone>
 
+            <hems>
+                <name>HEMS</name>
+                <index>0</index>
+                <room>0</room>
+                <enable>1</enable>
+                <!--
+                <mqtt>
+                    <publish>home/state/hems/0/0</publish>
+                    <subscribe>home/command/hems/0/0</subscribe>
+                </mqtt>
+                -->
+            </hems>
+
             <doorlock>
                 <name>Front Door Lock</name>
                 <index>0</index>
@@ -508,8 +522,8 @@
                 <index>0</index>
                 <room>0</room>
                 <enable>1</enable>
-                <apikey>SV5xOdOCXxDs5yZxOsanMwoY9Jeht7UPM%2BnKqBY3tFIpAivokjm4XMm7Dr9QvXMgWXdwkxIeFRDHpgQaSQtmig%3D%3D</apikey>
-                <obsname>수지</obsname>
+                <apikey>Your API Key from data.go.kr</apikey>
+                <obsname>관측소명</obsname>
                 <!--
                 <mqtt>
                     <publish>home/state/airquality/0/0</publish>
@@ -537,19 +551,4 @@
             <log_message>0</log_message>
         </mqtt>
     </thinq>
-    <airquality>
-        <enable>1</enable>
-        <apikey>Your API Key from data.go.kr</apikey>
-        <obsname>수지</obsname>
-        <mqtt>
-            <publish>home/hillstate/airquality/state</publish>
-            <subscribe>home/hillstate/airquality/command</subscribe>
-        </mqtt>
-    </airquality>
-    <batchoffsw>
-        <mqtt>
-            <publish>home/hillstate/batchoffsw/state</publish>
-            <subscribe>home/hillstate/batchoffsw/command</subscribe>
-        </mqtt>
-    </batchoffsw>
 </config>

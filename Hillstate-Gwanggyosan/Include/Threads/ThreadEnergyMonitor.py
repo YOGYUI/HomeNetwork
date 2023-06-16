@@ -8,7 +8,7 @@ INCPATH = os.path.dirname(CURPATH)  # Project/Include/
 sys.path.extend([CURPATH, INCPATH])
 sys.path = list(set(sys.path))
 del CURPATH, INCPATH
-from Common import Callback, writeLog
+from Common import Callback, writeLog, HEMSDevType, HEMSCategory
 from Define import *
 from RS485 import PacketParser
 
@@ -23,13 +23,13 @@ class ThreadEnergyMonitor(threading.Thread):
     _timeout_cnt: int = 0
 
     def __init__(self, 
-        subphone: SubPhone, 
+        hems: HEMS, 
         parser: PacketParser, 
         interval_realtime_ms: int = 1 * 1000,
         interval_regular_ms: int = 60 * 60 * 1000
     ):
         threading.Thread.__init__(self, name='Energy Monitor Thread')
-        self._subphone = subphone
+        self._hems = hems
         self._parser = parser
         self._interval_realtime_ms = interval_realtime_ms
         self._interval_regular_ms = interval_regular_ms
@@ -83,11 +83,11 @@ class ThreadEnergyMonitor(threading.Thread):
             # for debugging
             if len(self._parser.buffer) > 0:
                 buffer_str = prettifyPacket(self._parser.buffer)
-                writeLog(f'SubPhone Buffer: {buffer_str}', self)
+                writeLog(f'Buffer: {buffer_str}', self)
             else:
-                writeLog(f'SubPhone Buffer: empty', self)
+                writeLog(f'Buffer: empty', self)
             return
-        packet = self._subphone.makePacketQueryHEMS(dev, category)
+        packet = self._hems.makePacketQuery(dev, category)
         self._parser.sendPacket(packet, log_send)
         self._parser.setRS485LineBusy(True)
         tm = time.perf_counter()

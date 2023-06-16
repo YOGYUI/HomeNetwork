@@ -105,3 +105,24 @@ class DeviceType(IntEnum):
     HEMS = auto()
     BATCHOFFSWITCH = auto()
     DOORLOCK = auto()
+
+
+@unique
+class HEMSDevType(IntEnum):
+    Unknown = 0
+    Electricity = 1  # 전기
+    Water = 2  # 수도
+    Gas = 3  # 가스
+    HotWater = 4  # 온수
+    Heating = 5  # 난방
+
+
+@unique
+class HEMSCategory(IntEnum):
+    Unknown = 0
+    History = 1  # 우리집 사용량 이력 (3달간, 단위: kWh/L/MWh)
+    OtherAverage = 2  # 동일평수 평균 사용량 이력 (3달간, 단위: kWh/L/MWh)
+    Fee = 3  # 요금 이력 (3달간, 단위: 천원)
+    CO2 = 4  # CO2 배출량 이력 (3달간, 단위: kg)
+    Target = 5  # 목표량
+    Current = 7  # 현재 실시간 사용량 
