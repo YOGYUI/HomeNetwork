@@ -43,15 +43,11 @@ class Elevator(Device):
 
     state_calling: int = 0
 
-    def __init__(self, name: str = 'Elevator', **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: str = 'Elevator', index: int = 0, room_index: int = 0):
+        super().__init__(name, index, room_index)
+        self.dev_type = DeviceType.ELEVATOR
         self.dev_info_list = list()
-    
-    def __repr__(self):
-        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += '>'
-        return repr_txt
-    
+        
     def publish_mqtt(self):
         obj = {
             "state": self.state, 
@@ -67,10 +63,10 @@ class Elevator(Device):
         data_type = kwargs.get('data_type')
         if data_type == 'query':
             # 월패드 -> 복도 미니패드 상태 쿼리 패킷 (packet[4] == 0x01)
-            dev_idx = kwargs.get('dev_idx')
+            ev_dev_idx = kwargs.get('ev_dev_idx')
             direction = kwargs.get('direction')
             floor = kwargs.get('floor')
-            if dev_idx == 0:  # idle 상태
+            if ev_dev_idx == 0:  # idle 상태
                 if self.ready_to_clear and len(self.dev_info_list) > 0:
                     self.dev_info_list.clear()
                 """
@@ -90,9 +86,9 @@ class Elevator(Device):
                 else:
                     self.state = 0
             else:
-                find = list(filter(lambda x: x.index == dev_idx, self.dev_info_list))
+                find = list(filter(lambda x: x.index == ev_dev_idx, self.dev_info_list))
                 if len(find) == 0:
-                    dev_info = DevInfo(dev_idx)
+                    dev_info = DevInfo(ev_dev_idx)
                     self.dev_info_list.append(dev_info)
                     self.dev_info_list.sort(key=lambda x: x.index)
                 else:

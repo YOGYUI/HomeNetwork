@@ -430,7 +430,7 @@ class PacketParser:
             state_h = (packet[8] & 0xF0) >> 4  # 상위 4비트, 0x0: stopped, 0xA: moving (up), 0x0B: moving (down)
             state_l = packet[8] & 0x0F  # 하위 4비트, 0x0: idle, 0x1: arrived, 0x5: command (up), 0x6: command (down)
             floor = '{:02X}'.format(packet[9])
-            dev_idx = packet[10]  # 엘리베이터 n호기, 2대 이상의 정보가 교차로 들어오게 됨, idle일 경우 0
+            ev_dev_idx = packet[10]  # 엘리베이터 n호기, 2대 이상의 정보가 교차로 들어오게 됨, idle일 경우 0
 
             state = 0  # idle (command done, command off)
             if state_h == 0x0:
@@ -452,7 +452,7 @@ class PacketParser:
                 'device': DeviceType.ELEVATOR,
                 'data_type': 'query',
                 'state': state,
-                'dev_idx': dev_idx,
+                'ev_dev_idx': ev_dev_idx,
                 'direction': direction,
                 'floor': floor
             }

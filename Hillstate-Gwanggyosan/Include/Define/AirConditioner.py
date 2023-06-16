@@ -14,16 +14,11 @@ class AirConditioner(Device):
     rotation_speed: int = -1  # 풍량
     rotation_speed_prev: int = -1  # 풍량 버퍼
 
-    def __init__(self, name: str = 'AirConditioner', **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: str = 'AirConditioner', index: int = 0, room_index: int = 0):
+        super().__init__(name, index, room_index)
+        self.dev_type = DeviceType.AIRCONDITIONER
         self.temp_range = [0, 100]
-    
-    def __repr__(self):
-        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += f' Room Idx: {self.room_index}'
-        repr_txt += '>'
-        return repr_txt
-    
+        
     def publish_mqtt(self):
         # https://ddhometech.wordpress.com/2021/01/03/ha-mqtt-hvac-integration-using-tasmota-ir-bridge/
         if self.state:

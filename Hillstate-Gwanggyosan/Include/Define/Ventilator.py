@@ -3,17 +3,12 @@ from Device import *
 
 
 class Ventilator(Device):
-    rotation_speed: int = -1
-    rotation_speed_prev: int = -1
-
-    def __init__(self, name: str = 'Ventilator', **kwargs):
-        super().__init__(name, **kwargs)
-    
-    def __repr__(self):
-        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += '>'
-        return repr_txt
-    
+    def __init__(self, name: str = 'Ventilator', index: int = 0, room_index: int = 0):
+        super().__init__(name, index, room_index)
+        self.dev_type = DeviceType.VENTILATOR
+        self.rotation_speed: int = -1
+        self.rotation_speed_prev: int = -1
+        
     def publish_mqtt(self):
         obj = {"state": self.state}
         if self.state:

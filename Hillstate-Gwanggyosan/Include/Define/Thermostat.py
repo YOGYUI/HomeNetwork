@@ -9,16 +9,11 @@ class Thermostat(Device):
     temp_config_prev: int = 0  # 난방 설정 온도 버퍼
     temp_range: List[int]  # 설정 가능한 온도값의 범위
 
-    def __init__(self, name: str = 'Thermostat', **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: str = 'Thermostat', index: int = 0, room_index: int = 0):
+        super().__init__(name, index, room_index)
+        self.dev_type = DeviceType.THERMOSTAT
         self.temp_range = [0, 100]
-    
-    def __repr__(self):
-        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += f' Room Idx: {self.room_index}'
-        repr_txt += '>'
-        return repr_txt
-    
+        
     def publish_mqtt(self):
         obj = {
             "state": 'HEAT' if self.state == 1 else 'OFF',

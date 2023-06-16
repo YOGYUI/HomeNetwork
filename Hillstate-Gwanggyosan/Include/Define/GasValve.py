@@ -3,14 +3,10 @@ from Device import *
 
 
 class GasValve(Device):
-    def __init__(self, name: str = 'GasValve', **kwargs):
-        super().__init__(name, **kwargs)
-    
-    def __repr__(self):
-        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += '>'
-        return repr_txt
-    
+    def __init__(self, name: str = 'Gas Valve', index: int = 0, room_index: int = 0):
+        super().__init__(name, index, room_index)
+        self.dev_type = DeviceType.GASVALVE
+
     def publish_mqtt(self):
         obj = {"state": self.state}
         if self.mqtt_client is not None:

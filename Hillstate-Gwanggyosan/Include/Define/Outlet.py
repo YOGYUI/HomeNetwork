@@ -3,15 +3,16 @@ from Device import *
 
 
 class Outlet(Device):
-    enable_off_command: bool = False
+    def __init__(self, name: str = 'Outlet', index: int = 0, room_index: int = 0):
+        super().__init__(name, index, room_index)
+        self.dev_type = DeviceType.OUTLET
+        self.enable_off_command: bool = False
 
-    def __init__(self, name: str = 'Outlet', index: int = 0, **kwargs):
-        self.index = index  # outlet device order index
-        super().__init__(name, **kwargs)
-    
     def __repr__(self):
         repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += f' Room Idx: {self.room_index}, Dev Idx: {self.index}, Enable Off Cmd: {self.enable_off_command}'
+        repr_txt += f' Dev Idx: {self.index}, '
+        repr_txt += f' Room Idx: {self.room_index}, '
+        repr_txt += f' Enable Off Cmd: {self.enable_off_command}'
         repr_txt += '>'
         return repr_txt
     

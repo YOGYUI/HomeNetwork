@@ -30,16 +30,11 @@ class DoorLock(Device):
     gpio_port: int = 0
     thread_open: Union[ThreadDoorLockOpen, None] = None
 
-    def __init__(self, name: str = 'Doorlock', **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: str = 'Doorlock', index: int = 0, room_index: int = 0):
+        super().__init__(name, index, room_index)
         self.state = 1
         self.setParams(True, 23)
-    
-    def __repr__(self):
-        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += '>'
-        return repr_txt
-    
+        
     def publish_mqtt(self):
         # 'Unsecured', 'Secured', 'Jammed', 'Unknown'
         state_str = 'Unknown'

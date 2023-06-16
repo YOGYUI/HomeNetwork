@@ -14,7 +14,8 @@ class AirqualitySensor(Device):
     _obs_name: str = ''
     _last_query_time: datetime.datetime = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, name: str = 'Airquality', index: int = 0, room_index: int = 0):
+        super().__init__(name, index, room_index)
         self._measure_data = {
             'khaiGrade': -1,
             'so2Value': 0.0,
@@ -24,8 +25,7 @@ class AirqualitySensor(Device):
             'pm10Value': 0.0,
             'pm25Value': 0.0,
         }
-        super().__init__('Airquality', **kwargs)
-
+        
     def setApiParams(self, api_key: str, obs_name: str):
         self._api_key = api_key
         self._obs_name = obs_name
@@ -129,8 +129,3 @@ class AirqualitySensor(Device):
                 self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
         except Exception:
             pass
-
-    def __repr__(self):
-        repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'
-        repr_txt += '>'
-        return repr_txt

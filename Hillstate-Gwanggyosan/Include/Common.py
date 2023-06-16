@@ -104,3 +104,4 @@ class DeviceType(IntEnum):
     SUBPHONE = auto()
     HEMS = auto()
     BATCHOFFSWITCH = auto()
+    DOORLOCK = auto()
