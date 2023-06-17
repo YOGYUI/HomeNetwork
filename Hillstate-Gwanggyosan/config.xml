@@ -563,6 +563,7 @@
                 -->
             </airquality>
         </entry>
+        <verbose_unreg_dev_packet>0</verbose_unreg_dev_packet>
     </device>
     <thinq>
         <enable>1</enable>

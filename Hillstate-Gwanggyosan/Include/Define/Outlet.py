@@ -16,7 +16,7 @@ class Outlet(Device):
 
     def __repr__(self):
         # repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))}) '
-        repr_txt = f'<{self.name} '
+        repr_txt = f'<{self.__class__.__name__}, {self.name}, '
         repr_txt += f'Dev Idx: {self.index}, '
         repr_txt += f'Room Idx: {self.room_index}, '
         repr_txt += f'Enable Off Cmd: {self.enable_off_command}'

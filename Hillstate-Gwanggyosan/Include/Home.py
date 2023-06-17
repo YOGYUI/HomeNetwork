@@ -75,6 +75,8 @@ class Home:
     discover_device: bool = False
     discovered_dev_list: List[Device]
 
+    verbose_unreg_dev_packet: bool = False
+
     def __init__(self, name: str = 'Home', init_service: bool = True):
         self.name = name
         self.device_list = list()
@@ -257,6 +259,10 @@ class Home:
                 self.parser_mapping[SubPhone] = int(parser_mapping_node.find('subphone').text)
                 self.parser_mapping[BatchOffSwitch] = int(parser_mapping_node.find('batchoffsw').text)
                 self.parser_mapping[HEMS] = int(parser_mapping_node.find('hems').text)
+
+            verbose_unreg_dev_packet_node = node.find('verbose_unreg_dev_packet')
+            if verbose_unreg_dev_packet_node is not None:
+                self.verbose_unreg_dev_packet = bool(int(verbose_unreg_dev_packet_node.text))
 
             entry_node = node.find('entry')
             dev_entry_cnt = len(list(entry_node))
@@ -514,7 +520,8 @@ class Home:
                 room_idx = 0
             device = self.findDevice(dev_type, dev_idx, room_idx)
             if device is None:
-                # writeLog(f'handlePacketParseResult::Cannot find device ({dev_type}, {dev_idx}, {room_idx})', self)
+                if self.verbose_unreg_dev_packet:
+                    writeLog(f'handlePacketParseResult::Device is not registered ({dev_type.name}, idx={dev_idx}, room={room_idx})', self)
                 return
             
             if dev_type in [DeviceType.LIGHT, DeviceType.OUTLET, DeviceType.GASVALVE, DeviceType.BATCHOFFSWITCH]:
