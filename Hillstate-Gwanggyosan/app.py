@@ -1,5 +1,5 @@
 import atexit
-from Include import get_home
+from Include import *
 from web import create_webapp, config
 from werkzeug.debug import DebuggedApplication
 
@@ -7,7 +7,7 @@ app = create_webapp()
 app.app_context().push()
 app.wsgi_app = DebuggedApplication(app.wsgi_app, config.LOG)
 app.debug = config.LOG
-home = get_home('Hillstate-Gwanggyosan')
+home: Home = get_home('Hillstate-Gwanggyosan')
 home.initRS485Connection()
 
 

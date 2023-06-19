@@ -76,8 +76,8 @@ light:
     name: "서재 천장"
     unique_id: "librarylight"
     schema: template
-    state_topic: "home/hillstate/light/state/3/1"
-    command_topic: "home/hillstate/light/command/3/1"
+    state_topic: "home/state/light/3/1"
+    command_topic: "home/state/light/3/1"
     state_template: "{% if value_json.state %} on {% else %} off {% endif %}"
     command_on_template: '{"state": 1}'
     command_off_template: '{"state": 0}'

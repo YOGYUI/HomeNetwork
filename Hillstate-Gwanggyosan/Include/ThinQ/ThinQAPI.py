@@ -528,7 +528,7 @@ class ThinQ:
                             # 'PAUSE_EDGE', 'HOMING_PAUSE', 'PAUSE_SELECT' ...,
                             # {'EMERGENCY': 'ROBOT_LIFT', 'ROBOT_STUCK'}
                             writeLog(f'Robot Cleaner Current State: {robot_state}', self)
-                            topic = self.mqtt_topic + '/robotcleaner/state'
+                            topic = self.mqtt_topic + '/robotcleaner'
                             if 'CLEAN' in robot_state or robot_state in ['INITAILIZING', 'HOMING']:
                                 cleaning = 1
                             else:

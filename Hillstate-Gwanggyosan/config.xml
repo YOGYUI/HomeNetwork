@@ -93,6 +93,12 @@
             <hems>2</hems>
             <!-- <doorlock>0</doorlock> -->
         </parser_mapping>
+        <verbose_unreg_dev_packet>1</verbose_unreg_dev_packet>
+        <discovery>
+            <enable>0</enable>
+            <timeout>60</timeout>
+            <reload>1</reload>
+        </discovery>
         <entry>
             <light>
                 <name>Living Room Ceil 1</name>
@@ -563,7 +569,6 @@
                 -->
             </airquality>
         </entry>
-        <verbose_unreg_dev_packet>0</verbose_unreg_dev_packet>
     </device>
     <thinq>
         <enable>1</enable>

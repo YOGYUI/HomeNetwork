@@ -6,6 +6,7 @@ import psutil
 import traceback
 from functools import partial
 from typing import List, Union
+from collections import OrderedDict
 import paho.mqtt.client as mqtt
 import xml.etree.ElementTree as ET
 import multiprocessing
@@ -47,6 +48,7 @@ class RS485Info:
 class Home:
     name: str = 'Home'
     device_list: List[Device]
+    config_tree: Union[ET.ElementTree, None] = None
     thinq: ThinQ = None
 
     thread_cmd_queue: Union[ThreadCommandQueue, None] = None
@@ -73,7 +75,9 @@ class Home:
     pid_ffmpeg_proc: int = 0
 
     discover_device: bool = False
-    discovered_dev_list: List[Device]
+    discover_timeout: int = 60  # unit: second
+    discover_reload: bool = False
+    discovered_dev_list: List[dict]
 
     verbose_unreg_dev_packet: bool = False
 
@@ -181,8 +185,10 @@ class Home:
     def loadConfig(self):
         xml_path = os.path.join(PROJPATH, 'config.xml')
         if not os.path.isfile(xml_path):
+            self.config_tree = None
             return
-        root = ET.parse(xml_path).getroot()
+        self.config_tree = ET.parse(xml_path)
+        root = self.config_tree.getroot()
 
         node = root.find('rs485')
         try:
@@ -264,6 +270,18 @@ class Home:
             if verbose_unreg_dev_packet_node is not None:
                 self.verbose_unreg_dev_packet = bool(int(verbose_unreg_dev_packet_node.text))
 
+            discovery_node = node.find('discovery')
+            if discovery_node is not None:
+                enable_node = discovery_node.find('enable')
+                if enable_node is not None:
+                    self.discover_device = bool(int(enable_node.text))
+                timeout_node = discovery_node.find('timeout')
+                if timeout_node is not None:
+                    self.discover_timeout = int(timeout_node.text)
+                reload_node = discovery_node.find('reload')
+                if reload_node is not None:
+                    self.discover_reload = bool(int(reload_node.text))
+
             entry_node = node.find('entry')
             dev_entry_cnt = len(list(entry_node))
             
@@ -278,68 +296,91 @@ class Home:
                     room = int(room_node.text) if room_node is not None else 0
                     enable_node = dev_node.find('enable')
                     enable = bool(int(enable_node.text)) if enable_node is not None else False
-                    if not enable:
-                        continue
                     
-                    device: Device = None
-                    if tag_name == 'light':
-                        device = Light(name, index, room)
-                    elif tag_name == 'outlet':
-                        device = Outlet(name, index, room)
-                        enable_off_cmd_node = dev_node.find('enable_off_cmd')
-                        if enable_off_cmd_node is not None:
-                            enable_off_cmd = bool(int(enable_off_cmd_node.text))
-                            device.setEnableOffCommand(enable_off_cmd)
-                    elif tag_name == 'thermostat':
-                        device = Thermostat(name, index, room)
-                        range_min_node = dev_node.find('range_min')
-                        range_min = int(range_min_node.text) if range_min_node is not None else 0
-                        range_max_node = dev_node.find('range_max')
-                        range_max = int(range_max_node.text) if range_max_node is not None else 100
-                        device.setTemperatureRange(range_min, range_max)
-                    elif tag_name == 'airconditioner':
-                        device = AirConditioner(name, index, room)
-                        range_min_node = dev_node.find('range_min')
-                        range_min = int(range_min_node.text) if range_min_node is not None else 0
-                        range_max_node = dev_node.find('range_max')
-                        range_max = int(range_max_node.text) if range_max_node is not None else 100
-                        device.setTemperatureRange(range_min, range_max)
-                    elif tag_name == 'gasvalve':
-                        device = GasValve(name, index, room)
-                    elif tag_name == 'ventilator':
-                        device = Ventilator(name, index, room)
-                    elif tag_name == 'elevator':
-                        device = Elevator(name, index, room)
-                    elif tag_name == 'batchoffsw':
-                        device = BatchOffSwitch(name, index, room)
-                    elif tag_name == 'subphone':
-                        device = SubPhone(name, index, room)
-                        device.sig_state_streaming.connect(self.onSubphoneStateStreaming)
-                        ffmpeg_node = dev_node.find('ffmpeg')
-                        device.streaming_config['conf_file_path'] = ffmpeg_node.find('conf_file_path').text
-                        device.streaming_config['feed_path'] = ffmpeg_node.find('feed_path').text
-                        device.streaming_config['input_device'] = ffmpeg_node.find('input_device').text
-                        device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
-                        device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
-                        device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
-                    elif tag_name == 'hems':
-                        device = HEMS(name, index, room)
-                    elif tag_name == 'airquality':
-                        device = AirqualitySensor(name, index, room)
-                        apikey = dev_node.find('apikey').text
-                        obsname = dev_node.find('obsname').text
-                        device.setApiParams(apikey, obsname)
-                    
-                    if device is not None:
-                        if self.findDevice(device.getType(), device.getIndex(), device.getRoomIndex()) is None:
-                            # prevent duplicated device list
-                            mqtt_node = dev_node.find('mqtt')
-                            if mqtt_node is not None:
-                                device.setMqttPublishTopic(mqtt_node.find('publish').text)
-                                device.setMqttSubscribeTopic(mqtt_node.find('subscribe').text)
-                            self.device_list.append(device)
-                        else:
-                            writeLog(f"Already Exist! {str(device)}", self)
+                    if not self.discover_device:
+                        if not enable:
+                            continue
+                        device: Device = None
+                        if tag_name == 'light':
+                            device = Light(name, index, room)
+                        elif tag_name == 'outlet':
+                            device = Outlet(name, index, room)
+                            enable_off_cmd_node = dev_node.find('enable_off_cmd')
+                            if enable_off_cmd_node is not None:
+                                enable_off_cmd = bool(int(enable_off_cmd_node.text))
+                                device.setEnableOffCommand(enable_off_cmd)
+                        elif tag_name == 'thermostat':
+                            device = Thermostat(name, index, room)
+                            range_min_node = dev_node.find('range_min')
+                            range_min = int(range_min_node.text) if range_min_node is not None else 0
+                            range_max_node = dev_node.find('range_max')
+                            range_max = int(range_max_node.text) if range_max_node is not None else 100
+                            device.setTemperatureRange(range_min, range_max)
+                        elif tag_name == 'airconditioner':
+                            device = AirConditioner(name, index, room)
+                            range_min_node = dev_node.find('range_min')
+                            range_min = int(range_min_node.text) if range_min_node is not None else 0
+                            range_max_node = dev_node.find('range_max')
+                            range_max = int(range_max_node.text) if range_max_node is not None else 100
+                            device.setTemperatureRange(range_min, range_max)
+                        elif tag_name == 'gasvalve':
+                            device = GasValve(name, index, room)
+                        elif tag_name == 'ventilator':
+                            device = Ventilator(name, index, room)
+                        elif tag_name == 'elevator':
+                            device = Elevator(name, index, room)
+                        elif tag_name == 'batchoffsw':
+                            device = BatchOffSwitch(name, index, room)
+                        elif tag_name == 'subphone':
+                            device = SubPhone(name, index, room)
+                            device.sig_state_streaming.connect(self.onSubphoneStateStreaming)
+                            ffmpeg_node = dev_node.find('ffmpeg')
+                            device.streaming_config['conf_file_path'] = ffmpeg_node.find('conf_file_path').text
+                            device.streaming_config['feed_path'] = ffmpeg_node.find('feed_path').text
+                            device.streaming_config['input_device'] = ffmpeg_node.find('input_device').text
+                            device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
+                            device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
+                            device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
+                        elif tag_name == 'hems':
+                            device = HEMS(name, index, room)
+                        elif tag_name == 'airquality':
+                            device = AirqualitySensor(name, index, room)
+                            apikey = dev_node.find('apikey').text
+                            obsname = dev_node.find('obsname').text
+                            device.setApiParams(apikey, obsname)
+                        
+                        if device is not None:
+                            if self.findDevice(device.getType(), device.getIndex(), device.getRoomIndex()) is None:
+                                # prevent duplicated device list
+                                mqtt_node = dev_node.find('mqtt')
+                                if mqtt_node is not None:
+                                    device.setMqttPublishTopic(mqtt_node.find('publish').text)
+                                    device.setMqttSubscribeTopic(mqtt_node.find('subscribe').text)
+                                self.device_list.append(device)
+                            else:
+                                writeLog(f"Already Exist! {str(device)}", self)
+                    else:
+                        # 이미 config에 등록된 기기는 탐색 시 제외해야 한다 (중복 등록 방지)
+                        if tag_name == 'light':
+                            self.discovered_dev_list.append({'type': DeviceType.LIGHT, 'index': index, 'room': room})
+                        elif tag_name == 'outlet':
+                            self.discovered_dev_list.append({'type': DeviceType.OUTLET, 'index': index, 'room': room})
+                        elif tag_name == 'thermostat':
+                            self.discovered_dev_list.append({'type': DeviceType.THERMOSTAT, 'index': index, 'room': room})
+                        elif tag_name == 'airconditioner':
+                            self.discovered_dev_list.append({'type': DeviceType.AIRCONDITIONER, 'index': index, 'room': room})
+                        elif tag_name == 'gasvalve':
+                            self.discovered_dev_list.append({'type': DeviceType.GASVALVE, 'index': index, 'room': room})
+                        elif tag_name == 'ventilator':
+                            self.discovered_dev_list.append({'type': DeviceType.VENTILATOR, 'index': index, 'room': room})
+                        elif tag_name == 'elevator':
+                            self.discovered_dev_list.append({'type': DeviceType.ELEVATOR, 'index': index, 'room': room})
+                        elif tag_name == 'batchoffsw':
+                            self.discovered_dev_list.append({'type': DeviceType.BATCHOFFSWITCH, 'index': index, 'room': room})
+                        elif tag_name == 'subphone':
+                            self.discovered_dev_list.append({'type': DeviceType.SUBPHONE, 'index': index, 'room': room})
+                        elif tag_name == 'hems':
+                            self.discovered_dev_list.append({'type': DeviceType.HEMS, 'index': index, 'room': room})
                 except Exception as e:
                     writeLog(f"Failed to load device entry ({e})", self)
                     continue
@@ -521,7 +562,7 @@ class Home:
             device = self.findDevice(dev_type, dev_idx, room_idx)
             if device is None:
                 if self.verbose_unreg_dev_packet:
-                    writeLog(f'handlePacketParseResult::Device is not registered ({dev_type.name}, idx={dev_idx}, room={room_idx})', self)
+                    writeLog(f'updateDeviceState::Device is not registered ({dev_type.name}, idx={dev_idx}, room={room_idx})', self)
                 return
             
             if dev_type in [DeviceType.LIGHT, DeviceType.OUTLET, DeviceType.GASVALVE, DeviceType.BATCHOFFSWITCH]:
@@ -1018,64 +1059,135 @@ class Home:
 
     def onThinqPublishMQTT(self, topic: str, message: dict):
         self.mqtt_client.publish(topic, json.dumps(message), 1)
-    
-    def startDiscoverDevice(self, clear_list: bool = False):
-        if clear_list:
-            self.clearDiscoveredDeviceList()
-        self.discover_device = True
-    
+        
     def stopDiscoverDevice(self):
-        # TODO: action after stop discovering
+        self.saveDiscoverdDevicesToConfigFile()
         self.discover_device = False
-
-    def clearDiscoveredDeviceList(self):
-        self.discovered_dev_list.clear()
+        if self.discover_reload:
+            # discover disable 후 reload해야 한다
+            pass
 
     def isDeviceDiscovered(self, dev_type: DeviceType, index: int, room_index: int) -> bool:
         find = list(filter(lambda x: 
-            x.getType() == dev_type and x.getIndex() == index and x.getRoomIndex() == room_index, 
+            x.get('type') == dev_type and x.get('index') == index and x.get('room') == room_index, 
             self.discovered_dev_list))
         return len(find) > 0
 
     def updateDiscoverDeviceList(self, result: dict):
         try:
-            dev_type = result.get('device')
+            dev_type: DeviceType = result.get('device')
             dev_idx: int = result.get('index')
             if dev_idx is None:
                 dev_idx = 0
-            room_idx: int = result.get('room_index')
-            if room_idx is None:
-                room_idx = 0
+            room_index: int = result.get('room_index')
+            if room_index is None:
+                room_index = 0
             
-            if self.isDeviceDiscovered(dev):
+            if self.findDevice(dev_type, dev_idx, room_index):
+                return
+            if self.isDeviceDiscovered(dev_type, dev_idx, room_index):
+                return
+            if dev_type is DeviceType.UNKNOWN:
                 return
             
-            dev: Device = None
-            if dev_type is DeviceType.LIGHT:
-                dev = Light(f'Light {dev_idx + 1}', dev_idx, room_idx)
-            elif dev_type is DeviceType.OUTLET:
-                dev = Outlet(f'Outlet {dev_idx + 1}', dev_idx, room_idx)
-            elif dev_type is DeviceType.THERMOSTAT:
-                dev = Thermostat(f'Thermostat', dev_idx, room_idx)
-            elif dev_type is DeviceType.AIRCONDITIONER:
-                dev = AirConditioner(f'AirConditioner', dev_idx, room_idx)
-            elif dev_type is DeviceType.GASVALVE:
-                dev = GasValve('Gas Valve', dev_idx, room_idx)
-            elif dev_type is DeviceType.VENTILATOR:
-                dev = Ventilator('Ventilator', dev_idx, room_idx)
-            elif dev_type is DeviceType.ELEVATOR:
-                dev = Elevator('Elevator', dev_idx, room_idx)
-            elif dev_type is DeviceType.SUBPHONE:
-                dev = SubPhone("SubPhone", dev_idx, room_idx)
-            elif dev_type is DeviceType.BATCHOFFSWITCH:
-                dev = BatchOffSwitch("BatchOffSW", dev_idx, room_idx)
-            elif dev_type is DeviceType.HEMS:
-                dev = HEMS("HEMS", dev_idx, room_idx)
-            if dev is not None:
-                dev.setMqttClient(self.mqtt_client)
-                self.discovered_dev_list.append(dev)
+            self.discovered_dev_list.append({
+                'type': dev_type,
+                'index': dev_idx,
+                'room_index': room_index
+            })
+            writeLog(f"discovered {dev_type.name} (index: {dev_idx}, room: {room_index})", self)
         except Exception as e:
             writeLog('updateDiscoverDeviceList::Exception::{} ({})'.format(e, result), self)
+
+    def saveDiscoverdDevicesToConfigFile(self):
+        try:
+            if self.config_tree is None:
+                return
+            root = self.config_tree.getroot()
+            device_node = root.find('device')
+            if device_node is None:
+                device_node = ET.Element('device')
+                root.append(device_node)
+
+            entry_node = device_node.find('entry')
+            if entry_node is None:
+                entry_node = ET.Element('entry')
+                device_node.append(entry_node)
+
+            for elem in self.discovered_dev_list:
+                dev_type = elem.get('type')
+                dev_idx = elem.get('index')                
+                room_index = elem.get('room_index')
+
+                entry_info = OrderedDict()
+                if room_index > 0:
+                    entry_info['name'] = f'ROOM{room_index} ' + dev_type.name + f'{dev_idx}'
+                else:
+                    if dev_idx > 0:
+                        entry_info['name'] = dev_type.name + f'{dev_idx}'
+                    else:
+                        entry_info['name'] = dev_type.name
+                entry_info['index'] = dev_idx
+                entry_info['room'] = room_index
+                entry_info['enable'] = 1            
+                
+                if dev_type is DeviceType.LIGHT:
+                    entry_info['type'] = 'light'
+                elif dev_type is DeviceType.OUTLET:
+                    entry_info['type'] = 'outlet'
+                    entry_info['enable_off_cmd'] = 1
+                elif dev_type is DeviceType.THERMOSTAT:
+                    entry_info['type'] = 'thermostat'
+                    entry_info['range_min'] = 18
+                    entry_info['range_max'] = 35
+                elif dev_type is DeviceType.AIRCONDITIONER:
+                    entry_info['type'] = 'airconditioner'
+                    entry_info['range_min'] = 18
+                    entry_info['range_max'] = 35
+                elif dev_type is DeviceType.GASVALVE:
+                    entry_info['type'] = 'gasvalve'
+                elif dev_type is DeviceType.VENTILATOR:
+                    entry_info['type'] = 'ventilator'
+                elif dev_type is DeviceType.ELEVATOR:
+                    entry_info['type'] = 'elevator'
+                elif dev_type is DeviceType.SUBPHONE:
+                    entry_info['type'] = 'subphone'
+                    entry_info['ffmpeg'] = {
+                        'conf_file_path': '/etc/ffserver.conf',
+                        'feed_path': 'http://0.0.0.0:8090/feed.ffm',
+                        'input_device': '/dev/video0',
+                        'frame_rate': 30,
+                        'width': 640,
+                        'height': 480
+                    }
+                elif dev_type is DeviceType.BATCHOFFSWITCH:
+                    entry_info['type'] = 'batchoffsw'
+                elif dev_type is DeviceType.HEMS:
+                    entry_info['type'] = 'hems'
+
+                entry_info['mqtt'] = dict()
+                entry_info['mqtt']['publish'] = f"home/state/{entry_info['type']}/{room_index}/{dev_idx}"
+                entry_info['mqtt']['subscribe'] = f"home/command/{entry_info['type']}/{room_index}/{dev_idx}"
+
+                element_node = ET.Element(entry_info['type'])
+                entry_info.pop('type')
+                entry_node.append(element_node)
+                for key in entry_info.keys():
+                    value = entry_info.get(key)
+                    child_node = ET.Element(key)
+                    element_node.append(child_node)
+                    if isinstance(value, dict):
+                        for key2 in value.keys():
+                            grand_child_node = ET.Element(key2)
+                            child_node.append(grand_child_node)
+                            grand_child_node.text = str(value.get(key2))
+                    else:
+                        child_node.text = str(value)
+            
+            writeXmlFile(root, os.path.join(PROJPATH, 'config_test.xml'))
+        except Exception as e:
+            writeLog('saveDiscoverdDevicesToConfigFile::Exception::{}'.format(e), self)
+
 
 
 home_: Union[Home, None] = None
