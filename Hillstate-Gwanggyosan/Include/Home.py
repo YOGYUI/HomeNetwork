@@ -55,6 +55,7 @@ class Home:
     thread_parse_result_queue: Union[ThreadParseResultQueue, None] = None
     thread_timer: Union[ThreadTimer, None] = None
     thread_energy_monitor: Union[ThreadEnergyMonitor, None] = None
+    thread_discovery: Union[ThreadDiscovery, None] = None
     queue_command: queue.Queue
     queue_parse_result: queue.Queue
 
@@ -271,16 +272,20 @@ class Home:
                 self.verbose_unreg_dev_packet = bool(int(verbose_unreg_dev_packet_node.text))
 
             discovery_node = node.find('discovery')
+            enable_discovery = False
             if discovery_node is not None:
                 enable_node = discovery_node.find('enable')
                 if enable_node is not None:
-                    self.discover_device = bool(int(enable_node.text))
+                    # self.discover_device = bool(int(enable_node.text))
+                    enable_discovery = bool(int(enable_node.text))
                 timeout_node = discovery_node.find('timeout')
                 if timeout_node is not None:
                     self.discover_timeout = int(timeout_node.text)
                 reload_node = discovery_node.find('reload')
                 if reload_node is not None:
                     self.discover_reload = bool(int(reload_node.text))
+            if enable_discovery:
+                self.startDiscoverDevice()
 
             entry_node = node.find('entry')
             dev_entry_cnt = len(list(entry_node))
@@ -362,25 +367,25 @@ class Home:
                     else:
                         # 이미 config에 등록된 기기는 탐색 시 제외해야 한다 (중복 등록 방지)
                         if tag_name == 'light':
-                            self.discovered_dev_list.append({'type': DeviceType.LIGHT, 'index': index, 'room': room})
+                            self.discovered_dev_list.append({'type': DeviceType.LIGHT, 'index': index, 'room_index': room})
                         elif tag_name == 'outlet':
-                            self.discovered_dev_list.append({'type': DeviceType.OUTLET, 'index': index, 'room': room})
+                            self.discovered_dev_list.append({'type': DeviceType.OUTLET, 'index': index, 'room_index': room})
                         elif tag_name == 'thermostat':
-                            self.discovered_dev_list.append({'type': DeviceType.THERMOSTAT, 'index': index, 'room': room})
+                            self.discovered_dev_list.append({'type': DeviceType.THERMOSTAT, 'index': index, 'room_index': room})
                         elif tag_name == 'airconditioner':
-                            self.discovered_dev_list.append({'type': DeviceType.AIRCONDITIONER, 'index': index, 'room': room})
+                            self.discovered_dev_list.append({'type': DeviceType.AIRCONDITIONER, 'index': index, 'room_index': room})
                         elif tag_name == 'gasvalve':
-                            self.discovered_dev_list.append({'type': DeviceType.GASVALVE, 'index': index, 'room': room})
+                            self.discovered_dev_list.append({'type': DeviceType.GASVALVE, 'index': index, 'room_index': room})
                         elif tag_name == 'ventilator':
-                            self.discovered_dev_list.append({'type': DeviceType.VENTILATOR, 'index': index, 'room': room})
+                            self.discovered_dev_list.append({'type': DeviceType.VENTILATOR, 'index': index, 'room_index': room})
                         elif tag_name == 'elevator':
-                            self.discovered_dev_list.append({'type': DeviceType.ELEVATOR, 'index': index, 'room': room})
+                            self.discovered_dev_list.append({'type': DeviceType.ELEVATOR, 'index': index, 'room_index': room})
                         elif tag_name == 'batchoffsw':
-                            self.discovered_dev_list.append({'type': DeviceType.BATCHOFFSWITCH, 'index': index, 'room': room})
+                            self.discovered_dev_list.append({'type': DeviceType.BATCHOFFSWITCH, 'index': index, 'room_index': room})
                         elif tag_name == 'subphone':
-                            self.discovered_dev_list.append({'type': DeviceType.SUBPHONE, 'index': index, 'room': room})
+                            self.discovered_dev_list.append({'type': DeviceType.SUBPHONE, 'index': index, 'room_index': room})
                         elif tag_name == 'hems':
-                            self.discovered_dev_list.append({'type': DeviceType.HEMS, 'index': index, 'room': room})
+                            self.discovered_dev_list.append({'type': DeviceType.HEMS, 'index': index, 'room_index': room})
                 except Exception as e:
                     writeLog(f"Failed to load device entry ({e})", self)
                     continue
@@ -1060,16 +1065,31 @@ class Home:
     def onThinqPublishMQTT(self, topic: str, message: dict):
         self.mqtt_client.publish(topic, json.dumps(message), 1)
         
+    def startDiscoverDevice(self):
+        self.discover_device = True
+        if self.thread_discovery is None:
+            self.thread_discovery = ThreadDiscovery(self.discover_timeout)
+            self.thread_discovery.sig_terminated.connect(self.onThreadDiscoveryTerminated)
+            self.thread_discovery.setDaemon(True)
+            self.thread_discovery.start()
+    
     def stopDiscoverDevice(self):
+        if self.thread_discovery is not None:
+            self.thread_discovery.stop()
+
+    def onThreadDiscoveryTerminated(self):
+        del self.thread_discovery
+        self.thread_discovery = None
+
         self.saveDiscoverdDevicesToConfigFile()
-        self.discover_device = False
         if self.discover_reload:
-            # discover disable 후 reload해야 한다
-            pass
+            self.restart()
+        else:
+            self.discover_device = False
 
     def isDeviceDiscovered(self, dev_type: DeviceType, index: int, room_index: int) -> bool:
         find = list(filter(lambda x: 
-            x.get('type') == dev_type and x.get('index') == index and x.get('room') == room_index, 
+            x.get('type') == dev_type and x.get('index') == index and x.get('room_index') == room_index, 
             self.discovered_dev_list))
         return len(find) > 0
 
@@ -1108,16 +1128,24 @@ class Home:
             if device_node is None:
                 device_node = ET.Element('device')
                 root.append(device_node)
+            
+            discovery_node = device_node.find('discovery')
+            if discovery_node is not None:
+                enable_node = discovery_node.find('enable')
+                if enable_node is not None:
+                    enable_node.text = '0'
 
             entry_node = device_node.find('entry')
             if entry_node is None:
                 entry_node = ET.Element('entry')
                 device_node.append(entry_node)
 
+            self.discovered_dev_list.sort(key=lambda x: (x.get('type').value, x.get('room_index'), x.get('index')))
+
             for elem in self.discovered_dev_list:
-                dev_type = elem.get('type')
-                dev_idx = elem.get('index')                
-                room_index = elem.get('room_index')
+                dev_type: DeviceType = elem.get('type')
+                dev_idx: int = elem.get('index')                
+                room_index: int = elem.get('room_index')
 
                 entry_info = OrderedDict()
                 if room_index > 0:
@@ -1184,7 +1212,7 @@ class Home:
                     else:
                         child_node.text = str(value)
             
-            writeXmlFile(root, os.path.join(PROJPATH, 'config_test.xml'))
+            writeXmlFile(root, os.path.join(PROJPATH, 'config.xml'))
         except Exception as e:
             writeLog('saveDiscoverdDevicesToConfigFile::Exception::{}'.format(e), self)
 
