@@ -22,9 +22,16 @@ class ThreadDiscovery(threading.Thread):
     def run(self):
         writeLog(f'Started (for {self.timeout} seconds)', self)
         tm_start = time.perf_counter()
+        check_value = -1
         while self._keepAlive:
-            if time.perf_counter() - tm_start >= self.timeout:
+            elapsed = time.perf_counter() - tm_start
+            remain = self.timeout - elapsed
+            if remain <= 0:
                 break
+            if int(remain) != check_value:
+                check_value = int(remain)
+                if check_value <= 10:
+                    writeLog(f"Discovery will be terminated in {check_value} seconds!")
             time.sleep(0.1)
         writeLog('Terminated', self)
         self.sig_terminated.emit()

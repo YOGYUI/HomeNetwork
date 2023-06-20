@@ -1,20 +1,15 @@
 # YOGYUI Home Network: Hillstate-Gwanggyosan
 
-Summary
----
-Integrate **Hillstate Home Network** to **Apple HomeKit** and **Google Assistant**.<br>
-
+Integrate **Hillstate (Hyundai HT) `RS-485 based Wallpad` Home Network** to IoT Platforms (like **Apple HomeKit** and **Google Assistant**).<br>
 <img src="./summary.png" width="100%">
-
 <br>
-
 Developer's Comments
 ---
 I only tested this code on wallpad model **HDHN-2000**. <br>
-If you have a problem adopting this code with other home network environment, please let me know.<br>
+If you have any problems adopting this repository into other wallpad model, please let me know.<br>
 E-mail: lee2002w@gmail.com
 
-Install
+Installation
 ---
 Notice: scripts below are assumed to be run on **Raspberry Pi (with Raspbian OS)** SBC.
 1. Clone repository
@@ -162,8 +157,287 @@ file. <br>
     Index(number) which is configured in **rs485** tag should be matched to related devices. <br>
     Script example above means that **'Light'** related RS-485 packets are streaming on index 0 converter and **'Gas Valve'** related packets are streaming on index 1 converter.<br>
     If you are using only one converter, these values should be all set to 0.
+1. **Automatic Device Discovery** <br>
+    You can add device entries into config file automatically with this function. <br>
+    parser index mapping values are also configured via discovery.
+    ```xml
+    <config>
+        <device>
+            <discovery>
+                <enable>0</enable>
+                <timeout>60</timeout>
+                <reload>1</reload>
+		    </discovery>
+        </device>
+    </config>
+    ```
+    - enable: when this value is **1**, automatic discovery will be started when the application is initialized. 
+    - timeout: discovery will be maintained until this value. (unit=second)
+    - reload: when the discovery sequence terminated and if this value is **1**, application will be restarted. (discovery will be disabled after reloading.)
 
-Run Application
+MQTT Message Template
+---
+IoT platform (Homebridge or HomeAssistant) MQTT accessories should be implemented refer to `json message` templates below.
+
+<details>
+<summary>Light</summary>
+<div markdown="1">
+
+### Application `Publish` / IoT platform `Subscribe`
+default topic: /home/state/light/{room_index}/{dev_index}
+```json
+{
+    "state": 1  // possible value: 0, 1 (numeric)
+}
+```
+- state: **1** means the light is 'ON' state and **0** means 'OFF' state. 
+### Application `Subscribe` / IoT platform `Publish`
+default topic: /home/command/light/{room_index}/{dev_index}
+```json
+{
+    "state": 1  // possible value: 0, 1 (numeric)
+}
+```
+- state: **1** means command to 'turn ON' the light and **0** means 'turn OFF'.
+</div>
+</details>
+
+<details>
+<summary>Outlet</summary>
+<div markdown="1">
+
+### Application `Publish` / IoT platform `Subscribe`
+default topic: /home/state/outlet/{room_index}/{dev_index}
+```json
+{
+    "state": 1  // possible value: 0, 1 (numeric)
+}
+```
+- state: **1** means the outlet is 'ON' state and **0** means 'OFF' state. <br>
+- (Power consumption information maybe added later)
+### Application `Subscribe` / IoT platform `Publish`
+default topic: /home/command/outlet/{room_index}/{dev_index}
+```json
+{
+    "state": 1  // possible value: 0, 1 (numeric)
+}
+```
+- state: **1** means command to 'turn ON' the outlet and **0** means 'turn OFF'.
+</div>
+</details>
+
+<details>
+<summary>Thermostat</summary>
+<div markdown="1">
+
+### Application `Publish` / IoT platform `Subscribe`
+default topic: /home/state/thermostat/{room_index}/0
+```json
+{
+    "state": "HEAT",  // possible value: "HEAT", "OFF" (string)
+    "currentTemperature": 25,  // numeric
+    "targetTemperature": 26,  // numeric
+}
+```
+- state: current state of thermostat ("HEAT" means turned on, "OFF" means turned off)
+- currentTemperature: current nearby temperature (sensor value)
+- targetTemperature: current target(setting) temperature of thermostat
+### Application `Subscribe` / IoT platform `Publish`
+default topic: /home/command/thermostat/{room_index}/0
+```json
+{
+    "state": "HEAT",  // possible value: "HEAT", "OFF" (string)
+    "targetTemperature": 27
+}
+```
+- state: "HEAT" means turn 'ON' thermostat, "OFF" means turn 'OFF
+- targetTemperature: change target(setting) temperature. Floating value is supported but truncated as integer in application
+</div>
+</details>
+
+<details>
+<summary>Airconditioner</summary>
+<div markdown="1">
+
+### Application `Publish` / IoT platform `Subscribe`
+default topic: /home/state/airconditioner/{room_index}/0
+```json
+{
+    "active": 1,  // possible value: 0, 1 (numeric)
+    "state": "COOLING",  // possible value: "COOLING", "INACTIVE" (string)
+    "currentTemperature": 25,  // numeric
+    "targetTemperature": 26,  // numeric
+    "rotationspeed": 25,  // possible value: 25, 50, 75, 100 (numeric)
+    "rotationspeed_name": "Auto"  // possible value: "Min", "Medium", "Max" (string)
+}
+```
+- active: 1 means airconditioner is running, 0 means turned off
+- state: "COOLING" means airconditioner is running, "INACTIVE" means turned off
+- currentTemperature: current nearby temperature (sensor value)
+- targetTemperature: current target(setting) temperature of airconditioner
+- rotationspeed: current wind speed of airconditioner converted to numerical value <br>
+  25 means "auto", 50 means "minimum", 75 means "medium", 100 means "maximum"
+- rotationspeed_name: current wind speed of airconditioner expressed as string
+### Application `Subscribe` / IoT platform `Publish`
+default topic: /home/command/airconditioner/{room_index}/0
+```json
+{
+    "active": 1,  // possible value: 0, 1 (numeric)
+    "targetTemperature": 27,  // numeric
+    "rotationspeed": 25,  // numeric
+    "rotationspeed_name": "Auto"  // possible value: "Min", "Medium", "Max" (string)
+}
+```
+- state: 1 means turn 'ON' airconditioner, 0 means turn 'OFF'
+- targetTemperature: change target(setting) temperature. Floating value is supported but truncated as integer in application
+- rotationspeed: change wind speed. Value will be truncated as 25/50/75/100 in application
+- rotationspeed_name: change wind speed by string expression
+</div>
+</details>
+
+<details>
+<summary>Gas Valve</summary>
+<div markdown="1">
+
+### Application `Publish` / IoT platform `Subscribe`
+default topic: /home/state/gasvalve/0/0
+```json
+{
+    "state": 1  // possible value: 0, 1 (numeric)
+}
+```
+- state: **1** means the valve is 'opened' state and **0** means 'closed' state. <br>
+### Application `Subscribe` / IoT platform `Publish`
+default topic: /home/command/gasvalve/0/0
+```json
+{
+    "state": 0  // possible value: 0 (numeric)
+}
+```
+- state: **0** means 'Close Valve'. (close command is only supported)
+</div>
+</details>
+
+<details>
+<summary>Ventilator</summary>
+<div markdown="1">
+
+### Application `Publish` / IoT platform `Subscribe`
+default topic: /home/state/ventilator/0/0
+```json
+{
+    "state": 1,  // possible value: 0, 1 (numeric)
+    "rotationspeed": 30  // possible value: 30, 60, 100 (numeric)
+}
+```
+- state: 0 means ventilator is turned 'OFF', 1 means 'ON'
+- rotationspeed: current wind speed of ventilator converted to numerical value <br>
+  30 means "minimum", 60 means "medium", 100 means "maximum"
+### Application `Subscribe` / IoT platform `Publish`
+default topic: /home/command/ventilator/0/0
+```json
+{
+    "state": 1,  // possible value: 0 (numeric)
+    "rotationspeed": 30  // numeric (range 0 ~ 100)
+}
+```
+- state: 0 means turn 'OFF' ventilator, 1 means turn 'ON'
+- rotationspeed: change wind speed. Value will be truncated as 30/60/100 in application
+</div>
+</details>
+
+<details>
+<summary>Elevator</summary>
+<div markdown="1">
+
+### Application `Publish` / IoT platform `Subscribe`
+default topic: /home/state/elevator/0/0
+```json
+{
+    "state": 1,  // possible value: 0, 1, 5, 6 (numeric)
+    "index": [1, 2],  // numeric list
+    "direction": [0, 0],  // numeric list (possible value: 0, 5, 6)
+    "floor": ["B6", "10"]  // string list
+}
+```
+- state: 0 = idle, 1 = arrived, 5 = called upside, 6 = called downside
+- index: elevator(s) number
+- direction: 0 = idle, 5 = moving up, 6 = moving down
+- floor: current floor of each elevator(s)
+### Application `Subscribe` / IoT platform `Publish`
+default topic: /home/command/elevator/0/0
+```json
+{
+    "state": 6  // possible value: 5, 6 (numeric)
+}
+```
+- state: call elevator (now only supports calling downside - upside calling would respond noting)
+</div>
+</details>
+
+<details>
+<summary>Batch Off Switch</summary>
+<div markdown="1">
+
+### Application `Publish` / IoT platform `Subscribe`
+default topic: /home/state/batchoffsw/0/0
+```json
+{
+    "state": 1  // possible value: 0, 1 (numeric)
+}
+```
+- state: 0 means switch is turned 'OFF', 1 means turned 'ON'
+### Application `Subscribe` / IoT platform `Publish`
+default topic: /home/command/batchoffsw/0/0
+```json
+{
+    "state": 0  // possible value: 0 (numeric)
+}
+```
+- state: 0 means turn 'OFF' switch, 1 means turn 'ON'
+</div>
+</details>
+
+<details>
+<summary>Subphone</summary>
+<div markdown="1">
+
+### Application `Publish` / IoT platform `Subscribe`
+default topic: /home/state/subphone/0/0
+```json
+{
+    "streaming_state": 1,  // possible value: 0, 1 (numeric)
+    "doorlock_state": "Unsecured"  // possible value: "Unsecured", "Secured", "Jammed", "Unknown"
+}
+```
+- streaming_state: front door camera video streaming state (0 means inactive, 1 means active)
+- doorlock_state: front door lock state
+
+additional topic: /home/state/subphone/0/0/doorbell
+```json
+'ON'    // payload is not json format, possible value: 'ON', 'OFF'
+```
+- 'ON' means doorbell is ringing
+### Application `Subscribe` / IoT platform `Publish`
+default topic: /home/command/subphone/0/0
+```json
+{
+    "streaming_state": 0,  // possible value: 0, 1 (numeric)
+    "doorlock_state": "Unsecured"  // possible value: "Unsecured"
+}
+```
+- streaming_state: activate/deactivate front door camera video streaming
+- doorlock_state: open front door/communal door (only open command is supported)
+</div>
+</details>
+
+Homebridge & Home Assistant Configuration
+---
+You can find home IoT platform configuration template (json for homebridge, yaml for HA) is this repository. 
+- Homebridge: [homebridge_config.json](https://github.com/YOGYUI/HomeNetwork/blob/main/Hillstate-Gwanggyosan/Template/homebridge/homebridge_config.json) 
+- Home Assistant: [ha_configuration.yaml](https://github.com/YOGYUI/HomeNetwork/blob/main/Hillstate-Gwanggyosan/Template/homeassistant/ha_configuration.yaml) 
+
+Run the Application
 ---
 - native python 
     ```
@@ -174,14 +448,7 @@ Run Application
     $ /usr/local/bin/uwsgi ~/repos/HomeNetwork/Hillstate-Gwanggyosan/uwsgi.ini
     ```
 
-Homebridge & Home Assistant 
----
-You can find home IoT platform configuration template (json for homebridge, yaml for HA) is this repository. 
-- Homebridge: [homebridge_config.json](https://github.com/YOGYUI/HomeNetwork/blob/main/Hillstate-Gwanggyosan/Template/homebridge/homebridge_config.json) 
-- Home Assistant: [ha_configuration.yaml](https://github.com/YOGYUI/HomeNetwork/blob/main/Hillstate-Gwanggyosan/Template/homeassistant/ha_configuration.yaml) 
-
-
-Reference URLs
+Reference URLs (Blog)
 ---
 - Illumination: [힐스테이트 광교산::조명 제어 RS-485 패킷 분석](https://yogyui.tistory.com/entry/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8-%EA%B4%91%EA%B5%90%EC%82%B0%EC%A1%B0%EB%AA%85-%EC%95%A0%ED%94%8C-%ED%99%88%ED%82%B7-%EA%B5%AC%EA%B8%80-%EC%96%B4%EC%8B%9C%EC%8A%A4%ED%84%B4%ED%8A%B8-%EC%97%B0%EB%8F%99?category=1047622) <br>
 - Outlet: [힐스테이트 광교산::아울렛(콘센트) - 애플 홈킷 + 구글 어시스턴트 연동](https://yogyui.tistory.com/entry/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8-%EA%B4%91%EA%B5%90%EC%82%B0%EC%BD%98%EC%84%BC%ED%8A%B8-%EC%A0%9C%EC%96%B4-RS-485-%ED%8C%A8%ED%82%B7-%EB%B6%84%EC%84%9D?category=1047622) <br>
@@ -193,7 +460,3 @@ Reference URLs
 - Doorlock: [힐스테이트 광교산::현관 도어락 - 애플 홈킷 + 구글 어시스턴트 연동](https://yogyui.tistory.com/entry/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8-%EA%B4%91%EA%B5%90%EC%82%B0%EB%8F%84%EC%96%B4%EB%9D%BD-%EC%95%A0%ED%94%8C-%ED%99%88%ED%82%B7-%EA%B5%AC%EA%B8%80-%EC%96%B4%EC%8B%9C%EC%8A%A4%ED%84%B4%ED%8A%B8-%EC%97%B0%EB%8F%99?category=1047622) <br>
 - Kitchen Subphone: [힐스테이트 광교산::주방 비디오폰 연동 - 세대 및 공동 현관문 제어 (애플 홈킷)](https://yogyui.tistory.com/entry/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8-%EA%B4%91%EA%B5%90%EC%82%B0%EC%A3%BC%EB%B0%A9-%EC%84%9C%EB%B8%8C%ED%8F%B0-%EC%97%B0%EB%8F%99-%ED%98%84%EA%B4%80%EB%AC%B8-%EB%B9%84%EB%94%94%EC%98%A4) <br>
 - Batch Off Switch: [힐스테이트 광교산::일괄소등 스위치 RS-485 패킷 분석 및 애플 홈 연동](https://yogyui.tistory.com/entry/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8-%EA%B4%91%EA%B5%90%EC%82%B0%EC%9D%BC%EA%B4%84%EC%86%8C%EB%93%B1-%EC%8A%A4%EC%9C%84%EC%B9%98-RS-485-%ED%8C%A8%ED%82%B7-%EB%B6%84%EC%84%9D-%EB%B0%8F-IoT-%EC%97%B0%EB%8F%99) <br>
-
-TODO
----
-- Finalize auto detecting device implementation.

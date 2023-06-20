@@ -22,6 +22,7 @@ class ParserType(IntEnum):
 
 class PacketParser:
     name: str = "Parser"
+    index: int = 0
     rs485: RS485Comm
     buffer: bytearray
     enable_console_log: bool = False
@@ -52,15 +53,16 @@ class PacketParser:
     enable_store_packet_unknown: bool = True
     enable_trace_timestamp_packet: bool = False
 
-    def __init__(self, rs485_instance: RS485Comm, name: str, type_interpret: ParserType = ParserType.REGULAR):
+    def __init__(self, rs485_instance: RS485Comm, name: str, index: int, type_interpret: ParserType = ParserType.REGULAR):
         self.buffer = bytearray()
-        self.sig_parse_result = Callback(dict)
         self.name = name
+        self.index = index
         self.rs485 = rs485_instance
         self.rs485.sig_send_data.connect(self.onSendData)
         self.rs485.sig_recv_data.connect(self.onRecvData)
         self.type_interpret = type_interpret
         self.packet_storage = list()
+        self.sig_parse_result = Callback(dict)
 
     def __repr__(self):
         repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})>'
@@ -265,6 +267,10 @@ class PacketParser:
     def calcXORChecksum(data: Union[bytearray, bytes, List[int]]) -> int:
         return reduce(lambda x, y: x ^ y, data, 0)
 
+    def updateDeviceState(self, data: dict):
+        data['parser_index'] = self.index
+        self.sig_parse_result.emit(data)
+
     def handleLight(self, packet: bytearray):
         room_idx = packet[6] >> 4
         if packet[4] == 0x01:  # 상태 쿼리
@@ -283,7 +289,7 @@ class PacketParser:
                         'room_index': room_idx,
                         'state': state
                     }
-                    self.sig_parse_result.emit(result)
+                    self.updateDeviceState(result)
             else:  # 상태 변경 명령 직후 응답
                 state = 0 if packet[8] == 0x02 else 1
                 result = {
@@ -292,7 +298,7 @@ class PacketParser:
                     'room_index': room_idx,
                     'state': state
                 }
-                self.sig_parse_result.emit(result)
+                self.updateDeviceState(result)
 
     def handleOutlet(self, packet: bytearray):
         room_idx = packet[6] >> 4
@@ -318,7 +324,7 @@ class PacketParser:
                         'room_index': room_idx,
                         'state': state
                     }
-                    self.sig_parse_result.emit(result)
+                    self.updateDeviceState(result)
             else:  # 상태 변경 명령 직후 응답
                 state = 0 if packet[8] == 0x02 else 1
                 result = {
@@ -327,7 +333,7 @@ class PacketParser:
                     'room_index': room_idx,
                     'state': state
                 }
-                self.sig_parse_result.emit(result)
+                self.updateDeviceState(result)
 
     def handleGasValve(self, packet: bytearray):
         if packet[4] == 0x01:  # 상태 쿼리
@@ -340,7 +346,7 @@ class PacketParser:
                 'device': DeviceType.GASVALVE,
                 'state': state
             }
-            self.sig_parse_result.emit(result)
+            self.updateDeviceState(result)
     
     def handleThermostat(self, packet: bytearray):
         room_idx = packet[6] & 0x0F
@@ -364,7 +370,7 @@ class PacketParser:
                             'temp_current': temp_current,
                             'temp_config': temp_config
                         }
-                        self.sig_parse_result.emit(result)
+                        self.updateDeviceState(result)
             else:  # 상태 변경 명령 직후 응답
                 if packet[5] in [0x45, 0x46]:  # 0x46: On/Off 설정 변경에 대한 응답, 0x45: 온도 설정 변경에 대한 응답
                     state = 0 if packet[8] == 0x04 else 1
@@ -377,7 +383,7 @@ class PacketParser:
                         'temp_current': temp_current,
                         'temp_config': temp_config
                     }
-                    self.sig_parse_result.emit(result)
+                    self.updateDeviceState(result)
     
     def handleVentilator(self, packet: bytearray):
         if packet[4] == 0x01:
@@ -393,7 +399,7 @@ class PacketParser:
             }
             if rotation_speed != 0:
                 result['rotation_speed'] = rotation_speed
-            self.sig_parse_result.emit(result)
+            self.updateDeviceState(result)
 
     def handleAirconditioner(self, packet: bytearray):
         room_idx = packet[6] >> 4
@@ -416,7 +422,7 @@ class PacketParser:
                 'mode': mode,
                 'rotation_speed': rotation_speed
             }
-            self.sig_parse_result.emit(result)
+            self.updateDeviceState(result)
 
     def handleElevator(self, packet: bytearray):
         if packet[4] == 0x01:  # 상태 쿼리 (월패드 -> 복도 미니패드)
@@ -456,7 +462,7 @@ class PacketParser:
                 'floor': floor
             }
             # print(f'Query: {self.prettifyPacket(packet)}, {result}')
-            self.sig_parse_result.emit(result)
+            self.updateDeviceState(result)
         elif packet[4] == 0x02:
             pass
         elif packet[4] == 0x04:  # 상태 응답 (복도 미니패드 -> 월패드)
@@ -471,7 +477,7 @@ class PacketParser:
                 'state': state
             }
             # print(f'Response: {self.prettifyPacket(packet)}, {result}')
-            self.sig_parse_result.emit(result)
+            self.updateDeviceState(result)
 
     def handleEnergyMonitoring(self, packet: bytearray):
         if packet[4] == 0x01:  # 상태 쿼리
@@ -510,7 +516,7 @@ class PacketParser:
                 'device': DeviceType.BATCHOFFSWITCH,
                 'state': state
             }
-            self.sig_parse_result.emit(result)
+            self.updateDeviceState(result)
     
     def handleFrontDoor(self, packet: bytearray):
         result = {'device': DeviceType.SUBPHONE}
@@ -545,7 +551,7 @@ class PacketParser:
             notify = False
             self.log(f'{self.prettifyPacket(packet)} >> ???')
         if notify:
-            self.sig_parse_result.emit(result)
+            self.updateDeviceState(result)
 
     def handleCommunalDoor(self, packet: bytearray):
         result = {'device': DeviceType.SUBPHONE}
@@ -568,7 +574,7 @@ class PacketParser:
             notify = False
             self.log(f'{self.prettifyPacket(packet)} >> ???')
         if notify:
-            self.sig_parse_result.emit(result)
+            self.updateDeviceState(result)
 
     def handleHEMS(self, packet: bytearray):
         if packet[1] == 0xE0:
@@ -606,7 +612,7 @@ class PacketParser:
                 notify = False
                 self.log(f'{self.prettifyPacket(packet)} >> ???')
             if notify:
-                self.sig_parse_result.emit(result)
+                self.updateDeviceState(result)
         elif packet[1] == 0xE2:
             if self.enable_trace_timestamp_packet:
                 year, month, day = int('%02X' % packet[2]), int('%02X' % packet[3]), int('%02X' % packet[4])

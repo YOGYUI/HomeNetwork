@@ -90,16 +90,16 @@ class Home:
         self.queue_parse_result = queue.Queue()
         self.rs485_info_list = list()
         self.parser_mapping = {
-            Light: 0,
-            Outlet: 0,
-            GasValve: 0,
-            Thermostat: 0,
-            Ventilator: 0,
-            AirConditioner: 0,
-            Elevator: 0,
-            SubPhone: 0,
-            BatchOffSwitch: 0,
-            HEMS: 0,
+            DeviceType.LIGHT: 0,
+            DeviceType.OUTLET: 0,
+            DeviceType.GASVALVE: 0,
+            DeviceType.THERMOSTAT: 0,
+            DeviceType.VENTILATOR: 0,
+            DeviceType.AIRCONDITIONER: 0,
+            DeviceType.ELEVATOR: 0,
+            DeviceType.SUBPHONE: 0,
+            DeviceType.BATCHOFFSWITCH: 0,
+            DeviceType.HEMS: 0,
         }
         self.initialize(init_service, False)
     
@@ -223,7 +223,7 @@ class Home:
                     rs485 = RS485Comm(f'RS485-{name}')
                     if name.lower() == 'subphone':
                         rs485.sig_connected.connect(self.onRS485SubPhoneConnected)
-                    parser = PacketParser(rs485, name, ParserType(packettype))
+                    parser = PacketParser(rs485, name, index, ParserType(packettype))
                     parser.setBufferSize(buffsize)
                     parser.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
                     self.rs485_info_list.append(RS485Info(rs485, cfg, parser, index))
@@ -256,16 +256,16 @@ class Home:
         try:
             parser_mapping_node = node.find('parser_mapping')
             if parser_mapping_node is not None:
-                self.parser_mapping[Light] = int(parser_mapping_node.find('light').text)
-                self.parser_mapping[Outlet] = int(parser_mapping_node.find('outlet').text)
-                self.parser_mapping[GasValve] = int(parser_mapping_node.find('gasvalve').text)
-                self.parser_mapping[Thermostat] = int(parser_mapping_node.find('thermostat').text)
-                self.parser_mapping[Ventilator] = int(parser_mapping_node.find('ventilator').text)
-                self.parser_mapping[AirConditioner] = int(parser_mapping_node.find('airconditioner').text)
-                self.parser_mapping[Elevator] = int(parser_mapping_node.find('elevator').text)
-                self.parser_mapping[SubPhone] = int(parser_mapping_node.find('subphone').text)
-                self.parser_mapping[BatchOffSwitch] = int(parser_mapping_node.find('batchoffsw').text)
-                self.parser_mapping[HEMS] = int(parser_mapping_node.find('hems').text)
+                self.parser_mapping[DeviceType.LIGHT] = int(parser_mapping_node.find('light').text)
+                self.parser_mapping[DeviceType.OUTLET] = int(parser_mapping_node.find('outlet').text)
+                self.parser_mapping[DeviceType.GASVALVE] = int(parser_mapping_node.find('gasvalve').text)
+                self.parser_mapping[DeviceType.THERMOSTAT] = int(parser_mapping_node.find('thermostat').text)
+                self.parser_mapping[DeviceType.VENTILATOR] = int(parser_mapping_node.find('ventilator').text)
+                self.parser_mapping[DeviceType.AIRCONDITIONER] = int(parser_mapping_node.find('airconditioner').text)
+                self.parser_mapping[DeviceType.ELEVATOR] = int(parser_mapping_node.find('elevator').text)
+                self.parser_mapping[DeviceType.SUBPHONE] = int(parser_mapping_node.find('subphone').text)
+                self.parser_mapping[DeviceType.BATCHOFFSWITCH] = int(parser_mapping_node.find('batchoffsw').text)
+                self.parser_mapping[DeviceType.HEMS] = int(parser_mapping_node.find('hems').text)
 
             verbose_unreg_dev_packet_node = node.find('verbose_unreg_dev_packet')
             if verbose_unreg_dev_packet_node is not None:
@@ -514,8 +514,8 @@ class Home:
         if self.thread_energy_monitor is None:
             device: HEMS = self.findDevice(DeviceType.HEMS, 0, 0)
             if device is not None:
-                index = self.parser_mapping.get(HEMS)
-                parser = self.rs485_info_list[index].parser
+                index = self.parser_mapping.get(DeviceType.HEMS)
+                parser: PacketParser = self.rs485_info_list[index].parser
                 self.thread_energy_monitor = ThreadEnergyMonitor(
                     hems=device, 
                     parser=parser,
@@ -625,7 +625,7 @@ class Home:
             elif dev_type is DeviceType.DOORLOCK:
                 pass
         except Exception as e:
-            writeLog('handlePacketParseResult::Exception::{} ({})'.format(e, result), self)
+            writeLog('updateDeviceState::Exception::{} ({})'.format(e, result), self)
 
     def isSubphoneActivated(self) -> bool:
         return self.findDevice(DeviceType.SUBPHONE, 0, 0) is not None
@@ -635,8 +635,9 @@ class Home:
 
     def command(self, **kwargs):
         try:
-            dev = kwargs['device']
-            index = self.parser_mapping.get(type(dev))
+            dev: Device = kwargs['device']
+            dev_type: DeviceType = dev.getType()
+            index = self.parser_mapping.get(dev_type)
             info: RS485Info = self.rs485_info_list[index]
             kwargs['parser'] = info.parser
         except Exception as e:
@@ -1102,6 +1103,9 @@ class Home:
             room_index: int = result.get('room_index')
             if room_index is None:
                 room_index = 0
+            parser_index: int = result.get('parser_index')
+            if parser_index is None:
+                parser_index = 0
             
             if self.findDevice(dev_type, dev_idx, room_index):
                 return
@@ -1113,9 +1117,10 @@ class Home:
             self.discovered_dev_list.append({
                 'type': dev_type,
                 'index': dev_idx,
-                'room_index': room_index
+                'room_index': room_index,
+                'parser_index': parser_index
             })
-            writeLog(f"discovered {dev_type.name} (index: {dev_idx}, room: {room_index})", self)
+            writeLog(f"discovered {dev_type.name} (index: {dev_idx}, room: {room_index}, parser index: {parser_index})", self)
         except Exception as e:
             writeLog('updateDiscoverDeviceList::Exception::{} ({})'.format(e, result), self)
 
@@ -1144,8 +1149,9 @@ class Home:
 
             for elem in self.discovered_dev_list:
                 dev_type: DeviceType = elem.get('type')
-                dev_idx: int = elem.get('index')                
+                dev_idx: int = elem.get('index')
                 room_index: int = elem.get('room_index')
+                parser_index: int = elem.get('parser_index')
 
                 entry_info = OrderedDict()
                 if room_index > 0:
@@ -1157,7 +1163,9 @@ class Home:
                         entry_info['name'] = dev_type.name
                 entry_info['index'] = dev_idx
                 entry_info['room'] = room_index
-                entry_info['enable'] = 1            
+                entry_info['enable'] = 1
+
+                self.parser_mapping[dev_type] = parser_index
                 
                 if dev_type is DeviceType.LIGHT:
                     entry_info['type'] = 'light'
@@ -1212,6 +1220,62 @@ class Home:
                     else:
                         child_node.text = str(value)
             
+            # parser index mapping config
+            parser_mapping_node = device_node.find('parser_mapping')
+            if parser_mapping_node is None:
+                parser_mapping_node = ET.Element('parser_mapping')
+                device_node.append(parser_mapping_node)
+            child_node = parser_mapping_node.find('light')
+            if child_node is None:
+                child_node = ET.Element('light')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping[DeviceType.LIGHT])
+            child_node = parser_mapping_node.find('outlet')
+            if child_node is None:
+                child_node = ET.Element('outlet')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping[DeviceType.OUTLET])
+            child_node = parser_mapping_node.find('gasvalve')
+            if child_node is None:
+                child_node = ET.Element('gasvalve')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping[DeviceType.GASVALVE])
+            child_node = parser_mapping_node.find('thermostat')
+            if child_node is None:
+                child_node = ET.Element('thermostat')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping[DeviceType.THERMOSTAT])
+            child_node = parser_mapping_node.find('ventilator')
+            if child_node is None:
+                child_node = ET.Element('ventilator')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping[DeviceType.VENTILATOR])
+            child_node = parser_mapping_node.find('airconditioner')
+            if child_node is None:
+                child_node = ET.Element('airconditioner')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping[DeviceType.AIRCONDITIONER])
+            child_node = parser_mapping_node.find('elevator')
+            if child_node is None:
+                child_node = ET.Element('elevator')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping[DeviceType.ELEVATOR])
+            child_node = parser_mapping_node.find('subphone')
+            if child_node is None:
+                child_node = ET.Element('subphone')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping[DeviceType.SUBPHONE])
+            child_node = parser_mapping_node.find('batchoffsw')
+            if child_node is None:
+                child_node = ET.Element('batchoffsw')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping[DeviceType.BATCHOFFSWITCH])
+            child_node = parser_mapping_node.find('hems')
+            if child_node is None:
+                child_node = ET.Element('hems')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping[DeviceType.HEMS])
+
             writeXmlFile(root, os.path.join(PROJPATH, 'config.xml'))
         except Exception as e:
             writeLog('saveDiscoverdDevicesToConfigFile::Exception::{}'.format(e), self)

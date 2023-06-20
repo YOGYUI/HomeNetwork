@@ -51,7 +51,6 @@ class SubPhone(Device):
 
             if self.state_ringing != self.state_ringing_prev:  # 초인종 호출 상태 알림이 반복적으로 뜨는 것 방지 
                 writeLog(f"Ringing Publish: Prev={bool(self.state_ringing.name)}, Current={self.state_ringing_prev.name}", self)
-                obj = {"doorbell_state": 'ON'}
                 if self.state_ringing in [StateRinging.FRONT, StateRinging.COMMUNAL]:
                     # obj = {"doorbell_state": 'ON'}
                     self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'ON', 1)
