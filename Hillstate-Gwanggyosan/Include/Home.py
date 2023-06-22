@@ -334,6 +334,9 @@ class Home:
                             device = Ventilator(name, index, room)
                         elif tag_name == 'elevator':
                             device = Elevator(name, index, room)
+                            packet_call_type_node = dev_node.find('packet_call_type')
+                            packet_call_type = int(packet_call_type_node.text) if packet_call_type_node is not None else 0
+                            device.setPacketCallType(packet_call_type)
                         elif tag_name == 'batchoffsw':
                             device = BatchOffSwitch(name, index, room)
                         elif tag_name == 'subphone':
@@ -554,6 +557,9 @@ class Home:
         if len(find) == 1:
             return find[0]
         return None
+    
+    def findDevices(self, dev_type: DeviceType) -> List[Device]:
+        return list(filter(lambda x: x.getType() == dev_type, self.device_list))
 
     def updateDeviceState(self, result: dict):
         try:
@@ -1186,6 +1192,7 @@ class Home:
                     entry_info['type'] = 'ventilator'
                 elif dev_type is DeviceType.ELEVATOR:
                     entry_info['type'] = 'elevator'
+                    entry_info['packet_call_type'] = 0
                 elif dev_type is DeviceType.SUBPHONE:
                     entry_info['type'] = 'subphone'
                     entry_info['ffmpeg'] = {

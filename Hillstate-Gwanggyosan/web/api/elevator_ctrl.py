@@ -10,11 +10,15 @@ sys.path.extend([CURPATH, PROJPATH, INCPATH])
 sys.path = list(set(sys.path))
 del CURPATH, PROJPATH, INCPATH
 from Include import get_home
+from Common import DeviceType
 
 
 def get_state_string() -> str:
     home = get_home()
-    elevator = home.elevator
+    elevator = home.findDevice(DeviceType.ELEVATOR, 0, 0)
+    if elevator is None:
+        return 'NOT DEFINED'
+        
     dev_info_list = elevator.dev_info_list
     if len(dev_info_list) == 0:
         state_str = 'IDLE'
@@ -62,6 +66,8 @@ def elevator_ctrl():
     req = request.get_data().decode(encoding='utf-8')
     if 'command_call_down' in req:
         home.onMqttCommandElevator('', {'state': 6})
+    elif 'command_call_up' in req:
+        home.onMqttCommandElevator('', {'state': 5})
 
     return render_template(
         "elevator_ctrl.html",

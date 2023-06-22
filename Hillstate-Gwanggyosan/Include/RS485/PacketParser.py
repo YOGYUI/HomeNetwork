@@ -51,6 +51,7 @@ class PacketParser:
     enable_store_packet_header_44: bool = False
     enable_store_packet_header_48: bool = False
     enable_store_packet_unknown: bool = True
+    enable_store_packet_general: bool = False
     enable_trace_timestamp_packet: bool = False
 
     def __init__(self, rs485_instance: RS485Comm, name: str, index: int, type_interpret: ParserType = ParserType.REGULAR):
@@ -216,13 +217,18 @@ class PacketParser:
                     store = self.enable_store_packet_unknown
             elif self.type_interpret == ParserType.SUBPHONE:
                 if (packet[1] & 0xF0) == 0xB0:  # 현관 도어폰 호출
+                    packet_info['device'] = 'front door'
                     self.handleFrontDoor(packet)
                 elif (packet[1] & 0xF0) == 0x50:  # 공동 현관문 호출
+                    packet_info['device'] = 'communal door'
                     self.handleCommunalDoor(packet)
                 elif (packet[1] & 0xF0) == 0xE0:  # HEMS
+                    packet_info['device'] = 'hems'
                     self.handleHEMS(packet)
                 else:
+                    packet_info['device'] = 'unknown'
                     self.log(f'{self.prettifyPacket(packet)} >> ???')
+                store = self.enable_store_packet_general
 
             if store:
                 if len(self.packet_storage) > self.max_packet_store_cnt:

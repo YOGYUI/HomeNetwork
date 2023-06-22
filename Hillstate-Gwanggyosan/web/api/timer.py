@@ -1,3 +1,5 @@
+# TODO: rs485 및 파서를 리스트로 객체화하게 바꾸었다
+# 코드 구조를 전면적으로 개편해야 한다
 from . import api
 from flask import render_template, jsonify, request
 from wtforms import Form, IntegerField, SelectField, validators
@@ -13,6 +15,7 @@ sys.path.extend([CURPATH, PROJPATH, INCPATH])
 sys.path = list(set(sys.path))
 del CURPATH, PROJPATH, INCPATH
 from Include import get_home
+from Common import DeviceType
 
 
 class TesfForm(Form):
@@ -22,29 +25,44 @@ class TesfForm(Form):
 
 
 def get_timer_info() -> list:
-    home = get_home()
+    home = get_home()    
     info = []
-    for room in home.rooms:
-        d = {
-            'has_thermostat': int(room.has_thermostat),
-            'has_airconditioner': int(room.has_airconditioner)
-        }
-        if room.has_thermostat:
-            thermostat = room.thermostat
+    for i in range(4):
+        d = dict()
+        thermostat = home.findDevice(DeviceType.THERMOSTAT, 0, i + 1)
+        if thermostat is not None:
+            d['has_thermostat'] = True
             d['thermostat_timer_running'] = int(thermostat.isTimerOnOffRunning())
             params = thermostat.timer_onoff_params
             d['thermostat_on_time'] = params.get('on_time')
             d['thermostat_off_time'] = params.get('off_time')
             d['thermostat_repeat'] = int(params.get('repeat'))
             d['thermostat_off_when_terminate'] = int(params.get('off_when_terminate'))
-        if room.has_airconditioner:
-            airconditioner = room.airconditioner
+        else:
+            d['has_thermostat'] = False
+            d['thermostat_timer_running'] = 0
+            d['thermostat_on_time'] = 0
+            d['thermostat_off_time'] = 0
+            d['thermostat_repeat'] = 0
+            d['thermostat_off_when_terminate'] = 0
+        
+        airconditioner = home.findDevice(DeviceType.AIRCONDITIONER, 0, i + 1)
+        if airconditioner is not None:
+            d['has_airconditioner'] = True
             d['airconditioner_timer_running'] = int(airconditioner.isTimerOnOffRunning())
             params = airconditioner.timer_onoff_params
             d['airconditioner_on_time'] = params.get('on_time')
             d['airconditioner_off_time'] = params.get('off_time')
             d['airconditioner_repeat'] = int(params.get('repeat'))
             d['airconditioner_off_when_terminate'] = int(params.get('off_when_terminate'))
+        else:
+            d['has_airconditioner'] = False
+            d['airconditioner_timer_running'] = 0
+            d['airconditioner_on_time'] = 0
+            d['airconditioner_off_time'] = 0
+            d['airconditioner_repeat'] = 0
+            d['airconditioner_off_when_terminate'] = 0
+        
         info.append(d)
     return info
 
@@ -81,20 +99,23 @@ def timer_activate(room_idx: str, dev_type: str):
         room_idx = int(room_idx) - 1
 
         if dev_type == 'cool':
-            dev = home.rooms[room_idx].airconditioner
+            dev = home.findDevice(DeviceType.AIRCONDITIONER, 0, room_idx)
         elif dev_type == 'heat':
-            dev = home.rooms[room_idx].thermostat
+            dev = home.findDevice(DeviceType.THERMOSTAT, 0, room_idx)
         else:
             return '', http.HTTPStatus.NO_CONTENT
 
-        if 'activate' in data.keys():
-            value = int(data.get('activate'))
-            dev.startTimerOnOff() if value else dev.stopTimerOnOff()
-        elif 'on_time' in data.keys() and 'off_time' in data.keys() and 'repeat' in data.keys():
-            on_time = int(data.get('on_time'))
-            off_time = int(data.get('off_time'))
-            repeat = bool(int(data.get('repeat')))
-            dev.setTimerOnOffParams(on_time, off_time, repeat)
+        if dev is not None:
+            if 'activate' in data.keys():
+                value = int(data.get('activate'))
+                dev.startTimerOnOff() if value else dev.stopTimerOnOff()
+            elif 'on_time' in data.keys() and 'off_time' in data.keys() and 'repeat' in data.keys():
+                on_time = int(data.get('on_time'))
+                off_time = int(data.get('off_time'))
+                repeat = bool(int(data.get('repeat')))
+                dev.setTimerOnOffParams(on_time, off_time, repeat)
+        else:
+            return '', http.HTTPStatus.NO_CONTENT
     except Exception as e:
         print(e)
     return '', http.HTTPStatus.NO_CONTENT

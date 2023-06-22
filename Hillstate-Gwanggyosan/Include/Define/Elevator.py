@@ -42,6 +42,7 @@ class Elevator(Device):
     time_threshold_check_duration: float = 10.
 
     state_calling: int = 0
+    packet_call_type: int = 0
 
     def __init__(self, name: str = 'Elevator', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
@@ -52,6 +53,12 @@ class Elevator(Device):
     
     def setDefaultName(self):
         self.name = 'Elevator'
+
+    def setPacketCallType(self, value: int):
+        self.packet_call_type = value
+    
+    def getPacketCallType(self) -> int:
+        return self.packet_call_type
 
     def publishMQTT(self):
         obj = {
@@ -149,8 +156,11 @@ class Elevator(Device):
         # 하행 호출
         # F7 0B 01 34 02 41 10 06 00 XX EE
         packet = bytearray([0xF7, 0x0B, 0x01, 0x34])
-        packet.append(0x02)
-        packet.extend([0x41, 0x10, 0x06, 0x00])
+        if self.packet_call_type == 1:
+            # 일부 환경에서는 F7 0B 01 34 04 41 10 00 06 XX EE로 호출해야 된다? (차이 파악 필요)
+            packet.extend([0x04, 0x41, 0x10, 0x00, 0x06])
+        else:
+            packet.extend([0x02, 0x41, 0x10, 0x06, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
         return packet
@@ -159,8 +169,11 @@ class Elevator(Device):
         # 상행 호출
         # F7 0B 01 34 02 41 10 05 00 XX EE
         packet = bytearray([0xF7, 0x0B, 0x01, 0x34])
-        packet.append(0x02)
-        packet.extend([0x41, 0x10, 0x05, 0x00])
+        if self.packet_call_type == 1:
+            # 일부 환경에서는 F7 0B 01 34 04 41 10 00 05 XX EE로 호출해야 된다? (차이 파악 필요)
+            packet.extend([0x04, 0x41, 0x10, 0x00, 0x05])
+        else:
+            packet.extend([0x02, 0x41, 0x10, 0x05, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
         return packet

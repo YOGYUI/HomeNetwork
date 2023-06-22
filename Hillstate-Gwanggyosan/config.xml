@@ -485,6 +485,7 @@
                 <index>0</index>
                 <room>0</room>
                 <enable>1</enable>
+                <packet_call_type>0</packet_call_type>
                 <!--
         <mqtt>
                     <publish>home/state/elevator/0/0</publish>
