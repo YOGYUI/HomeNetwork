@@ -41,14 +41,12 @@ file. <br>
             </port>
         </rs485>
         ```
-        - name: unique string to distinguish from other ports.
-        - index: unique number (zero based) for mapping port with device. <br>
-            Minimum index value shoud be **0**. <br>
-            See **4. Parser Mapping** also.
-        - enable: 1=enable this port, 0=disable this port.
-        - packettype: 0=regular, 1=kitchen subphone
+        `name`: unique string to distinguish from other ports. <br>
+        `index`: unique number (zero based) for mapping port with device. (Minimum index value shoud be **0**. See **4. Parser Mapping** also) <br>
+        `enable`: 1=enable this port, 0=disable this port. <br>
+        `packettype`: 0=regular, 1=kitchen subphone <br>
     - RS-485 to USB converter <br>
-        **hwtype** should be **0**
+        `hwtype` should be **0**
         ```xml
         <rs485>
             <port>
@@ -63,13 +61,13 @@ file. <br>
             </port>
         <rs485>
         ```
-        ⚠️ kitchen subphone setting
-        - baud: 3840
-        - databit: 8
-        - parity: E
-        - stopbits: 1
-    - Wireless (TCP based) RS-485 converter (like EW11) <br>
-        **hwtype** should be **1**
+        ⚠️ kitchen subphone setting <br>
+        `baud`: 3840 <br>
+        `databit`: 8 <br>
+        `parity`: E <br>
+        `stopbits`: 1 <br>
+    - Wireless (TCP based) RS-485 converter (like **EW11**) <br>
+        `hwtype` should be **1**
         ```xml
         <rs485>
             <port>
@@ -81,8 +79,8 @@ file. <br>
             </port>
         <rs485>
         ```
-        - ipaddr: ip address or dns for ew11
-        - port: port number for ew11
+        `ipaddr`: ip address or dns for ew11 <br>
+        `port`: port number for ew11 <br>
 1. MQTT Broker (like Mosquitto) Configuration
     ```xml
     <config>
@@ -94,11 +92,10 @@ file. <br>
         </mqtt>
     </config>
     ```
-    - host: MQTT broker address <br>
-        - if mosquitto is running on same SBC, **127.0.0.1** or **0.0.0.0** can be used.
-    - port: MQTT broker port
-    - username: MQTT broker authentication id
-    - password: MQTT broker authentication password
+    `host`: MQTT broker address (if mosquitto is running on same SBC, **127.0.0.1** or **0.0.0.0** can be used) <br>
+    `port` MQTT broker port <br>
+    `username`: MQTT broker authentication id <br>
+    `password`: MQTT broker authentication password <br>
 
     ❗If advanced authentication method (like SSL/TLS) is required, please tell me.
 1. Device Configuration <br>
@@ -127,14 +124,14 @@ file. <br>
         </device>
     </config>
     ```
-    - Supported 'dev_type': light, outlet, thermostat, airconditioner, gasvalve, ventilator, elevator, subphone, hems, batchoffsw
-    - 'index' and 'room' tag value is **0-based** integer. <br>
-    - 'enable' tag means whether or not add this device. (1=enable, 2=disable)
-    - MQTT topic is automatically assigned when device is created. <br>
-      If you want to customize topic, uncomment and modify pub/sub topic.<br>
-      **publish** topic means updating current state **to** home network accessories. <br>
-      **subscribe** topic means receiving state changing command **from** home network platform. <br>
-    - You can find other optional tags for various device types in xml file in repository. Please take a look for a moment before building your own environment.
+    `dev_type`: light, outlet, thermostat, airconditioner, gasvalve, ventilator, elevator, subphone, hems, batchoffsw<br>
+    `index` and `room` tag value is **0-based** integer. <br>
+    `enable` tag means whether or not add this device. (1=enable, 2=disable) <br>
+    MQTT topic is automatically assigned when device is created. If you want to customize topic, uncomment and modify pub/sub topic.
+    - `publish` topic means updating current state **to** home network accessories.
+    - `subscribe` topic means receiving state changing command **from** home network platform.
+    
+    You can find other optional tags for various device types in xml file in repository. Please take a look for a moment before building your own environment.
 1. **Parser Mapping**
     ```xml
     <config>
@@ -156,7 +153,7 @@ file. <br>
     ```
     Index(number) which is configured in **rs485** tag should be matched to related devices. <br>
     Script example above means that **'Light'** related RS-485 packets are streaming on index 0 converter and **'Gas Valve'** related packets are streaming on index 1 converter.<br>
-    If you are using only one converter, these values should be all set to 0.
+    If you use only one converter, these values should be all set to 0.
 1. **Automatic Device Discovery** <br>
     You can add device entries into config file automatically with this function. <br>
     parser index mapping values are also configured via discovery.
@@ -171,34 +168,34 @@ file. <br>
         </device>
     </config>
     ```
-    - enable: when this value is **1**, automatic discovery will be started when the application is initialized. 
-    - timeout: discovery will be maintained until this value. (unit=second)
-    - reload: when the discovery sequence terminated and if this value is **1**, application will be restarted. (discovery will be disabled after reloading.)
+    `enable`: when this value is **1**, automatic discovery will be started when the application is initialized.<br>
+    `timeout`: discovery will be maintained until this value. (unit=second)<br>
+    `reload`: when the discovery sequence terminated and if this value is **1**, application will be restarted. (discovery will be disabled after reloading.)<br>
 
-MQTT Message Template
+MQTT Payload Template
 ---
-IoT platform (Homebridge or HomeAssistant) MQTT accessories should be implemented refer to `json message` templates below.
+IoT platform (Homebridge or HomeAssistant) MQTT accessories should be implemented refer to `json` format payload templates below.
 
 <details>
 <summary>Light</summary>
 <div markdown="1">
 
 ### Application `Publish` / IoT platform `Subscribe`
-default topic: /home/state/light/{room_index}/{dev_index}
+default topic: `/home/state/light/{room_index}/{dev_index}`
 ```json
 {
     "state": 1  // possible value: 0, 1 (numeric)
 }
 ```
-- state: **1** means the light is 'ON' state and **0** means 'OFF' state. 
+`state`: **1** means the light is 'ON' state and **0** means 'OFF' state. 
 ### Application `Subscribe` / IoT platform `Publish`
-default topic: /home/command/light/{room_index}/{dev_index}
+default topic: `/home/command/light/{room_index}/{dev_index}`
 ```json
 {
     "state": 1  // possible value: 0, 1 (numeric)
 }
 ```
-- state: **1** means command to 'turn ON' the light and **0** means 'turn OFF'.
+`state`: **1** means command to 'turn ON' the light and **0** means 'turn OFF'.
 </div>
 </details>
 
@@ -207,22 +204,22 @@ default topic: /home/command/light/{room_index}/{dev_index}
 <div markdown="1">
 
 ### Application `Publish` / IoT platform `Subscribe`
-default topic: /home/state/outlet/{room_index}/{dev_index}
+default topic: `/home/state/outlet/{room_index}/{dev_index}`
 ```json
 {
     "state": 1  // possible value: 0, 1 (numeric)
 }
 ```
-- state: **1** means the outlet is 'ON' state and **0** means 'OFF' state. <br>
-- (Power consumption information maybe added later)
+`state`: **1** means the outlet is 'ON' state and **0** means 'OFF' state. <br>
+(Power consumption information maybe added later)
 ### Application `Subscribe` / IoT platform `Publish`
-default topic: /home/command/outlet/{room_index}/{dev_index}
+default topic: `/home/command/outlet/{room_index}/{dev_index}`
 ```json
 {
     "state": 1  // possible value: 0, 1 (numeric)
 }
 ```
-- state: **1** means command to 'turn ON' the outlet and **0** means 'turn OFF'.
+`state`: **1** means command to 'turn ON' the outlet and **0** means 'turn OFF'.
 </div>
 </details>
 
@@ -231,7 +228,7 @@ default topic: /home/command/outlet/{room_index}/{dev_index}
 <div markdown="1">
 
 ### Application `Publish` / IoT platform `Subscribe`
-default topic: /home/state/thermostat/{room_index}/0
+default topic: `/home/state/thermostat/{room_index}/0`
 ```json
 {
     "state": "HEAT",  // possible value: "HEAT", "OFF" (string)
@@ -239,19 +236,19 @@ default topic: /home/state/thermostat/{room_index}/0
     "targetTemperature": 26,  // numeric
 }
 ```
-- state: current state of thermostat ("HEAT" means turned on, "OFF" means turned off)
-- currentTemperature: current nearby temperature (sensor value)
-- targetTemperature: current target(setting) temperature of thermostat
+`state`: current state of thermostat ("HEAT" means turned on, "OFF" means turned off)<br>
+`currentTemperature`: current nearby temperature (sensor value)<br>
+`targetTemperature`: current target(setting) temperature of thermostat<br>
 ### Application `Subscribe` / IoT platform `Publish`
-default topic: /home/command/thermostat/{room_index}/0
+default topic: `/home/command/thermostat/{room_index}/0`
 ```json
 {
     "state": "HEAT",  // possible value: "HEAT", "OFF" (string)
     "targetTemperature": 27
 }
 ```
-- state: "HEAT" means turn 'ON' thermostat, "OFF" means turn 'OFF
-- targetTemperature: change target(setting) temperature. Floating value is supported but truncated as integer in application
+`state`: "HEAT" means turn 'ON' thermostat, "OFF" means turn 'OFF<br>
+`targetTemperature`: change target(setting) temperature. Floating value is supported but truncated as integer in application<br>
 </div>
 </details>
 
@@ -260,7 +257,7 @@ default topic: /home/command/thermostat/{room_index}/0
 <div markdown="1">
 
 ### Application `Publish` / IoT platform `Subscribe`
-default topic: /home/state/airconditioner/{room_index}/0
+default topic: `/home/state/airconditioner/{room_index}/0`
 ```json
 {
     "active": 1,  // possible value: 0, 1 (numeric)
@@ -271,15 +268,14 @@ default topic: /home/state/airconditioner/{room_index}/0
     "rotationspeed_name": "Auto"  // possible value: "Min", "Medium", "Max" (string)
 }
 ```
-- active: 1 means airconditioner is running, 0 means turned off
-- state: "COOLING" means airconditioner is running, "INACTIVE" means turned off
-- currentTemperature: current nearby temperature (sensor value)
-- targetTemperature: current target(setting) temperature of airconditioner
-- rotationspeed: current wind speed of airconditioner converted to numerical value <br>
-  25 means "auto", 50 means "minimum", 75 means "medium", 100 means "maximum"
-- rotationspeed_name: current wind speed of airconditioner expressed as string
+`active`: 1 means airconditioner is running, 0 means turned off<br>
+`state`: "COOLING" means airconditioner is running, "INACTIVE" means turned off<br>
+`currentTemperature`: current nearby temperature (sensor value)<br>
+`targetTemperature`: current target(setting) temperature of airconditioner<br>
+`rotationspeed`: current wind speed of airconditioner converted to numerical value (25 means "auto", 50 means "minimum", 75 means "medium", 100 means "maximum")<br>
+`rotationspeed_name`: current wind speed of airconditioner expressed as string<br>
 ### Application `Subscribe` / IoT platform `Publish`
-default topic: /home/command/airconditioner/{room_index}/0
+default topic: `/home/command/airconditioner/{room_index}/0`
 ```json
 {
     "active": 1,  // possible value: 0, 1 (numeric)
@@ -288,10 +284,10 @@ default topic: /home/command/airconditioner/{room_index}/0
     "rotationspeed_name": "Auto"  // possible value: "Min", "Medium", "Max" (string)
 }
 ```
-- state: 1 means turn 'ON' airconditioner, 0 means turn 'OFF'
-- targetTemperature: change target(setting) temperature. Floating value is supported but truncated as integer in application
-- rotationspeed: change wind speed. Value will be truncated as 25/50/75/100 in application
-- rotationspeed_name: change wind speed by string expression
+`state`: 1 means turn 'ON' airconditioner, 0 means turn 'OFF'<br>
+`targetTemperature`: change target(setting) temperature. Floating value is supported but truncated as integer in application<br>
+`rotationspeed`: change wind speed. Value will be truncated as 25/50/75/100 in application<br>
+`rotationspeed_name`: change wind speed by string expression<br>
 </div>
 </details>
 
@@ -300,21 +296,21 @@ default topic: /home/command/airconditioner/{room_index}/0
 <div markdown="1">
 
 ### Application `Publish` / IoT platform `Subscribe`
-default topic: /home/state/gasvalve/0/0
+default topic: `/home/state/gasvalve/0/0`
 ```json
 {
     "state": 1  // possible value: 0, 1 (numeric)
 }
 ```
-- state: **1** means the valve is 'opened' state and **0** means 'closed' state. <br>
+`state`: **1** means the valve is 'opened' state and **0** means 'closed' state. <br>
 ### Application `Subscribe` / IoT platform `Publish`
-default topic: /home/command/gasvalve/0/0
+default topic: `/home/command/gasvalve/0/0`
 ```json
 {
     "state": 0  // possible value: 0 (numeric)
 }
 ```
-- state: **0** means 'Close Valve'. (close command is only supported)
+`state`: **0** means 'Close Valve'. (close command is only supported)
 </div>
 </details>
 
@@ -323,26 +319,25 @@ default topic: /home/command/gasvalve/0/0
 <div markdown="1">
 
 ### Application `Publish` / IoT platform `Subscribe`
-default topic: /home/state/ventilator/0/0
+default topic: `/home/state/ventilator/0/0`
 ```json
 {
     "state": 1,  // possible value: 0, 1 (numeric)
     "rotationspeed": 30  // possible value: 30, 60, 100 (numeric)
 }
 ```
-- state: 0 means ventilator is turned 'OFF', 1 means 'ON'
-- rotationspeed: current wind speed of ventilator converted to numerical value <br>
-  30 means "minimum", 60 means "medium", 100 means "maximum"
+`state`: 0 means ventilator is turned 'OFF', 1 means 'ON'<br>
+`rotationspeed`: current wind speed of ventilator converted to numerical value (30 means "minimum", 60 means "medium", 100 means "maximum")
 ### Application `Subscribe` / IoT platform `Publish`
-default topic: /home/command/ventilator/0/0
+default topic: `/home/command/ventilator/0/0`
 ```json
 {
     "state": 1,  // possible value: 0 (numeric)
     "rotationspeed": 30  // numeric (range 0 ~ 100)
 }
 ```
-- state: 0 means turn 'OFF' ventilator, 1 means turn 'ON'
-- rotationspeed: change wind speed. Value will be truncated as 30/60/100 in application
+`state`: 0 means turn 'OFF' ventilator, 1 means turn 'ON'<br>
+`rotationspeed`: change wind speed. Value will be truncated as 30/60/100 in application<br>
 </div>
 </details>
 
@@ -351,7 +346,7 @@ default topic: /home/command/ventilator/0/0
 <div markdown="1">
 
 ### Application `Publish` / IoT platform `Subscribe`
-default topic: /home/state/elevator/0/0
+default topic: `/home/state/elevator/0/0`
 ```json
 {
     "state": 1,  // possible value: 0, 1, 5, 6 (numeric)
@@ -360,18 +355,18 @@ default topic: /home/state/elevator/0/0
     "floor": ["B6", "10"]  // string list
 }
 ```
-- state: 0 = idle, 1 = arrived, 5 = called upside, 6 = called downside
-- index: elevator(s) number
-- direction: 0 = idle, 5 = moving up, 6 = moving down
-- floor: current floor of each elevator(s)
+`state`: 0 = idle, 1 = arrived, 5 = called upside, 6 = called downside<br>
+`index`: elevator(s) number<br>
+`direction`: 0 = idle, 5 = moving up, 6 = moving down<br>
+`floor`: current floor of each elevator(s)<br>
 ### Application `Subscribe` / IoT platform `Publish`
-default topic: /home/command/elevator/0/0
+default topic: `/home/command/elevator/0/0`
 ```json
 {
     "state": 6  // possible value: 5, 6 (numeric)
 }
 ```
-- state: call elevator (now only supports calling downside - upside calling would respond noting)
+`state`: call elevator (now only supports calling downside - upside calling would respond noting)
 </div>
 </details>
 
@@ -380,21 +375,21 @@ default topic: /home/command/elevator/0/0
 <div markdown="1">
 
 ### Application `Publish` / IoT platform `Subscribe`
-default topic: /home/state/batchoffsw/0/0
+default topic: `/home/state/batchoffsw/0/0`
 ```json
 {
     "state": 1  // possible value: 0, 1 (numeric)
 }
 ```
-- state: 0 means switch is turned 'OFF', 1 means turned 'ON'
+`state`: 0 means switch is turned 'OFF', 1 means turned 'ON'
 ### Application `Subscribe` / IoT platform `Publish`
-default topic: /home/command/batchoffsw/0/0
+default topic: `/home/command/batchoffsw/0/0`
 ```json
 {
     "state": 0  // possible value: 0 (numeric)
 }
 ```
-- state: 0 means turn 'OFF' switch, 1 means turn 'ON'
+`state`: 0 means turn 'OFF' switch, 1 means turn 'ON'
 </div>
 </details>
 
@@ -403,39 +398,57 @@ default topic: /home/command/batchoffsw/0/0
 <div markdown="1">
 
 ### Application `Publish` / IoT platform `Subscribe`
-default topic: /home/state/subphone/0/0
+default topic: `/home/state/subphone/0/0`
 ```json
 {
     "streaming_state": 1,  // possible value: 0, 1 (numeric)
     "doorlock_state": "Unsecured"  // possible value: "Unsecured", "Secured", "Jammed", "Unknown"
 }
 ```
-- streaming_state: front door camera video streaming state (0 means inactive, 1 means active)
-- doorlock_state: front door lock state
+`streaming_state`: front door camera video streaming state (0 means inactive, 1 means active)<br>
+`doorlock_state`: front door lock state
 
-additional topic: /home/state/subphone/0/0/doorbell
+additional topic: `/home/state/subphone/0/0/doorbell`
 ```json
 'ON'    // payload is not json format, possible value: 'ON', 'OFF'
 ```
-- 'ON' means doorbell is ringing
+'ON' means doorbell is ringing
 ### Application `Subscribe` / IoT platform `Publish`
-default topic: /home/command/subphone/0/0
+default topic: `/home/command/subphone/0/0`
 ```json
 {
     "streaming_state": 0,  // possible value: 0, 1 (numeric)
     "doorlock_state": "Unsecured"  // possible value: "Unsecured"
 }
 ```
-- streaming_state: activate/deactivate front door camera video streaming
-- doorlock_state: open front door/communal door (only open command is supported)
+`streaming_state`: activate/deactivate front door camera video streaming<br>
+`doorlock_state`: open front door/communal door (only open command is supported)<br>
 </div>
 </details>
 
-Homebridge & Home Assistant Configuration
+Homebridge & Home Assistant(HA) Configuration
 ---
 You can find home IoT platform configuration template (json for homebridge, yaml for HA) is this repository. 
 - Homebridge: [homebridge_config.json](https://github.com/YOGYUI/HomeNetwork/blob/main/Hillstate-Gwanggyosan/Template/homebridge/homebridge_config.json) 
 - Home Assistant: [ha_configuration.yaml](https://github.com/YOGYUI/HomeNetwork/blob/main/Hillstate-Gwanggyosan/Template/homeassistant/ha_configuration.yaml) 
+- **HA MQTT Discovery support** <br>
+    by configuring below options, application can support MQTT discovery function of HomeAssistant! <br>
+    (you can take off your hands for setting HA configuration yaml file)
+    ```xml
+    <config>
+        <mqtt>
+            <!-- ... -->
+            <homeassistant>
+                <discovery>
+                    <enable>1</enable>
+                    <prefix>homeassistant</prefix>
+                </discovery>
+            </homeassistant>
+        </mqtt>
+    </config>
+    ```
+    `enable`: 1 = enable publishing HA config topic to broker when initializing, 0 = disable <br>
+    `prefix`: prefix of HA discovery config topic (default="homeassistant")
 
 Run the Application
 ---
@@ -446,6 +459,23 @@ Run the Application
 - Nginx & uWSGI environment
     ```
     $ /usr/local/bin/uwsgi ~/repos/HomeNetwork/Hillstate-Gwanggyosan/uwsgi.ini
+    ```
+    `uwsgi.sock` file will be created at project directory after launching application. <br>
+    Below is nginx sites-available configuration example.
+    ```
+    server {
+        listen 1234;
+        server_name _;
+
+        ssl on;
+        ssl_certificate fullchain.pem;
+        ssl_certificate_key privkey.pem;
+        
+        location @app {
+            include uwsgi_params;
+            uwsgi_pass unix:{project_path}/uwsgi.sock;
+        }
+    }
     ```
 
 Reference URLs (Blog)
@@ -460,3 +490,4 @@ Reference URLs (Blog)
 - Doorlock: [힐스테이트 광교산::현관 도어락 - 애플 홈킷 + 구글 어시스턴트 연동](https://yogyui.tistory.com/entry/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8-%EA%B4%91%EA%B5%90%EC%82%B0%EB%8F%84%EC%96%B4%EB%9D%BD-%EC%95%A0%ED%94%8C-%ED%99%88%ED%82%B7-%EA%B5%AC%EA%B8%80-%EC%96%B4%EC%8B%9C%EC%8A%A4%ED%84%B4%ED%8A%B8-%EC%97%B0%EB%8F%99?category=1047622) <br>
 - Kitchen Subphone: [힐스테이트 광교산::주방 비디오폰 연동 - 세대 및 공동 현관문 제어 (애플 홈킷)](https://yogyui.tistory.com/entry/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8-%EA%B4%91%EA%B5%90%EC%82%B0%EC%A3%BC%EB%B0%A9-%EC%84%9C%EB%B8%8C%ED%8F%B0-%EC%97%B0%EB%8F%99-%ED%98%84%EA%B4%80%EB%AC%B8-%EB%B9%84%EB%94%94%EC%98%A4) <br>
 - Batch Off Switch: [힐스테이트 광교산::일괄소등 스위치 RS-485 패킷 분석 및 애플 홈 연동](https://yogyui.tistory.com/entry/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8-%EA%B4%91%EA%B5%90%EC%82%B0%EC%9D%BC%EA%B4%84%EC%86%8C%EB%93%B1-%EC%8A%A4%EC%9C%84%EC%B9%98-RS-485-%ED%8C%A8%ED%82%B7-%EB%B6%84%EC%84%9D-%EB%B0%8F-IoT-%EC%97%B0%EB%8F%99) <br>
+- Automatic Device Discovery: [현대통신 월패드 RS-485 디바이스 자동 탐지 및 HA MQTT Discovery 지원 기능 추가](https://yogyui.tistory.com/entry/%ED%98%84%EB%8C%80%ED%86%B5%EC%8B%A0-%EC%9B%94%ED%8C%A8%EB%93%9C-RS-485-%EB%94%94%EB%B0%94%EC%9D%B4%EC%8A%A4-%EC%9E%90%EB%8F%99-%ED%83%90%EC%A7%80-%EB%B0%8F-HA-MQTT-Discovery-%EC%A7%80%EC%9B%90-%EA%B8%B0%EB%8A%A5-%EC%B6%94%EA%B0%80)

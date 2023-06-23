@@ -265,6 +265,8 @@ class Home:
                         self.ha_mqtt_discover_prefix = ha_discovery_prefix_node.text
         except Exception as e:
             writeLog(f"Failed to load mqtt config ({e})", self)
+        writeLog(f"HA MQTT Discovery Enable: {self.ha_mqtt_discover_enable}", self)
+        writeLog(f"HA MQTT Discovery Prefix: {self.ha_mqtt_discover_prefix}", self)
         
         self.device_list.clear()
         dev_entry_cnt = 0
