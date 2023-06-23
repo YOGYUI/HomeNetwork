@@ -18,6 +18,7 @@ class Device:
     __metaclass__ = ABCMeta
 
     name: str = 'Device'
+    unique_id: str = 'device'
     dev_type: DeviceType = DeviceType.UNKNOWN
     index: int = 0  # device index (distinguish same dev type)
     room_index: int = 0  # room index (that this device is belongs to)
@@ -27,6 +28,8 @@ class Device:
     mqtt_client: mqtt.Client = None
     mqtt_publish_topic: str = ''
     mqtt_subscribe_topic: str = ''
+    mqtt_config_topic: str = ''
+    ha_discovery_prefix: str = 'homeassistant'
 
     last_published_time: float = time.perf_counter()
 
@@ -100,12 +103,24 @@ class Device:
     def setTimerOnOffRepeat(self, value: bool):
         self.timer_onoff_params['repeat'] = value
 
+    def setHomeAssistantDiscoveryPrefix(self, prefix: str):
+        self.ha_discovery_prefix = prefix
+        self.setHomeAssistantConfigTopic()
+
     @staticmethod
     def calcXORChecksum(data: Union[bytearray, bytes, List[int]]) -> int:
         return reduce(lambda x, y: x ^ y, data, 0)
 
     @abstractmethod
     def publishMQTT(self):
+        pass
+
+    @abstractmethod
+    def setHomeAssistantConfigTopic(self):
+        pass
+
+    @abstractmethod
+    def configMQTT(self):
         pass
 
     @abstractmethod

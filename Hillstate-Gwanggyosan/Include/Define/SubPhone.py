@@ -26,8 +26,10 @@ class SubPhone(Device):
     def __init__(self, name: str = 'SubPhone', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.SUBPHONE
+        self.unique_id = f'subphone_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/subphone/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/subphone/{self.room_index}/{self.index}'
+        self.setHomeAssistantConfigTopic()
         self.sig_state_streaming = Callback(int)
         self.streaming_config = {
             'conf_file_path': '',
@@ -57,6 +59,26 @@ class SubPhone(Device):
                 else:
                     # obj = {"doorbell_state": 'OFF'}
                     self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'OFF', 1)
+
+    def setHomeAssistantConfigTopic(self):
+        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/lock/{self.unique_id}/config'
+
+    def configMQTT(self):
+        obj = {
+            "name": self.name + "_doorlock",
+            "object_id": self.unique_id + "_doorlock",
+            "unique_id": self.unique_id + "_doorlock",
+            "state_topic": self.mqtt_publish_topic,
+            "command_topic": self.mqtt_subscribe_topic,
+            "value_template": '{{ value_json.state }}',
+            "payload_lock": '{ "state": "Secured" }',
+            "payload_unlock": '{ "state": "Unsecured" }',
+            "state_locked": "Secured",
+            "state_unlocked": "Unsecured",
+            "icon": "mdi:door-closed-lock"
+        }
+        if self.mqtt_client is not None:
+            self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj), 1, True)
 
     def updateState(self, _: int, **kwargs):
         streaming = kwargs.get('streaming')

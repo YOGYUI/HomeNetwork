@@ -6,8 +6,10 @@ class Light(Device):
     def __init__(self, name: str = 'Light', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.LIGHT
+        self.unique_id = f'light_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/light/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/light/{self.room_index}/{self.index}'
+        self.setHomeAssistantConfigTopic()
 
     def setDefaultName(self):
         self.name = 'Light'
@@ -16,6 +18,24 @@ class Light(Device):
         obj = {"state": self.state}
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+
+    def setHomeAssistantConfigTopic(self):
+        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/light/{self.unique_id}/config'
+
+    def configMQTT(self):
+        obj = {
+            "name": self.name,
+            "object_id": self.unique_id,
+            "unique_id": self.unique_id,
+            "state_topic": self.mqtt_publish_topic,
+            "command_topic": self.mqtt_subscribe_topic,
+            "schema": "template",
+            "state_template": "{% if value_json.state %} on {% else %} off {% endif %}",
+            "command_on_template": '{"state": 1}',
+            "command_off_template": '{"state": 0 }'
+        }
+        if self.mqtt_client is not None:
+            self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj), 1, True)
 
     def makePacketQueryState(self) -> bytearray:
         # F7 0B 01 19 01 40 XX 00 00 YY EE

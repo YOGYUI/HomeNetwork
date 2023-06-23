@@ -78,6 +78,12 @@
             <enable>1</enable>
             <interval>100</interval>
         </verbose_regular_publish>
+        <homeassistant>
+            <discovery>
+                <enable>1</enable>
+                <prefix>homeassistant</prefix>
+            </discovery>
+        </homeassistant>
     </mqtt>
     <device>
         <parser_mapping>

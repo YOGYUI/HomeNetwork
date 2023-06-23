@@ -80,6 +80,9 @@ class Home:
     discover_reload: bool = False
     discovered_dev_list: List[dict]
 
+    ha_mqtt_discover_enable: bool = False
+    ha_mqtt_discover_prefix: str = 'homeassistant'
+
     verbose_unreg_dev_packet: bool = False
 
     def __init__(self, name: str = 'Home', init_service: bool = True):
@@ -143,6 +146,9 @@ class Home:
         for dev in self.device_list:
             dev.setMqttClient(self.mqtt_client)
             dev.sig_set_state.connect(partial(self.onDeviceSetState, dev))
+            if self.ha_mqtt_discover_enable:
+                dev.setHomeAssistantDiscoveryPrefix(self.ha_mqtt_discover_prefix)
+                dev.configMQTT()
 
     def release(self):
         if self.isSubphoneActivated():
@@ -247,6 +253,16 @@ class Home:
             self.verbose_mqtt_regular_publish = dict()
             self.verbose_mqtt_regular_publish['enable'] = bool(int(verbose_node.find('enable').text))
             self.verbose_mqtt_regular_publish['interval'] = int(verbose_node.find('interval').text)
+            ha_node = node.find('homeassistant')
+            if ha_node is not None:
+                ha_discovery_node = ha_node.find('discovery')
+                if ha_discovery_node is not None:
+                    ha_discovery_enable_node = ha_discovery_node.find('enable')
+                    if ha_discovery_enable_node is not None:
+                        self.ha_mqtt_discover_enable = bool(int(ha_discovery_enable_node.text))
+                    ha_discovery_prefix_node = ha_discovery_node.find('prefix')
+                    if ha_discovery_prefix_node is not None:
+                        self.ha_mqtt_discover_prefix = ha_discovery_prefix_node.text
         except Exception as e:
             writeLog(f"Failed to load mqtt config ({e})", self)
         

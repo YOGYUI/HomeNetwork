@@ -10,14 +10,22 @@ class HEMS(Device):
     def __init__(self, name: str = 'HEMS', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.HEMS
+        self.unique_id = f'hems_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/hems/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/hems/{self.room_index}/{self.index}'
+        self.setHomeAssistantConfigTopic()
         self.data = dict()
     
     def setDefaultName(self):
         self.name = 'HEMS'
 
     def publishMQTT(self):
+        pass
+
+    def setHomeAssistantConfigTopic(self):
+        pass
+
+    def configMQTT(self):
         pass
 
     def updateState(self, _: int, **kwargs):

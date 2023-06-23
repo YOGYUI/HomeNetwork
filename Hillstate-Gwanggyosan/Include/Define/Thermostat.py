@@ -12,8 +12,10 @@ class Thermostat(Device):
     def __init__(self, name: str = 'Thermostat', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.THERMOSTAT
+        self.unique_id = f'thermostat_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/thermostat/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/thermostat/{self.room_index}/{self.index}'
+        self.setHomeAssistantConfigTopic()
         self.temp_range = [0, 100]
 
     def setDefaultName(self):
@@ -28,7 +30,34 @@ class Thermostat(Device):
         }
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
-    
+
+    def setHomeAssistantConfigTopic(self):
+        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/climate/{self.unique_id}/config'
+
+    def configMQTT(self):
+        obj = {
+            "name": self.name,
+            "object_id": self.unique_id,
+            "unique_id": self.unique_id,
+            "modes": ["off", "heat"],
+            "mode_state_topic": self.mqtt_publish_topic,
+            "mode_state_template": "{{ value_json.state.lower() }}",
+            "mode_command_topic": self.mqtt_subscribe_topic,
+            "mode_command_template": "{% set values = {'off': '\"OFF\"', 'heat': '\"HEAT\"'} %} \
+                                      { \"state\": {{ values[value] if value in values.keys() else \"OFF\" }} }",
+            "temperature_state_topic": self.mqtt_publish_topic,
+            "temperature_state_template": "{{ value_json.targetTemperature }}",
+            "temperature_command_topic": self.mqtt_subscribe_topic,
+            "temperature_command_template": '{ "targetTemperature": {{ value }} }',
+            "current_temperature_topic": self.mqtt_publish_topic,
+            "current_temperature_template": "{{ value_json.currentTemperature }}",
+            "min_temp": self.temp_range[0],
+            "max_temp": self.temp_range[1],
+            "precision": 1,
+        }
+        if self.mqtt_client is not None:
+            self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj), 1, True)
+
     def setTemperatureRange(self, range_min: int, range_max: int):
         self.temp_range[0] = range_min
         self.temp_range[1] = range_max

@@ -6,8 +6,10 @@ class BatchOffSwitch(Device):
     def __init__(self, name: str = 'BatchOffSW', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.BATCHOFFSWITCH
+        self.unique_id = f'batchoffswitch_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/batchoffsw/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/batchoffsw/{self.room_index}/{self.index}'
+        self.setHomeAssistantConfigTopic()
     
     def setDefaultName(self):
         self.name = 'BatchOffSW'
@@ -17,6 +19,24 @@ class BatchOffSwitch(Device):
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
     
+    def setHomeAssistantConfigTopic(self):
+        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}/config'
+
+    def configMQTT(self):
+        obj = {
+            "name": self.name,
+            "object_id": self.unique_id,
+            "unique_id": self.unique_id,
+            "state_topic": self.mqtt_publish_topic,
+            "command_topic": self.mqtt_subscribe_topic,
+            "value_template": '{ "state": {{ value_json.state }} }',
+            "payload_on": '{ "state": 1 }',
+            "payload_off": '{ "state": 0 }',
+            "icon": "mdi:home-lightbulb-outline"
+        }
+        if self.mqtt_client is not None:
+            self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj), 1, True)
+
     def makePacketQueryState(self) -> bytearray:
         # F7 0E 01 2A 01 40 10 00 19 00 1B 03 82 EE
         return bytearray([0xF7, 0x0E, 0x01, 0x2A, 0x01, 0x40, 0x10, 0x00, 0x19, 0x00, 0x1B, 0x03, 0x82, 0xEE])

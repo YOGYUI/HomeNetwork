@@ -44,11 +44,15 @@ class Elevator(Device):
     state_calling: int = 0
     packet_call_type: int = 0
 
+    mqtt_config_topic2: str = ''
+
     def __init__(self, name: str = 'Elevator', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.ELEVATOR
+        self.unique_id = f'elevator_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/elevator/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/elevator/{self.room_index}/{self.index}'
+        self.setHomeAssistantConfigTopic()
         self.dev_info_list = list()
     
     def setDefaultName(self):
@@ -70,6 +74,43 @@ class Elevator(Device):
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
     
+    def setHomeAssistantConfigTopic(self):
+        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}_calldown/config'
+        # TODO: 상행 호출 버튼도 만들어줘야하나?
+        self.mqtt_config_topic2 = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_arrived/config'
+
+    def configMQTT(self):
+        # 호출 스위치 및 도착 알림용 센서를 위해 디바이스 정보를 각각 발행해야 한다
+        obj1 = {
+            "name": self.name + "_CALLDOWN",
+            "object_id": self.unique_id + "_calldown",
+            "unique_id": self.unique_id + "_calldown",
+            "state_topic": self.mqtt_publish_topic,
+            "command_topic": self.mqtt_subscribe_topic,
+            "value_template": '{ "state": {{ value_json.state }} }',
+            "payload_on": '{ "state": 6 }',
+            "payload_off": '{ "state": 0 }',
+            "icon": "mdi:elevator"
+        }
+        obj2 = {
+            "name": self.name + "_SENSOR",
+            "object_id": self.unique_id + "_arrived",
+            "unique_id": self.unique_id + "_arrived",
+            "state_topic": self.mqtt_publish_topic,
+            "value_template": "{% if value_json.state == 0 %} \
+                               IDLE \
+                               {% elif value_json.state == 1 %} \
+                               ARRIVED \
+                               {% else %} \
+                               MOVING \
+                               {% endif %}",
+            "icon": "mdi:elevator-passenger"
+        }
+        if self.mqtt_client is not None:
+            self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj1), 1, True)
+            self.mqtt_client.publish(self.mqtt_config_topic2, json.dumps(obj2), 1, True)
+        
+
     def updateState(self, state: int, **kwargs):
         # TODO: 월패드 오류로 인해 미니패드가 계속 눌린 상태일 때는 어떻게하나?
         data_type = kwargs.get('data_type')
