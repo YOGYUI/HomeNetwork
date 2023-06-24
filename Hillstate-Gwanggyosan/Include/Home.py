@@ -290,11 +290,11 @@ class Home:
                 self.verbose_unreg_dev_packet = bool(int(verbose_unreg_dev_packet_node.text))
 
             discovery_node = node.find('discovery')
+            self.discover_device = False
             enable_discovery = False
             if discovery_node is not None:
                 enable_node = discovery_node.find('enable')
                 if enable_node is not None:
-                    # self.discover_device = bool(int(enable_node.text))
                     enable_discovery = bool(int(enable_node.text))
                 timeout_node = discovery_node.find('timeout')
                 if timeout_node is not None:
