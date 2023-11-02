@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import hmac
+import time
 import base64
 import random
 import hashlib
@@ -13,12 +14,34 @@ import urllib.parse
 from OpenSSL import crypto
 from typing import Union, List
 import paho.mqtt.client as mqtt
+import threading
 CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/Include/ThinQ
 INCPATH = os.path.dirname(CURPATH)  # {$PROJECT}/Include/
 sys.path.extend([CURPATH, INCPATH])
 sys.path = list(set(sys.path))
 del INCPATH
 from Common import writeLog, Callback
+
+
+class ThreadQueryDevices(threading.Thread):
+    keepAlive: bool = True
+
+    def __init__(self, period_ms: int):
+        threading.Thread.__init__(self)
+        self.period_ms = period_ms
+        self.sig_query = Callback()
+        self.sig_terminated = Callback()
+    
+    def run(self):
+        writeLog('Started', self)
+        while self.keepAlive:
+            time.sleep(self.period_ms / 1000)
+            self.sig_query.emit()
+        self.sig_terminated.emit()
+        writeLog('Terminated', self)
+
+    def stop(self):
+        self.keepAlive = False
 
 
 class ThinQ:
@@ -48,6 +71,8 @@ class ThinQ:
     discovered_device_id_list: List[str]
     robot_cleaner_dev_id: str = ''
     mqtt_topic: str = ''
+
+    thread_query_devices: Union[ThreadQueryDevices, None] = None
 
     def __init__(self, **kwargs):
         self.sig_publish_mqtt = Callback(str, dict)
@@ -97,6 +122,7 @@ class ThinQ:
             return
         if not self.connect_mqtt_broker():
             return
+        self.startThreadQueryDevices()
 
     def stop(self):
         if self.mqtt_client is not None:
@@ -104,6 +130,7 @@ class ThinQ:
             self.mqtt_client.disconnect()
             del self.mqtt_client
             self.mqtt_client = None
+        self.stopThreadQueryDevices()
 
     def restart(self):
         self.stop()
@@ -327,8 +354,7 @@ class ThinQ:
             result = False
         return result        
 
-    def query_home_device_list(self) -> bool:
-        result: bool
+    def query_home_device_list(self, verbose: bool = True) -> bool:
         if self.uri_thinq2 is None:
             writeLog(f'thinq uri is not queried yet!', self)
             return False
@@ -351,12 +377,14 @@ class ThinQ:
                     devices = result.get('devices')
                     self.device_discover_list.extend(devices)
             self.discovered_device_id_list = [x.get('deviceId') for x in self.device_discover_list]
-            self.print_device_discover_list()
-            result = True
+            if verbose:
+                self.print_device_discover_list()
+            for elem in self.device_discover_list:
+                self.handleDeviceState(elem.get('deviceId'), elem.get('snapshot'), verbose)
+            return True
         else:
             writeLog(f'failed to query home - device list ({response.status_code}, {response.text})', self)
-            result = False
-        return result
+            return False
 
     def print_device_discover_list(self):
         writeLog(f'discovered {len(self.device_discover_list)} device(s)', self)
@@ -496,6 +524,7 @@ class ThinQ:
         self.mqtt_client.tls_set(ca_certs=rootca_pem_path, certfile=cert_pem_path, keyfile=privkey_pem_path)
         self.mqtt_client.connect(host=mqtt_host[6:], port=mqtt_port)
         self.mqtt_client.loop_start()
+        return True
 
     def onMqttClientConnect(self, _, userdata, flags, rc):
         writeLog('connected to aws iot core (mqtt broker): {}, {}, {}'.format(userdata, flags, rc), self)
@@ -518,27 +547,48 @@ class ThinQ:
         msg_type = msg_dict.get('type')
         if data is not None:
             if deviceId is not None and msg_type is not None:
-                if deviceId == self.robot_cleaner_dev_id:
-                    try:
-                        state = data.get('state')
-                        reported = state.get('reported')
-                        robot_state = reported.get('ROBOT_STATE')
-                        if robot_state is not None:
-                            # possible state: 'SLEEP', 'CHARGING', 'INITAILIZING', 'CLEAN_SELECT', 'HOMING', 'CLEAN_EDGE', 
-                            # 'PAUSE_EDGE', 'HOMING_PAUSE', 'PAUSE_SELECT' ...,
-                            # {'EMERGENCY': 'ROBOT_LIFT', 'ROBOT_STUCK'}
-                            writeLog(f'Robot Cleaner Current State: {robot_state}', self)
-                            topic = self.mqtt_topic + '/robotcleaner'
-                            if 'CLEAN' in robot_state or robot_state in ['INITAILIZING', 'HOMING']:
-                                cleaning = 1
-                            else:
-                                cleaning = 0
-                            message = {'cleaning': cleaning}
-                            self.sig_publish_mqtt.emit(topic, message)
-                    except Exception:
-                        pass
+                self.handleDeviceState(deviceId, data.get('state').get('reported'))
             else:
                 print(data)
 
     def setEnableLogMqttMessage(self, enable: bool):
         self.log_mqtt_message = enable
+
+    def handleDeviceState(self, device_id: str, state: dict, verbose: bool = True):
+        try:
+            if device_id == self.robot_cleaner_dev_id:
+                robot_state = state.get('ROBOT_STATE')
+                if robot_state is not None:
+                    # possible state: 'SLEEP', 'CHARGING', 'INITAILIZING', 'CLEAN_SELECT', 'HOMING', 'CLEAN_EDGE', 
+                    # 'PAUSE_EDGE', 'HOMING_PAUSE', 'PAUSE_SELECT' ...,
+                    # {'EMERGENCY': 'ROBOT_LIFT', 'ROBOT_STUCK'}
+                    if verbose:
+                        writeLog(f'Robot Cleaner Current State: {robot_state}', self)
+                    topic = self.mqtt_topic + '/robotcleaner'
+                    if 'CLEAN' in robot_state or robot_state in ['INITAILIZING', 'HOMING']:
+                        cleaning = 1
+                    else:
+                        cleaning = 0
+                    message = {'cleaning': cleaning}
+                    self.sig_publish_mqtt.emit(topic, message)
+        except Exception as e:
+            writeLog(f'handleDeviceState::exception {e}')
+
+    def startThreadQueryDevices(self):
+        if self.thread_query_devices is None:
+            self.thread_query_devices = ThreadQueryDevices(60000)  # 1 minute
+            self.thread_query_devices.sig_query.connect(self.onThreadQueryDevicesAction)
+            self.thread_query_devices.sig_terminated.connect(self.onThreadQueryDevicesTerminated)
+            self.thread_query_devices.daemon = True
+            self.thread_query_devices.start()
+
+    def stopThreadQueryDevices(self):
+        if self.thread_query_devices is not None:
+            self.thread_query_devices.stop()
+    
+    def onThreadQueryDevicesAction(self):
+        self.query_home_device_list(False)
+
+    def onThreadQueryDevicesTerminated(self):
+        del self.thread_query_devices
+        self.thread_query_devices = None
