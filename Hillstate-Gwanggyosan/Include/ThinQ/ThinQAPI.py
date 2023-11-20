@@ -384,6 +384,7 @@ class ThinQ:
             return True
         else:
             writeLog(f'failed to query home - device list ({response.status_code}, {response.text})', self)
+            self.restart()
             return False
 
     def print_device_discover_list(self):

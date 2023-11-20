@@ -673,6 +673,14 @@
                     "topic": "home/state/airconditioner/1/0",
                     "apply": "return JSON.parse(message).state;"
                 },
+                "setTargetHeaterCoolerState": {
+                    "topic": "home/command/airconditioner/1/0",
+                    "apply": "return JSON.stringify({target_state: message});"
+                },
+                "getTargetHeaterCoolerState": {
+                    "topic": "home/state/airconditioner/1/0",
+                    "apply": "return JSON.parse(message).target_state;"
+                },
                 "getRotationSpeed": {
                     "topic": "home/state/airconditioner/1/0",
                     "apply": "return JSON.parse(message).rotationspeed;"
@@ -697,11 +705,6 @@
             "integerValue": true,
             "minTemperature": 18,
             "maxTemperature": 30,
-            "targetHeaterCoolerValues": [
-                0,
-                1,
-                2
-            ],
             "restrictHeaterCoolerState": [
                 2
             ],
@@ -727,6 +730,14 @@
                     "topic": "home/state/airconditioner/2/0",
                     "apply": "return JSON.parse(message).state;"
                 },
+                "setTargetHeaterCoolerState": {
+                    "topic": "home/command/airconditioner/2/0",
+                    "apply": "return JSON.stringify({target_state: message});"
+                },
+                "getTargetHeaterCoolerState": {
+                    "topic": "home/state/airconditioner/2/0",
+                    "apply": "return JSON.parse(message).target_state;"
+                },
                 "getRotationSpeed": {
                     "topic": "home/state/airconditioner/2/0",
                     "apply": "return JSON.parse(message).rotationspeed;"
@@ -751,11 +762,6 @@
             "integerValue": true,
             "minTemperature": 18,
             "maxTemperature": 30,
-            "targetHeaterCoolerValues": [
-                0,
-                1,
-                2
-            ],
             "restrictHeaterCoolerState": [
                 2
             ],
@@ -781,6 +787,14 @@
                     "topic": "home/state/airconditioner/3/0",
                     "apply": "return JSON.parse(message).state;"
                 },
+                "setTargetHeaterCoolerState": {
+                    "topic": "home/command/airconditioner/3/0",
+                    "apply": "return JSON.stringify({target_state: message});"
+                },
+                "getTargetHeaterCoolerState": {
+                    "topic": "home/state/airconditioner/3/0",
+                    "apply": "return JSON.parse(message).target_state;"
+                },
                 "getRotationSpeed": {
                     "topic": "home/state/airconditioner/3/0",
                     "apply": "return JSON.parse(message).rotationspeed;"
@@ -805,11 +819,6 @@
             "integerValue": true,
             "minTemperature": 18,
             "maxTemperature": 30,
-            "targetHeaterCoolerValues": [
-                0,
-                1,
-                2
-            ],
             "restrictHeaterCoolerState": [
                 2
             ],
@@ -835,6 +844,14 @@
                     "topic": "home/state/airconditioner/4/0",
                     "apply": "return JSON.parse(message).state;"
                 },
+                "setTargetHeaterCoolerState": {
+                    "topic": "home/command/airconditioner/4/0",
+                    "apply": "return JSON.stringify({target_state: message});"
+                },
+                "getTargetHeaterCoolerState": {
+                    "topic": "home/state/airconditioner/4/0",
+                    "apply": "return JSON.parse(message).target_state;"
+                },
                 "getRotationSpeed": {
                     "topic": "home/state/airconditioner/4/0",
                     "apply": "return JSON.parse(message).rotationspeed;"
@@ -859,11 +876,6 @@
             "integerValue": true,
             "minTemperature": 18,
             "maxTemperature": 30,
-            "targetHeaterCoolerValues": [
-                0,
-                1,
-                2
-            ],
             "restrictHeaterCoolerState": [
                 2
             ],

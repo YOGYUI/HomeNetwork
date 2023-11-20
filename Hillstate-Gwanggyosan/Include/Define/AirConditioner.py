@@ -31,9 +31,11 @@ class AirConditioner(Device):
             state = 'COOLING'
         else:
             state = 'INACTIVE'
+        target_state = 'COOL'
         obj = {
             "active": self.state,
             "state": state,
+            "target_state": target_state,
             "currentTemperature": self.temp_current,
             "targetTemperature": self.temp_config,
             "timer": int(self.isTimerOnOffRunning())
