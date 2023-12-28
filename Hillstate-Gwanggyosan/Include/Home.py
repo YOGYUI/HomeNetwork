@@ -1250,56 +1250,66 @@ class Home:
             if parser_mapping_node is None:
                 parser_mapping_node = ET.Element('parser_mapping')
                 device_node.append(parser_mapping_node)
+
             child_node = parser_mapping_node.find('light')
             if child_node is None:
                 child_node = ET.Element('light')
                 parser_mapping_node.append(child_node)
-            child_node.text = str(self.parser_mapping[DeviceType.LIGHT])
+            child_node.text = str(self.parser_mapping.get(DeviceType.LIGHT, 0))
+
             child_node = parser_mapping_node.find('outlet')
             if child_node is None:
                 child_node = ET.Element('outlet')
                 parser_mapping_node.append(child_node)
-            child_node.text = str(self.parser_mapping[DeviceType.OUTLET])
+            child_node.text = str(self.parser_mapping.get(DeviceType.OUTLET, 0))
+
             child_node = parser_mapping_node.find('gasvalve')
             if child_node is None:
                 child_node = ET.Element('gasvalve')
                 parser_mapping_node.append(child_node)
-            child_node.text = str(self.parser_mapping[DeviceType.GASVALVE])
+            child_node.text = str(self.parser_mapping.get(DeviceType.GASVALVE, 0))
+
             child_node = parser_mapping_node.find('thermostat')
             if child_node is None:
                 child_node = ET.Element('thermostat')
                 parser_mapping_node.append(child_node)
-            child_node.text = str(self.parser_mapping[DeviceType.THERMOSTAT])
+            child_node.text = str(self.parser_mapping.get(DeviceType.THERMOSTAT, 0))
+
             child_node = parser_mapping_node.find('ventilator')
             if child_node is None:
                 child_node = ET.Element('ventilator')
                 parser_mapping_node.append(child_node)
-            child_node.text = str(self.parser_mapping[DeviceType.VENTILATOR])
+            child_node.text = str(self.parser_mapping.get(DeviceType.VENTILATOR, 0))
+
             child_node = parser_mapping_node.find('airconditioner')
             if child_node is None:
                 child_node = ET.Element('airconditioner')
                 parser_mapping_node.append(child_node)
-            child_node.text = str(self.parser_mapping[DeviceType.AIRCONDITIONER])
+            child_node.text = str(self.parser_mapping.get(DeviceType.AIRCONDITIONER, 0))
+
             child_node = parser_mapping_node.find('elevator')
             if child_node is None:
                 child_node = ET.Element('elevator')
                 parser_mapping_node.append(child_node)
-            child_node.text = str(self.parser_mapping[DeviceType.ELEVATOR])
+            child_node.text = str(self.parser_mapping.get(DeviceType.ELEVATOR, 0))
+
             child_node = parser_mapping_node.find('subphone')
             if child_node is None:
                 child_node = ET.Element('subphone')
                 parser_mapping_node.append(child_node)
-            child_node.text = str(self.parser_mapping[DeviceType.SUBPHONE])
+            child_node.text = str(self.parser_mapping.get(DeviceType.SUBPHONE, 0))
+
             child_node = parser_mapping_node.find('batchoffsw')
             if child_node is None:
                 child_node = ET.Element('batchoffsw')
                 parser_mapping_node.append(child_node)
-            child_node.text = str(self.parser_mapping[DeviceType.BATCHOFFSWITCH])
+            child_node.text = str(self.parser_mapping.get(DeviceType.BATCHOFFSWITCH, 0))
+
             child_node = parser_mapping_node.find('hems')
             if child_node is None:
                 child_node = ET.Element('hems')
                 parser_mapping_node.append(child_node)
-            child_node.text = str(self.parser_mapping[DeviceType.HEMS])
+            child_node.text = str(self.parser_mapping.get(DeviceType.HEMS, 0))
 
             writeXmlFile(root, os.path.join(PROJPATH, 'config.xml'))
         except Exception as e:
