@@ -137,10 +137,10 @@ class AirConditioner(Device):
 
     def makePacketQueryState(self) -> bytearray:
         # F7 0B 01 1C 01 40 XX 00 00 YY EE
-        # XX: 상위 4비트=공간 인덱스, 하위 4비트=1
+        # XX: 상위 4비트=공간 인덱스, 하위 4비트=디바이스 인덱스 (1-based
         # YY: Checksum (XOR SUM)
         packet = bytearray([0xF7, 0x0B, 0x01, 0x1C, 0x01, 0x40])
-        packet.append((self.room_index << 4) + 0x01)
+        packet.append((self.room_index << 4) + (self.index + 1))
         packet.extend([0x00, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
@@ -148,11 +148,11 @@ class AirConditioner(Device):
 
     def makePacketSetState(self, state: bool) -> bytearray:
         # F7 0B 01 1C 02 40 XX YY 00 ZZ EE
-        # XX: 상위 4비트=공간 인덱스, 하위 4비트=1
+        # XX: 상위 4비트=공간 인덱스, 하위 4비트=디바이스 인덱스 (1-based
         # YY: 0x01=On, 0x02=Off
         # ZZ: Checksum (XOR SUM)
         packet = bytearray([0xF7, 0x0B, 0x01, 0x1C, 0x02, 0x40])
-        packet.append((self.room_index << 4) + 0x01)
+        packet.append((self.room_index << 4) + (self.index + 1))
         if state:
             packet.extend([0x01, 0x00])
         else:
@@ -163,11 +163,11 @@ class AirConditioner(Device):
 
     def makePacketSetTemperature(self, temperature: int) -> bytearray:
         # F7 0B 01 1C 02 45 XX YY 00 ZZ EE
-        # XX: 상위 4비트=공간 인덱스, 하위 4비트=1
+        # XX: 상위 4비트=공간 인덱스, 하위 4비트=디바이스 인덱스 (1-based
         # YY: 온도 설정값
         # ZZ: Checksum (XOR SUM)
         packet = bytearray([0xF7, 0x0B, 0x01, 0x1C, 0x02, 0x45])
-        packet.append((self.room_index << 4) + 0x01)
+        packet.append((self.room_index << 4) + (self.index + 1))
         packet.extend([temperature & 0xFF, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
@@ -175,11 +175,11 @@ class AirConditioner(Device):
 
     def makePacketSetRotationSpeed(self, rotation_speed: int) -> bytearray:
         # F7 0B 01 1C 02 5D XX YY 00 ZZ EE
-        # XX: 상위 4비트=공간 인덱스, 하위 4비트=1
+        # XX: 상위 4비트=공간 인덱스, 하위 4비트=디바이스 인덱스 (1-based)
         # YY: 0x01=자동, 0x02=미풍, 0x03=약풍, 0x04=강풍
         # ZZ: Checksum (XOR SUM)
         packet = bytearray([0xF7, 0x0B, 0x01, 0x1C, 0x02, 0x5D])
-        packet.append((self.room_index << 4) + 0x01)
+        packet.append((self.room_index << 4) + (self.index + 1))
         packet.extend([rotation_speed & 0xFF, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
@@ -187,11 +187,11 @@ class AirConditioner(Device):
 
     def makePacketSetMode(self, mode: int) -> bytearray:
         # F7 0B 01 1C 02 5C XX YY 00 ZZ EE
-        # XX: 상위 4비트=공간 인덱스, 하위 4비트=1
+        # XX: 상위 4비트=공간 인덱스, 하위 4비트=디바이스 인덱스 (1-based
         # YY: 0x0=자동, 0x01=냉방, 0x03=제습, 0x04=공기청정
         # ZZ: Checksum (XOR SUM)
         packet = bytearray([0xF7, 0x0B, 0x01, 0x1C, 0x02, 0x5C])
-        packet.append((self.room_index << 4) + 0x01)
+        packet.append((self.room_index << 4) + (self.index + 1))
         packet.extend([mode & 0xFF, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
