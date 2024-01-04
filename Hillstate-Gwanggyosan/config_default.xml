@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<config>
+    <webserver>
+        <host>0.0.0.0</host>
+        <port>1234</port>
+        <log>0</log>
+    </webserver>
+    <rs485>
+        <reconnect_limit>30</reconnect_limit>  <!-- 단위: 초 -->
+        <!-- hwtype: 0 = usb2serial, 1 = ew11(socket) -->
+        <!-- packettype: 0 = regular, 1 = subphone -->
+        <port>
+            <name>port1</name>
+            <index>0</index>
+            <enable>0</enable>
+            <hwtype>0</hwtype>  
+            <packettype>0</packettype>
+            <usb2serial>
+                <port>/dev/ttyUSB0</port>
+                <baud>9600</baud>
+                <databit>8</databit>
+                <parity>N</parity>
+                <stopbits>1</stopbits>
+            </usb2serial>
+            <ew11>
+				<ipaddr>127.0.0.1</ipaddr>
+                <port>8899</port>
+            </ew11>
+            <check>1</check>
+            <buffsize>64</buffsize>
+        </port>
+    </rs485>
+    <mqtt>
+		<host>127.0.0.1</host>
+        <port>1883</port>
+		<username></username>
+		<password></password>
+        <console_log>0</console_log>
+        <verbose_regular_publish>
+            <enable>1</enable>
+            <interval>100</interval>
+        </verbose_regular_publish>
+        <homeassistant>
+            <discovery>
+                <enable>1</enable>
+                <prefix>homeassistant</prefix>
+            </discovery>
+        </homeassistant>
+    </mqtt>
+    <device>
+        <parser_mapping>
+            <light>0</light>
+            <outlet>0</outlet>
+            <gasvalve>0</gasvalve>
+            <thermostat>0</thermostat>
+            <ventilator>0</ventilator>
+            <airconditioner>0</airconditioner>
+            <elevator>0</elevator>
+            <subphone>0</subphone>
+            <batchoffsw>0</batchoffsw>
+            <hems>0</hems>
+        </parser_mapping>
+        <verbose_unreg_dev_packet>1</verbose_unreg_dev_packet>
+        <discovery>
+            <enable>0</enable>
+            <timeout>60</timeout>
+            <reload>1</reload>
+        </discovery>
+        <entry>
+        </entry>
+    </device>
+</config>

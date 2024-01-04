@@ -197,117 +197,268 @@ class Home:
         self.config_tree = ET.parse(xml_path)
         root = self.config_tree.getroot()
 
-        node = root.find('rs485')
+        try:
+            node = root.find('rs485')
+            self.loadRS485Config(node)
+        except Exception:
+            writeLog(f"Failed to read <rs485> node", self)
+            traceback.print_exc()
+
+        try:
+            node = root.find('mqtt')
+            self.loadMQTTConfig(node)
+        except Exception:
+            writeLog(f"Failed to read <mqtt> node", self)
+            traceback.print_exc()
+        
+        try:
+            node = root.find('device')
+            self.loadDeviceConfig(node)
+        except Exception:
+            writeLog(f"Failed to read <device> node", self)
+            traceback.print_exc()
+
+        try:
+            node = root.find('thinq')
+            self.loadThinqConfig(node)
+        except Exception:
+            writeLog(f"Failed to read <thinq> node", self)
+            traceback.print_exc()
+        
+    def loadRS485Config(self, node: ET.Element):
+        writeLog("Loading RS485 configurations")
         try:
             self.rs485_reconnect_limit = int(node.find('reconnect_limit').text)
-            self.rs485_info_list.clear()
-            for cnode in list(node):
-                if cnode.tag != 'port':
-                    continue
-                try:
-                    name = cnode.find('name').text.upper()
-                    index = int(cnode.find('index').text)
-                    enable = bool(int(cnode.find('enable').text))
-                    hwtype = int(cnode.find('hwtype').text)
-                    packettype = int(cnode.find('packettype').text)
-                    usb2serial_node = cnode.find('usb2serial')
-                    ew11_node = cnode.find('ew11')
-                    check = bool(int(cnode.find('check').text))
-                    buffsize = int(cnode.find('buffsize').text)
-
-                    cfg = RS485Config()
-                    cfg.enable = enable
-                    cfg.comm_type = RS485HwType(hwtype)
-                    cfg.serial_port = usb2serial_node.find('port').text
-                    cfg.serial_baud = int(usb2serial_node.find('baud').text)
-                    cfg.serial_databit = int(usb2serial_node.find('databit').text)
-                    cfg.serial_parity = usb2serial_node.find('parity').text
-                    cfg.serial_stopbits = float(usb2serial_node.find('stopbits').text)
-                    cfg.socket_ipaddr = ew11_node.find('ipaddr').text
-                    cfg.socket_port = int(ew11_node.find('port').text)
-                    cfg.check_connection = check
-                    rs485 = RS485Comm(f'RS485-{name}')
-                    if name.lower() == 'subphone':
-                        rs485.sig_connected.connect(self.onRS485SubPhoneConnected)
-                    parser = PacketParser(rs485, name, index, ParserType(packettype))
-                    parser.setBufferSize(buffsize)
-                    parser.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
-                    self.rs485_info_list.append(RS485Info(rs485, cfg, parser, index))
-                    writeLog(f"Create RS485 Instance (name: {name})")
-                except Exception as e:
-                    writeLog(f"Failed to load rs485 config ({e})", self)
-                    continue
-            self.rs485_info_list.sort(key=lambda x: x.index)
         except Exception as e:
-            writeLog(f"Failed to load rs485 config ({e})", self)
+            writeLog(f"Failed to read <reconnect_limit> node ({e})", self)
+            self.rs485_reconnect_limit = 60
 
-        node = root.find('mqtt')
+        self.rs485_info_list.clear()
+        for cnode in list(node):
+            if cnode.tag != 'port':
+                continue
+            cfg = RS485Config()
+            try:
+                name = cnode.find('name').text.upper()
+            except Exception as e:
+                writeLog(f"Failed to read <name> node ({e})", self)
+                name = 'nonamed'
+            try:
+                index = int(cnode.find('index').text)
+            except Exception as e:
+                writeLog(f"Failed to read <index> node ({e})", self)
+                index = 0
+            try:
+                enable = bool(int(cnode.find('enable').text))
+            except Exception as e:
+                writeLog(f"Failed to read <enable> node ({e})", self)
+                enable = False
+            try:
+                hwtype = int(cnode.find('hwtype').text)
+            except Exception as e:
+                writeLog(f"Failed to read <hwtype> node ({e})", self)
+                hwtype = 0
+            try:
+                packettype = int(cnode.find('packettype').text)
+            except Exception as e:
+                writeLog(f"Failed to read <packettype> node ({e})", self)
+                packettype = 0
+            try:
+                check = bool(int(cnode.find('check').text))
+            except Exception as e:
+                writeLog(f"Failed to read <check> node ({e})", self)
+                check = False
+            try:
+                buffsize = int(cnode.find('buffsize').text)
+            except Exception as e:
+                writeLog(f"Failed to read <buffsize> node ({e})", self)
+                buffsize = 64
+
+            usb2serial_node = cnode.find('usb2serial')
+            if usb2serial_node is not None:
+                try:
+                    cfg.serial_port = usb2serial_node.find('port').text
+                except Exception as e:
+                    writeLog(f"Failed to read <usb2serial>-<port> node ({e})", self)
+                    cfg.serial_port = '/dev/ttyUSB0'
+                try:
+                    cfg.serial_baud = int(usb2serial_node.find('baud').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <usb2serial>-<baud> node ({e})", self)
+                    cfg.serial_baud = 9600
+                try:
+                    cfg.serial_databit = int(usb2serial_node.find('databit').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <usb2serial>-<databit> node ({e})", self)
+                    cfg.serial_databit = 8
+                try:
+                    cfg.serial_parity = usb2serial_node.find('parity').text
+                except Exception as e:
+                    writeLog(f"Failed to read <usb2serial>-<parity> node ({e})", self)
+                    cfg.serial_parity = 'N'
+                try:
+                    cfg.serial_stopbits = float(usb2serial_node.find('stopbits').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <usb2serial>-<stopbits> node ({e})", self)
+                    cfg.serial_stopbits = 1.0
+            
+            ew11_node = cnode.find('ew11')
+            if ew11_node is not None:
+                try:
+                    cfg.socket_ipaddr = ew11_node.find('ipaddr').text
+                except Exception as e:
+                    writeLog(f"Failed to read <ew11>-<ipaddr> node ({e})", self)
+                    cfg.socket_ipaddr = "127.0.0.1"
+                try:
+                    cfg.socket_port = int(ew11_node.find('port').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <ew11>-<port> node ({e})", self)
+                    cfg.socket_port = 8899
+            
+            cfg.enable = enable
+            cfg.comm_type = RS485HwType(hwtype)
+            cfg.check_connection = check
+            rs485 = RS485Comm(f'RS485-{name}')
+            if packettype == 1:  # subphone
+                rs485.sig_connected.connect(self.onRS485SubPhoneConnected)
+            parser = PacketParser(rs485, name, index, ParserType(packettype))
+            parser.setBufferSize(buffsize)
+            parser.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
+            self.rs485_info_list.append(RS485Info(rs485, cfg, parser, index))
+            writeLog(f"Create RS485 Instance (name: {name})")
+        self.rs485_info_list.sort(key=lambda x: x.index)
+
+    def loadMQTTConfig(self, node: ET.Element):
         try:
             username = node.find('username').text
-            password = node.find('password').text
-            self.mqtt_host = node.find('host').text
-            self.mqtt_port = int(node.find('port').text)
-            self.mqtt_client.username_pw_set(username, password)
-            self.enable_mqtt_console_log = bool(int(node.find('console_log').text))
-            verbose_node = node.find('verbose_regular_publish')
-            self.verbose_mqtt_regular_publish = dict()
-            self.verbose_mqtt_regular_publish['enable'] = bool(int(verbose_node.find('enable').text))
-            self.verbose_mqtt_regular_publish['interval'] = int(verbose_node.find('interval').text)
-            ha_node = node.find('homeassistant')
-            if ha_node is not None:
-                ha_discovery_node = ha_node.find('discovery')
-                if ha_discovery_node is not None:
-                    ha_discovery_enable_node = ha_discovery_node.find('enable')
-                    if ha_discovery_enable_node is not None:
-                        self.ha_mqtt_discover_enable = bool(int(ha_discovery_enable_node.text))
-                    ha_discovery_prefix_node = ha_discovery_node.find('prefix')
-                    if ha_discovery_prefix_node is not None:
-                        self.ha_mqtt_discover_prefix = ha_discovery_prefix_node.text
         except Exception as e:
-            writeLog(f"Failed to load mqtt config ({e})", self)
+            writeLog(f"Failed to read <username> node ({e})", self)
+            username = ''
+        try:
+            password = node.find('password').text
+        except Exception as e:
+            writeLog(f"Failed to read <password> node ({e})", self)
+            password = ''
+        try:
+            self.mqtt_host = node.find('host').text
+        except Exception as e:
+            writeLog(f"Failed to read <host> node ({e})", self)
+            self.mqtt_host = '127.0.0.1'
+        try:
+            self.mqtt_port = int(node.find('port').text)
+        except Exception as e:
+            writeLog(f"Failed to read <port> node ({e})", self)
+            self.mqtt_port = 1883
+        self.mqtt_client.username_pw_set(username, password)
+        try:
+            self.enable_mqtt_console_log = bool(int(node.find('console_log').text))
+        except Exception as e:
+            writeLog(f"Failed to read <console_log> node ({e})", self)
+            self.enable_mqtt_console_log = False
+        
+        self.verbose_mqtt_regular_publish = {
+            'enable': True,
+            'interval': 100
+        }
+        verbose_node = node.find('verbose_regular_publish')
+        if verbose_node is not None:
+            try:
+                self.verbose_mqtt_regular_publish['enable'] = bool(int(verbose_node.find('enable').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_regular_publish> - <enable> node ({e})", self)
+            try:
+                self.verbose_mqtt_regular_publish['interval'] = int(verbose_node.find('interval').text)
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_regular_publish> - <interval> node ({e})", self)
+
+        ha_node = node.find('homeassistant')
+        if ha_node is not None:
+            ha_discovery_node = ha_node.find('discovery')
+            if ha_discovery_node is not None:
+                ha_discovery_enable_node = ha_discovery_node.find('enable')
+                if ha_discovery_enable_node is not None:
+                    self.ha_mqtt_discover_enable = bool(int(ha_discovery_enable_node.text))
+                ha_discovery_prefix_node = ha_discovery_node.find('prefix')
+                if ha_discovery_prefix_node is not None:
+                    self.ha_mqtt_discover_prefix = ha_discovery_prefix_node.text
         writeLog(f"HA MQTT Discovery Enable: {self.ha_mqtt_discover_enable}", self)
         writeLog(f"HA MQTT Discovery Prefix: {self.ha_mqtt_discover_prefix}", self)
-        
+
+    def loadDeviceConfig(self, node: ET.Element):
         self.device_list.clear()
         dev_entry_cnt = 0
-        node = root.find('device')
         try:
             parser_mapping_node = node.find('parser_mapping')
             if parser_mapping_node is not None:
-                self.parser_mapping[DeviceType.LIGHT] = int(parser_mapping_node.find('light').text)
-                self.parser_mapping[DeviceType.OUTLET] = int(parser_mapping_node.find('outlet').text)
-                self.parser_mapping[DeviceType.GASVALVE] = int(parser_mapping_node.find('gasvalve').text)
-                self.parser_mapping[DeviceType.THERMOSTAT] = int(parser_mapping_node.find('thermostat').text)
-                self.parser_mapping[DeviceType.VENTILATOR] = int(parser_mapping_node.find('ventilator').text)
-                self.parser_mapping[DeviceType.AIRCONDITIONER] = int(parser_mapping_node.find('airconditioner').text)
-                self.parser_mapping[DeviceType.ELEVATOR] = int(parser_mapping_node.find('elevator').text)
-                self.parser_mapping[DeviceType.SUBPHONE] = int(parser_mapping_node.find('subphone').text)
-                self.parser_mapping[DeviceType.BATCHOFFSWITCH] = int(parser_mapping_node.find('batchoffsw').text)
-                self.parser_mapping[DeviceType.HEMS] = int(parser_mapping_node.find('hems').text)
+                try:
+                    self.parser_mapping[DeviceType.LIGHT] = int(parser_mapping_node.find('light').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <light> node ({e})", self)
+                try:
+                    self.parser_mapping[DeviceType.OUTLET] = int(parser_mapping_node.find('outlet').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <outlet> node ({e})", self)
+                try:
+                    self.parser_mapping[DeviceType.GASVALVE] = int(parser_mapping_node.find('gasvalve').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <gasvalve> node ({e})", self)
+                try:
+                    self.parser_mapping[DeviceType.THERMOSTAT] = int(parser_mapping_node.find('thermostat').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <thermostat> node ({e})", self)
+                try:
+                    self.parser_mapping[DeviceType.VENTILATOR] = int(parser_mapping_node.find('ventilator').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <ventilator> node ({e})", self)
+                try:
+                    self.parser_mapping[DeviceType.AIRCONDITIONER] = int(parser_mapping_node.find('airconditioner').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <airconditioner> node ({e})", self)
+                try:
+                    self.parser_mapping[DeviceType.ELEVATOR] = int(parser_mapping_node.find('elevator').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <elevator> node ({e})", self)
+                try:
+                    self.parser_mapping[DeviceType.SUBPHONE] = int(parser_mapping_node.find('subphone').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <subphone> node ({e})", self)
+                try:
+                    self.parser_mapping[DeviceType.BATCHOFFSWITCH] = int(parser_mapping_node.find('batchoffsw').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <batchoffsw> node ({e})", self)
+                try:
+                    self.parser_mapping[DeviceType.HEMS] = int(parser_mapping_node.find('hems').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <hems> node ({e})", self)
 
             verbose_unreg_dev_packet_node = node.find('verbose_unreg_dev_packet')
             if verbose_unreg_dev_packet_node is not None:
                 self.verbose_unreg_dev_packet = bool(int(verbose_unreg_dev_packet_node.text))
 
-            discovery_node = node.find('discovery')
             self.discover_device = False
             enable_discovery = False
+            discovery_node = node.find('discovery')
             if discovery_node is not None:
-                enable_node = discovery_node.find('enable')
-                if enable_node is not None:
+                try:
+                    enable_node = discovery_node.find('enable')
                     enable_discovery = bool(int(enable_node.text))
-                timeout_node = discovery_node.find('timeout')
-                if timeout_node is not None:
+                except Exception as e:
+                    writeLog(f"Failed to read <discovery> - <enable> node ({e})", self)
+                try:
+                    timeout_node = discovery_node.find('timeout')
                     self.discover_timeout = int(timeout_node.text)
-                reload_node = discovery_node.find('reload')
-                if reload_node is not None:
+                except Exception as e:
+                    writeLog(f"Failed to read <discovery> - <timeout> node ({e})", self)
+                try:
+                    reload_node = discovery_node.find('reload')
                     self.discover_reload = bool(int(reload_node.text))
+                except Exception as e:
+                    writeLog(f"Failed to read <discovery> - <reload> node ({e})", self)
             if enable_discovery:
                 self.startDiscoverDevice()
 
             entry_node = node.find('entry')
             dev_entry_cnt = len(list(entry_node))
-            
             for dev_node in list(entry_node):
                 try:
                     tag_name = dev_node.tag.lower()
@@ -409,42 +560,41 @@ class Home:
                             self.discovered_dev_list.append({'type': DeviceType.HEMS, 'index': index, 'room_index': room})
                 except Exception as e:
                     writeLog(f"Failed to load device entry ({e})", self)
+                    traceback.print_exc()
                     continue
         except Exception as e:
             writeLog(f"Failed to load device config ({e})", self)
         
         dev_cnt = len(self.device_list)
-        if dev_cnt > 1:
-            writeLog(f"Total {dev_cnt} Devices added (tag #: {dev_entry_cnt})", self)
-        elif dev_cnt == 1:
-            writeLog(f"Total {dev_cnt} Device added (tag #: {dev_entry_cnt})", self)
+        writeLog(f"Total {dev_cnt} Device(s) added (tag #: {dev_entry_cnt})", self)
 
-        node = root.find('thinq')
+    def loadThinqConfig(self, node: ET.Element):
         try:
             enable = bool(int(node.find('enable').text))
+        except Exception as e:
+            writeLog(f"Failed to load <thinq> - <enable> node ({e})", self)
+            enable = False
+        
+        if enable:
             robot_cleaner_node = node.find('robot_cleaner')
             robot_cleaner_dev_id = robot_cleaner_node.find('dev_id').text
             mqtt_node = node.find('mqtt')
             mqtt_topic = mqtt_node.find('publish').text
             log_mqtt_message = bool(int(mqtt_node.find('log_message').text))
-            if enable:
-                self.thinq = ThinQ(
-                    country_code=node.find('country_code').text,
-                    language_code=node.find('language_code').text,
-                    api_key=node.find('api_key').text,
-                    api_client_id=node.find('api_client_id').text,
-                    refresh_token=node.find('refresh_token').text,
-                    oauth_secret_key=node.find('oauth_secret_key').text,
-                    app_client_id=node.find('app_client_id').text,
-                    app_key=node.find('application_key').text,
-                    robot_cleaner_dev_id=robot_cleaner_dev_id, 
-                    mqtt_topic=mqtt_topic,
-                    log_mqtt_message=log_mqtt_message
-                )
-                self.thinq.sig_publish_mqtt.connect(self.onThinqPublishMQTT)
-        except Exception as e:
-            writeLog(f"Failed to load thinq config ({e})", self)
-            traceback.print_exc()
+            self.thinq = ThinQ(
+                country_code=node.find('country_code').text,
+                language_code=node.find('language_code').text,
+                api_key=node.find('api_key').text,
+                api_client_id=node.find('api_client_id').text,
+                refresh_token=node.find('refresh_token').text,
+                oauth_secret_key=node.find('oauth_secret_key').text,
+                app_client_id=node.find('app_client_id').text,
+                app_key=node.find('application_key').text,
+                robot_cleaner_dev_id=robot_cleaner_dev_id, 
+                mqtt_topic=mqtt_topic,
+                log_mqtt_message=log_mqtt_message
+            )
+            self.thinq.sig_publish_mqtt.connect(self.onThinqPublishMQTT)
 
     def initRS485Connection(self):
         for elem in self.rs485_info_list:
@@ -1314,7 +1464,6 @@ class Home:
             writeXmlFile(root, os.path.join(PROJPATH, 'config.xml'))
         except Exception as e:
             writeLog('saveDiscoverdDevicesToConfigFile::Exception::{}'.format(e), self)
-
 
 
 home_: Union[Home, None] = None
