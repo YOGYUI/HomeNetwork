@@ -220,7 +220,8 @@ class Home:
 
         try:
             node = root.find('thinq')
-            self.loadThinqConfig(node)
+            if node is not None:
+                self.loadThinqConfig(node)
         except Exception:
             writeLog(f"Failed to read <thinq> node", self)
             traceback.print_exc()
