@@ -7,3 +7,4 @@
 /Hillstate-Gwanggyosan/Include/ThinQ/*.pem
 *.sock
 *.pid
+/Hillstate-Gwanggyosan/venv
