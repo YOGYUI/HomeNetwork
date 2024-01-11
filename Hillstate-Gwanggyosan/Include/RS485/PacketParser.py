@@ -98,29 +98,55 @@ class PacketParser:
         writeLog(f"<{self.name}> {message}", self)
 
     def handlePacket(self):
+        # self.log(f'buffer: {self.prettifyPacket(self.buffer)}')
         if self.type_interpret is ParserType.REGULAR:
-            idx = self.buffer.find(0xF7)
-            if idx > 0:
-                self.buffer = self.buffer[idx:]
-            if len(self.buffer) >= 2:
-                packet_length = self.buffer[1]
-                if len(self.buffer) >= packet_length:
-                    if self.buffer[0] == 0xF7 and self.buffer[packet_length - 1] == 0xEE:
-                        self.line_busy = False
-                        packet = self.buffer[:packet_length]
-                        try:
-                            checksum_calc = self.calcXORChecksum(packet[:-2])
-                            checksum_recv = packet[-2]
-                            if checksum_calc == checksum_recv:
-                                self.interpretPacket(packet)
-                            else:
-                                pacstr = self.prettifyPacket(packet)
-                                self.log(f'Checksum Error (calc={checksum_calc}, recv={checksum_recv}) ({pacstr})')
+            count = 0
+            while True:
+                if count >= 10:
+                    self.log(f'failed to interprete buffer ({count} times loop)...')
+                    self.log(f'buffer: {self.prettifyPacket(self.buffer)}')
+                    self.buffer.clear()
+                    break
+                count += 1
+                idx_prefix = self.buffer.find(0xF7)
+                if idx_prefix >= 0:
+                    self.buffer = self.buffer[idx_prefix:]
+                else:
+                    break
+                if len(self.buffer) >= 2:
+                    packet_length = self.buffer[1]
+                    if len(self.buffer) >= packet_length:
+                        if self.buffer[packet_length - 1] == 0xEE:
+                            self.line_busy = False
+                            packet = self.buffer[:packet_length]
                             self.buffer = self.buffer[packet_length:]
-                        except IndexError:
-                            buffstr = self.prettifyPacket(self.buffer)
-                            pacstr = self.prettifyPacket(packet)
-                            self.log(f'Index Error (buffer={buffstr}, packet_len={packet_length}, packet={pacstr})')
+                            try:
+                                checksum_calc = self.calcXORChecksum(packet[:-2])
+                                checksum_recv = packet[-2]
+                                self.interpretPacket(packet)
+                                if checksum_calc != checksum_recv:
+                                    pacstr = self.prettifyPacket(packet)
+                                    self.log(f'Checksum Error (calc={checksum_calc}, recv={checksum_recv}) ({pacstr})')
+                            except IndexError:
+                                buffstr = self.prettifyPacket(self.buffer)
+                                pacstr = self.prettifyPacket(packet)
+                                self.log(f'Index Error (buffer={buffstr}, packet_len={packet_length}, packet={pacstr})')
+                            count -= 1
+                            continue
+                        else:
+                            if len(self.buffer) > 0:
+                                self.buffer = self.buffer[1:]
+                                idx_prefix = self.buffer.find(0xF7)
+                                if idx_prefix >= 0:
+                                    self.buffer = self.buffer[idx_prefix:]
+                                    continue
+                                else:
+                                    self.buffer.clear()
+                                    break
+                    else:
+                        break
+                else:
+                    break
         elif self.type_interpret is ParserType.SUBPHONE:
             idx = self.buffer.find(0x7F)
             if idx > 0:
@@ -142,6 +168,7 @@ class PacketParser:
     def interpretPacket(self, packet: bytearray):
         store: bool = True
         packet_info = {'packet': packet, 'timestamp': datetime.datetime.now()}
+        # self.log(f'packet: {self.prettifyPacket(packet)}')
         try:
             if self.type_interpret == ParserType.REGULAR:
                 if packet[3] == 0x18:  # 난방
