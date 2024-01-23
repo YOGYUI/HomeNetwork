@@ -464,7 +464,7 @@ lock:
     unique_id: "doorlock_frontdoor"
     state_topic: "home/state/doorlock/0/0"
     command_topic: "home/command/doorlock/0/0"
-    value_template: '{{ value_json.state }}'
+    value_template: '{{ value_json.doorlock_state }}'
     payload_lock: '{ "state": "Secured" }'
     payload_unlock: '{ "state": "Unsecured" }'
     state_locked: "Secured"

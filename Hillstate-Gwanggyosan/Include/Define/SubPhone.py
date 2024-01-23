@@ -70,7 +70,7 @@ class SubPhone(Device):
             "unique_id": self.unique_id + "_doorlock",
             "state_topic": self.mqtt_publish_topic,
             "command_topic": self.mqtt_subscribe_topic,
-            "value_template": '{{ value_json.state }}',
+            "value_template": '{{ value_json.doorlock_state }}',
             "payload_lock": '{ "state": "Secured" }',
             "payload_unlock": '{ "state": "Unsecured" }',
             "state_locked": "Secured",

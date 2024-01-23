@@ -17,7 +17,10 @@ class Ventilator(Device):
         self.name = 'Ventilator'
 
     def publishMQTT(self):
-        obj = {"state": self.state}
+        obj = {
+            "state": self.state, 
+            "rotationspeed": 0
+        }
         if self.state:
             if self.rotation_speed == 0x01:
                 obj['rotationspeed'] = 30
