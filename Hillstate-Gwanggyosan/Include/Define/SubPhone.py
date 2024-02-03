@@ -72,8 +72,8 @@ class SubPhone(Device):
             "state_topic": self.mqtt_publish_topic,
             "command_topic": self.mqtt_subscribe_topic,
             "value_template": '{{ value_json.doorlock_state }}',
-            "payload_lock": '{ "state": "Secured" }',
-            "payload_unlock": '{ "state": "Unsecured" }',
+            "payload_lock": '{ "doorlock_state": "Secured" }',
+            "payload_unlock": '{ "doorlock_state": "Unsecured" }',
             "state_locked": "Secured",
             "state_unlocked": "Unsecured",
             "icon": "mdi:door-closed-lock"
