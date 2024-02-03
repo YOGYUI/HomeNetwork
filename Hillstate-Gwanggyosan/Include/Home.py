@@ -513,12 +513,15 @@ class Home:
                             device = SubPhone(name, index, room)
                             device.sig_state_streaming.connect(self.onSubphoneStateStreaming)
                             ffmpeg_node = dev_node.find('ffmpeg')
-                            device.streaming_config['conf_file_path'] = ffmpeg_node.find('conf_file_path').text
-                            device.streaming_config['feed_path'] = ffmpeg_node.find('feed_path').text
-                            device.streaming_config['input_device'] = ffmpeg_node.find('input_device').text
-                            device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
-                            device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
-                            device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
+                            if ffmpeg_node is not None:
+                                device.streaming_config['conf_file_path'] = ffmpeg_node.find('conf_file_path').text
+                                device.streaming_config['feed_path'] = ffmpeg_node.find('feed_path').text
+                                device.streaming_config['input_device'] = ffmpeg_node.find('input_device').text
+                                device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
+                                device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
+                                device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
+                            else:
+                                device.enable_streaming = False
                         elif tag_name == 'hems':
                             device = HEMS(name, index, room)
                         elif tag_name == 'airquality':
@@ -1171,7 +1174,8 @@ class Home:
             subphone: SubPhone = self.findDevice(DeviceType.SUBPHONE, 0, 0)
             if subphone is None:
                 return
-
+            if not subphone.enable_streaming:
+                return
             pipe1, pipe2 = multiprocessing.Pipe(duplex=True)
             args = [subphone.streaming_config, pipe1]
             self.mp_ffserver = multiprocessing.Process(target=procFFServer, name='FFServer', args=tuple(args))
@@ -1200,6 +1204,8 @@ class Home:
         try:
             subphone: SubPhone = self.findDevice(DeviceType.SUBPHONE, 0, 0)
             if subphone is None:
+                return
+            if not subphone.enable_streaming:
                 return
             
             pipe1, pipe2 = multiprocessing.Pipe(duplex=True)

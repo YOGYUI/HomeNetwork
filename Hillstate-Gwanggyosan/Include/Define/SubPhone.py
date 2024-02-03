@@ -31,6 +31,7 @@ class SubPhone(Device):
         self.mqtt_subscribe_topic = f'home/command/subphone/{self.room_index}/{self.index}'
         self.setHomeAssistantConfigTopic()
         self.sig_state_streaming = Callback(int)
+        self.enable_streaming = True
         self.streaming_config = {
             'conf_file_path': '',
             'feed_path': '',
