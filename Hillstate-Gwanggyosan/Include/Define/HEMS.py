@@ -23,10 +23,21 @@ class HEMS(Device):
         pass
 
     def setHomeAssistantConfigTopic(self):
-        pass
+        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}/config'
 
     def configMQTT(self):
-        pass
+        obj = {
+            "name": self.name + "_electricity_current",
+            "object_id": self.unique_id + "_electricity_current",
+            "unique_id": self.unique_id + "_electricity_current",
+            "state_topic": self.mqtt_publish_topic + '/electricity_current',
+            "unit_of_measurement": "W",
+            "value_template": "{{ value_json.value }}",
+            "device_class": "power",
+            "state_class": "measurement"
+        }
+        if self.mqtt_client is not None:
+            self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj), 1, True)
 
     def updateState(self, _: int, **kwargs):
         if 'monitor_data' in kwargs.keys():
