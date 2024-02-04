@@ -583,12 +583,14 @@ class PacketParser:
         elif packet[1] == 0xB4:
             # 서브폰에서 현관문 열림 명령 (서브폰 -> 월패드)
             result['doorlock'] = 0  # Unsecured
+            result['lock_front'] = 0  # Unsecured
             self.log(f'{self.prettifyPacket(packet)} >> Open front door from Subphone')
         elif packet[1] in [0xBB, 0xB8]:
             # 현관 도어폰 통화 종료
             result['ringing_front'] = 0
             result['streaming'] = 0
             result['doorlock'] = 1  # Secured
+            result['lock_front'] = 1  # Secured
             self.log(f'{self.prettifyPacket(packet)} >> Streaming finished')
         else:
             notify = False
@@ -612,6 +614,7 @@ class PacketParser:
             result['ringing_communal'] = 0
             result['streaming'] = 0
             result['doorlock'] = 1  # Secured
+            result['lock_communal'] = 1  # Secured
             self.log(f'{self.prettifyPacket(packet)} >> Streaming finished')
         else:
             notify = False

@@ -95,7 +95,11 @@ class ThreadCommandQueue(threading.Thread):
                         if category == 'streaming':
                             self.set_subphone_streaming_state(dev, target, parser)
                         elif category == 'doorlock':
-                            self.set_doorlock_state(dev, target, parser)
+                            self.set_subphone_doorlock_state(dev, target, parser)
+                        elif category == 'lock_front':
+                            self.set_subphone_lock_front_state(dev, target, parser)
+                        elif category == 'lock_communal':
+                            self.set_subphone_lock_communal_state(dev, target, parser)
                     elif isinstance(dev, BatchOffSwitch):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
@@ -270,7 +274,7 @@ class ThreadCommandQueue(threading.Thread):
         parser.sendPacket(packet)
         dev.updateState(0, streaming=target)
 
-    def set_doorlock_state(self, dev: SubPhone, target: str, parser: PacketParser):
+    def set_subphone_doorlock_state(self, dev: SubPhone, target: str, parser: PacketParser):
         if target == "Unsecured":
             dev.updateState(0, doorlock=0)  # 0: Unsecured
             if dev.state_ringing.value == 2:  # 공동출입문
@@ -288,6 +292,32 @@ class ThreadCommandQueue(threading.Thread):
             parser.sendPacket(dev.makePacketSetVideoStreamingState(0))
         elif target == 'Secured':
             dev.updateState(0, doorlock=1)  # 1: Secured
+
+    def set_subphone_lock_front_state(self, dev: SubPhone, target: str, parser: PacketParser):
+        if target == "Unsecured":
+            dev.updateState(0, lock_front=0)  # 0: Unsecured
+            packet_open = dev.makePacketOpenFrontDoor()
+            if not dev.state_streaming:
+                parser.sendPacket(dev.makePacketSetVideoStreamingState(1))
+                time.sleep(0.2)
+            parser.sendPacket(packet_open)
+            time.sleep(0.2)
+            parser.sendPacket(dev.makePacketSetVideoStreamingState(0))
+        elif target == "Secured":
+            dev.updateState(0, lock_front=1)  # 1: Secured
+
+    def set_subphone_lock_communal_state(self, dev: SubPhone, target: str, parser: PacketParser):
+        if target == "Unsecured":
+            dev.updateState(0, lock_communal=0)  # 0: Unsecured
+            packet_open = dev.makePacketOpenCommunalDoor()
+            if not dev.state_streaming:
+                parser.sendPacket(dev.makePacketSetVideoStreamingState(1))
+                time.sleep(0.2)
+            parser.sendPacket(packet_open)
+            time.sleep(0.2)
+            parser.sendPacket(dev.makePacketSetVideoStreamingState(0))
+        elif target == "Secured":
+            dev.updateState(0, lock_communal=1)  # 1: Secured
 
     """
     def set_doorlock_open(self, dev: DoorLock, parser: PacketParser):

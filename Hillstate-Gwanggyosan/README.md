@@ -402,27 +402,50 @@ default topic: `/home/state/subphone/0/0`
 ```json
 {
     "streaming_state": 1,  // possible value: 0, 1 (numeric)
-    "doorlock_state": "Unsecured"  // possible value: "Unsecured", "Secured", "Jammed", "Unknown"
+    "doorlock_state": "Unsecured",  // possible value: "Unsecured", "Secured", "Jammed", "Unknown"
+    "lock_front_state": "Unsecured",  // possible value: "Unsecured", "Secured", "Jammed", "Unknown"
+    "lock_communal_state": "Unsecured"  // possible value: "Unsecured", "Secured", "Jammed", "Unknown"
 }
 ```
 `streaming_state`: front door camera video streaming state (0 means inactive, 1 means active)<br>
-`doorlock_state`: front door lock state
+`doorlock_state`: front/communal door lock state
 
 additional topic: `/home/state/subphone/0/0/doorbell`
 ```json
 'ON'    // payload is not json format, possible value: 'ON', 'OFF'
 ```
 'ON' means doorbell is ringing
+
+additional topic: `/home/state/subphone/0/0/doorbell/front`
+```json
+{
+    "state": 0 // possible value: 0, 1 (numeric)
+}
+```
+0 = front door ringing idle, 1 = front door is ringing
+
+additional topic: `/home/state/subphone/0/0/doorbell/communal`
+```json
+{
+    "state": 0 // possible value: 0, 1 (numeric)
+}
+```
+0 = communal door ringing idle, 1 = communal door is ringing
+
 ### Application `Subscribe` / IoT platform `Publish`
 default topic: `/home/command/subphone/0/0`
 ```json
 {
     "streaming_state": 0,  // possible value: 0, 1 (numeric)
-    "doorlock_state": "Unsecured"  // possible value: "Unsecured"
+    "doorlock_state": "Unsecured",  // possible value: "Unsecured"
+    "lock_front_state": "Unsecured",  // possible value: "Unsecured"
+    "lock_communal_state": "Unsecured"  // possible value: "Unsecured"
 }
 ```
 `streaming_state`: activate/deactivate front door camera video streaming<br>
 `doorlock_state`: open front door/communal door (only open command is supported)<br>
+`lock_front_state`: open front door (only open command is supported)<br>
+`lock_communal_state`: open communal door (only open command is supported)<br>
 </div>
 </details>
 

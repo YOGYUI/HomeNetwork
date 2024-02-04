@@ -792,7 +792,9 @@ class Home:
                     ringing_front=result.get('ringing_front'),
                     ringing_communal=result.get('ringing_communal'),
                     streaming=result.get('streaming'),
-                    doorlock=result.get('doorlock')
+                    doorlock=result.get('doorlock'),
+                    lock_front=result.get('lock_front'),
+                    lock_communal=result.get('lock_communal')
                 )
             elif dev_type is DeviceType.HEMS:
                 result.pop('device')
@@ -1132,6 +1134,19 @@ class Home:
                     device=device,
                     category='doorlock',
                     target=message['doorlock_state']
+                )
+            # 세대현관문, 공동현관문 분리
+            if 'lock_front_state' in message.keys():
+                self.command(
+                    device=device,
+                    category='lock_front',
+                    target=message['lock_front_state']
+                )
+            if 'lock_communal_state' in message.keys():
+                self.command(
+                    device=device,
+                    category='lock_communal',
+                    target=message['lock_communal_state']
                 )
 
     def onMqttCommandThinq(self, _: str, message: dict):
