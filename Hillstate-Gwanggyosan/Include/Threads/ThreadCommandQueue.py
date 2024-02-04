@@ -310,12 +310,15 @@ class ThreadCommandQueue(threading.Thread):
         if target == "Unsecured":
             dev.updateState(0, lock_communal=0)  # 0: Unsecured
             packet_open = dev.makePacketOpenCommunalDoor()
+            prev_state_ringing = dev.state_ringring_communal
             if not dev.state_streaming:
                 parser.sendPacket(dev.makePacketSetVideoStreamingState(1))
                 time.sleep(0.2)
             parser.sendPacket(packet_open)
             time.sleep(0.2)
             parser.sendPacket(dev.makePacketSetVideoStreamingState(0))
+            if not prev_state_ringing:
+                dev.updateState(0, lock_communal=1)  # 1: Secured
         elif target == "Secured":
             dev.updateState(0, lock_communal=1)  # 1: Secured
 
