@@ -37,7 +37,6 @@ class SubPhone(Device):
         self.unique_id = f'subphone_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/subphone/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/subphone/{self.room_index}/{self.index}'
-        self.setHomeAssistantConfigTopic()
         self.sig_state_streaming = Callback(int)
         self.enable_streaming = True
         self.streaming_config = {
@@ -53,49 +52,49 @@ class SubPhone(Device):
         self.name = 'SubPhone'
 
     def publishMQTT(self):
-        if self.mqtt_client is not None:
-            obj = {
-                "streaming_state": self.state_streaming,
-                "doorlock_state": self.state_doorlock.name,  # 도어락은 상태 조회가 안되고 '열기' 기능만 존재한다
-                "lock_front_state": self.state_lock_front.name,
-                "lock_communal_state": self.state_lock_communal.name,
-            }
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
-            obj = {"state": self.state_lock_front.name}
-            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/front', json.dumps(obj), 1)
-            obj = {"state": self.state_lock_communal.name}
-            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/communal', json.dumps(obj), 1)
+        if self.mqtt_client is None:
+            return
 
-            if not self.init:
+        obj = {
+            "streaming_state": self.state_streaming,
+            "doorlock_state": self.state_doorlock.name,  # 도어락은 상태 조회가 안되고 '열기' 기능만 존재한다
+            "lock_front_state": self.state_lock_front.name,
+            "lock_communal_state": self.state_lock_communal.name,
+        }
+        self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+        obj = {"state": self.state_lock_front.name}
+        self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/front', json.dumps(obj), 1)
+        obj = {"state": self.state_lock_communal.name}
+        self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/communal', json.dumps(obj), 1)
+
+        if not self.init:
+            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'OFF', 1)
+            obj = {"state": 0}
+            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/front', json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/communal', json.dumps(obj), 1)
+
+        if self.state_ringing != self.state_ringing_prev:  # 초인종 호출 상태 알림이 반복적으로 뜨는 것 방지 
+            # writeLog(f"Ringing Publish: Prev={self.state_ringing.name}, Current={self.state_ringing_prev.name}", self)
+            if self.state_ringing in [StateRinging.FRONT, StateRinging.COMMUNAL]:
+                self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'ON', 1)
+            else:
                 self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'OFF', 1)
-                obj = {"state": 0}
-                self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/front', json.dumps(obj), 1)
-                self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/communal', json.dumps(obj), 1)
+        
+        if self.state_ringing_front != self.state_ringing_front_prev:
+            writeLog(f"Front Door Ringing State: Prev={bool(self.state_ringing_front_prev)}, Current={bool(self.state_ringing_front)}", self)
+            obj = {"state": self.state_ringing_front}
+            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/front', json.dumps(obj), 1)
 
-            if self.state_ringing != self.state_ringing_prev:  # 초인종 호출 상태 알림이 반복적으로 뜨는 것 방지 
-                # writeLog(f"Ringing Publish: Prev={self.state_ringing.name}, Current={self.state_ringing_prev.name}", self)
-                if self.state_ringing in [StateRinging.FRONT, StateRinging.COMMUNAL]:
-                    self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'ON', 1)
-                else:
-                    self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'OFF', 1)
-            
-            if self.state_ringing_front != self.state_ringing_front_prev:
-                writeLog(f"Front Door Ringing State: Prev={bool(self.state_ringing_front_prev)}, Current={bool(self.state_ringing_front)}", self)
-                obj = {"state": self.state_ringing_front}
-                self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/front', json.dumps(obj), 1)
+        if self.state_ringring_communal != self.state_ringring_communal_prev:
+            writeLog(f"Communal Door Ringing State: Prev={bool(self.state_ringring_communal_prev)}, Current={bool(self.state_ringring_communal)}", self)
+            obj = {"state": self.state_ringring_communal}
+            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/communal', json.dumps(obj), 1)
 
-            if self.state_ringring_communal != self.state_ringring_communal_prev:
-                writeLog(f"Communal Door Ringing State: Prev={bool(self.state_ringring_communal_prev)}, Current={bool(self.state_ringring_communal)}", self)
-                obj = {"state": self.state_ringring_communal}
-                self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/communal', json.dumps(obj), 1)
-
-    def setHomeAssistantConfigTopic(self):
-        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/lock/{self.unique_id}/config'
-
-    def configMQTT(self):
+    def configMQTT(self, retain: bool = False):
         if self.mqtt_client is None:
             return
         
+        topic = f'{self.ha_discovery_prefix}/lock/{self.unique_id}/config'
         obj = {
             "name": self.name + " Doorlock",
             "object_id": self.unique_id + "_doorlock",
@@ -110,7 +109,7 @@ class SubPhone(Device):
             "state_jammed": "Jammed",
             "icon": "mdi:door-closed-lock",
         }
-        self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj), 1, True)
+        self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
         
         # 세대현관문, 공동현관문 분리
         topic = f'{self.ha_discovery_prefix}/lock/{self.unique_id}_front/config'
@@ -128,7 +127,7 @@ class SubPhone(Device):
             "state_jammed": "Jammed",
             "icon": "mdi:door-closed-lock",
         }
-        self.mqtt_client.publish(topic, json.dumps(obj), 1, True)
+        self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
         topic = f'{self.ha_discovery_prefix}/binary_sensor/{self.unique_id}_front/config'
         obj = {
@@ -141,7 +140,7 @@ class SubPhone(Device):
             "payload_off": '{ "state": 0 }',
             "device_class": "sound",
         }
-        self.mqtt_client.publish(topic, json.dumps(obj), 1, True)
+        self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
         topic = f'{self.ha_discovery_prefix}/lock/{self.unique_id}_communal/config'
         obj = {
@@ -158,7 +157,7 @@ class SubPhone(Device):
             "state_jammed": "Jammed",
             "icon": "mdi:door-closed-lock",
         }
-        self.mqtt_client.publish(topic, json.dumps(obj), 1, True)
+        self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
         topic = f'{self.ha_discovery_prefix}/binary_sensor/{self.unique_id}_communal/config'
         obj = {
@@ -171,7 +170,7 @@ class SubPhone(Device):
             "payload_off": '{ "state": 0 }',
             "device_class": "sound",
         }
-        self.mqtt_client.publish(topic, json.dumps(obj), 1, True)
+        self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
     def updateState(self, _: int, **kwargs):
         streaming = kwargs.get('streaming')

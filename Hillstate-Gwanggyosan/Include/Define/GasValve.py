@@ -9,7 +9,6 @@ class GasValve(Device):
         self.unique_id = f'gasvalve_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/gasvalve/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/gasvalve/{self.room_index}/{self.index}'
-        self.setHomeAssistantConfigTopic()
 
     def setDefaultName(self):
         self.name = 'GasValve'
@@ -19,10 +18,11 @@ class GasValve(Device):
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
     
-    def setHomeAssistantConfigTopic(self):
-        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}/config'
+    def configMQTT(self, retain: bool = False):
+        if self.mqtt_client is None:
+            return
 
-    def configMQTT(self):
+        topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}/config'
         obj = {
             "name": self.name,
             "object_id": self.unique_id,
@@ -34,8 +34,7 @@ class GasValve(Device):
             "payload_off": '{ "state": 0 }',
             "icon": "mdi:pipe-valve"
         }
-        if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj), 1, True)
+        self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
     def makePacketQueryState(self) -> bytearray:
         # F7 0B 01 1B 01 43 11 00 00 B5 EE

@@ -28,7 +28,6 @@ class Device:
     mqtt_client: mqtt.Client = None
     mqtt_publish_topic: str = ''
     mqtt_subscribe_topic: str = ''
-    mqtt_config_topic: str = ''
     ha_discovery_prefix: str = 'homeassistant'
 
     last_published_time: float = time.perf_counter()
@@ -105,7 +104,6 @@ class Device:
 
     def setHomeAssistantDiscoveryPrefix(self, prefix: str):
         self.ha_discovery_prefix = prefix
-        self.setHomeAssistantConfigTopic()
 
     @staticmethod
     def calcXORChecksum(data: Union[bytearray, bytes, List[int]]) -> int:
@@ -116,11 +114,7 @@ class Device:
         pass
 
     @abstractmethod
-    def setHomeAssistantConfigTopic(self):
-        pass
-
-    @abstractmethod
-    def configMQTT(self):
+    def configMQTT(self, retain: bool = False):
         pass
 
     @abstractmethod

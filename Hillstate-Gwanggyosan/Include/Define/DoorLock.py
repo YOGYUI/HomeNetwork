@@ -36,7 +36,6 @@ class DoorLock(Device):
         self.unique_id = f'doorlock_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/doorlock/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/doorlock/{self.room_index}/{self.index}'
-        self.setHomeAssistantConfigTopic()
         self.state = 1
         self.setParams(True, 23)
     
@@ -53,11 +52,8 @@ class DoorLock(Device):
         obj = {"state": state_str}
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
-    
-    def setHomeAssistantConfigTopic(self):
-        pass
 
-    def configMQTT(self):
+    def configMQTT(self, retain: bool = False):
         pass
 
     def setParams(self, enable: bool, gpio_port: int):

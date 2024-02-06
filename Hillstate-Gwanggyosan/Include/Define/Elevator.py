@@ -36,6 +36,7 @@ class Elevator(Device):
     time_arrived: float = 0.
     time_threshold_arrived_change: float = 10.
     dev_info_list: List[DevInfo]
+    ha_dev_config_list: List[dict]
     ready_to_clear: bool = True
 
     time_call_started: float = 0.
@@ -44,16 +45,14 @@ class Elevator(Device):
     state_calling: int = 0
     packet_call_type: int = 0
 
-    mqtt_config_topic2: str = ''
-
     def __init__(self, name: str = 'Elevator', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.ELEVATOR
         self.unique_id = f'elevator_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/elevator/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/elevator/{self.room_index}/{self.index}'
-        self.setHomeAssistantConfigTopic()
         self.dev_info_list = list()
+        self.ha_dev_config_list = list()
     
     def setDefaultName(self):
         self.name = 'Elevator'
@@ -65,24 +64,43 @@ class Elevator(Device):
         return self.packet_call_type
 
     def publishMQTT(self):
+        if self.mqtt_client is None:
+            return
         obj = {
             "state": self.state, 
             "index": [x.index for x in self.dev_info_list],
             "direction": [x.direction.value for x in self.dev_info_list],
             "floor": [x.floor for x in self.dev_info_list]
         }
-        if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+        self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+        self.publishMQTTDevInfo()        
     
-    def setHomeAssistantConfigTopic(self):
-        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}_calldown/config'
-        # TODO: 상행 호출 버튼도 만들어줘야하나?
-        self.mqtt_config_topic2 = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_arrived/config'
+    def publishMQTTDevInfo(self):
+        for elem in self.ha_dev_config_list:
+            ev_index = elem.get('index')
+            dev_find = list(filter(lambda x: x.index == ev_index, self.dev_info_list))
+            if len(dev_find) > 0:
+                dev = dev_find[0]
+                obj = {
+                    "direction": dev.direction.name,
+                    "floor": dev.floor
+                }
+            else:
+                obj = {
+                    "direction": "",
+                    "floor": ""
+                }
+            topic = self.mqtt_publish_topic + f'/dev/{ev_index}'
+            self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
-    def configMQTT(self):
+    def configMQTT(self, retain: bool = False):
+        if self.mqtt_client is None:
+            return
+        
         # 호출 스위치 및 도착 알림용 센서를 위해 디바이스 정보를 각각 발행해야 한다
-        obj1 = {
-            "name": self.name + "_CALLDOWN",
+        topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}_calldown/config'
+        obj = {
+            "name": self.name + " Call (Down)",
             "object_id": self.unique_id + "_calldown",
             "unique_id": self.unique_id + "_calldown",
             "state_topic": self.mqtt_publish_topic,
@@ -92,8 +110,11 @@ class Elevator(Device):
             "payload_off": '{ "state": 0 }',
             "icon": "mdi:elevator"
         }
-        obj2 = {
-            "name": self.name + "_SENSOR",
+        self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_arrived/config'
+        obj = {
+            "name": self.name + " Arrived",
             "object_id": self.unique_id + "_arrived",
             "unique_id": self.unique_id + "_arrived",
             "state_topic": self.mqtt_publish_topic,
@@ -106,10 +127,40 @@ class Elevator(Device):
                                {% endif %}",
             "icon": "mdi:elevator-passenger"
         }
-        if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj1), 1, True)
-            self.mqtt_client.publish(self.mqtt_config_topic2, json.dumps(obj2), 1, True)
+        self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+    def configMQTTDevInfo(self, ev_info: dict, retain: bool = False):
+        if self.mqtt_client is None:
+            return
         
+        index = ev_info.get('index', 0)
+        if ev_info.get('config', False):
+           return
+
+        topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_{index}_floor/config'
+        obj = {
+            "name": self.name + f" #{index} Floor",
+            "object_id": self.unique_id + f"_{index}_floor",
+            "unique_id": self.unique_id + f"_{index}_floor",
+            "state_topic": self.mqtt_publish_topic + f'/dev/{index}',
+            "value_template": "{{ value_json.floor }}",
+            "icon": "mdi:counter"
+        }
+        self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_{index}_direction/config'
+        obj = {
+            "name": self.name + f" #{index} Direction",
+            "object_id": self.unique_id + f"_{index}_direction",
+            "unique_id": self.unique_id + f"_{index}_direction",
+            "state_topic": self.mqtt_publish_topic + f'/dev/{index}',
+            "value_template": "{{ value_json.direction }}",
+            "icon": "mdi:swap-vertical-bold"
+        }
+        self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        ev_info['config'] = True
+        writeLog(f"EV#{index} HA entity configured", self)
 
     def updateState(self, state: int, **kwargs):
         # TODO: 월패드 오류로 인해 미니패드가 계속 눌린 상태일 때는 어떻게하나?
@@ -149,6 +200,19 @@ class Elevator(Device):
                 dev_info.state = State(state)
                 dev_info.direction = Direction(direction)
                 dev_info.floor = floor
+
+                # HA Config MQTT Each Elevators
+                find = list(filter(lambda x: x.get('index') == ev_dev_idx, self.ha_dev_config_list))
+                if len(find) == 0:
+                    elem = {
+                        'index': ev_dev_idx,
+                        'config': False
+                    }
+                    self.ha_dev_config_list.append(elem)
+                else:
+                    elem = find[0]
+                if not elem.get('config', False):
+                    self.configMQTTDevInfo(elem, True)
             
             for e in self.dev_info_list:
                 # 여러대의 엘리베이터 중 한대라도 '도착'이면 state를 1로 전환
@@ -181,6 +245,7 @@ class Elevator(Device):
                 self.state_prev = self.state
             else:
                 if self.state_prev == 1:
+                    self.publishMQTTDevInfo()
                     # 도착 후 상태가 다시 idle로 바뀔 때 시간차가 적으면 occupancy sensor가 즉시 off가 되어
                     # notification이 제대로 되지 않는 문제가 있어, 상태 변화 딜레이를 줘야한다
                     time_elapsed_last_arrived = time.perf_counter() - self.time_arrived

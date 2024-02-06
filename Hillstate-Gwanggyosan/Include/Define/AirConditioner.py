@@ -19,7 +19,6 @@ class AirConditioner(Device):
         self.unique_id = f'airconditioner_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/airconditioner/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/airconditioner/{self.room_index}/{self.index}'
-        self.setHomeAssistantConfigTopic()
         self.temp_range = [0, 100]
     
     def setDefaultName(self):
@@ -55,10 +54,11 @@ class AirConditioner(Device):
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
 
-    def setHomeAssistantConfigTopic(self):
-        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/climate/{self.unique_id}/config'
-
-    def configMQTT(self):
+    def configMQTT(self, retain: bool = False):
+        if self.mqtt_client is None:
+            return
+        
+        topic = f'{self.ha_discovery_prefix}/climate/{self.unique_id}/config'
         obj = {
             "name": self.name,
             "object_id": self.unique_id,
@@ -84,8 +84,7 @@ class AirConditioner(Device):
             "max_temp": self.temp_range[1],
             "precision": 1,
         }
-        if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj), 1, True)
+        self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
     def setTemperatureRange(self, range_min: int, range_max: int):
         self.temp_range[0] = range_min

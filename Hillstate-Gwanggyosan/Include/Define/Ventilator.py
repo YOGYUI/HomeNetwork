@@ -9,7 +9,6 @@ class Ventilator(Device):
         self.unique_id = f'ventilator_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/ventilator/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/ventilator/{self.room_index}/{self.index}'
-        self.setHomeAssistantConfigTopic()
         self.rotation_speed: int = -1
         self.rotation_speed_prev: int = -1
     
@@ -31,10 +30,11 @@ class Ventilator(Device):
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
 
-    def setHomeAssistantConfigTopic(self):
-        self.mqtt_config_topic = f'{self.ha_discovery_prefix}/fan/{self.unique_id}/config'
-
-    def configMQTT(self):
+    def configMQTT(self, retain: bool = False):
+        if self.mqtt_client is None:
+            return
+        
+        topic = f'{self.ha_discovery_prefix}/fan/{self.unique_id}/config'
         obj = {
             "name": self.name,
             "object_id": self.unique_id,
@@ -51,8 +51,7 @@ class Ventilator(Device):
             "speed_range_min": 1,
             "speed_range_max": 100
         }
-        if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_config_topic, json.dumps(obj), 1, True)
+        self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
     def updateState(self, state: int, **kwargs):
         self.state = state

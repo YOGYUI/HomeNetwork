@@ -148,7 +148,7 @@ class Home:
             dev.sig_set_state.connect(partial(self.onDeviceSetState, dev))
             if self.ha_mqtt_discover_enable:
                 dev.setHomeAssistantDiscoveryPrefix(self.ha_mqtt_discover_prefix)
-                dev.configMQTT()
+                dev.configMQTT(True)
 
     def release(self):
         if self.isSubphoneActivated():

@@ -19,7 +19,6 @@ class AirqualitySensor(Device):
         self.unique_id = f'airquality_{self.room_index}_{self.index}'
         self.mqtt_publish_topic = f'home/state/airquality/{self.room_index}/{self.index}'
         self.mqtt_subscribe_topic = f'home/command/airquality/{self.room_index}/{self.index}'
-        self.setHomeAssistantConfigTopic()
         self._measure_data = {
             'khaiGrade': -1,
             'so2Value': 0.0,
@@ -137,8 +136,5 @@ class AirqualitySensor(Device):
         except Exception:
             pass
 
-    def setHomeAssistantConfigTopic(self):
-        pass
-
-    def configMQTT(self):
+    def configMQTT(self, retain: bool = False):
         pass
