@@ -61,6 +61,11 @@ class SubPhone(Device):
                 "lock_communal_state": self.state_lock_communal.name,
             }
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+            obj = {"state": self.state_lock_front.name}
+            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/front', json.dumps(obj), 1)
+            obj = {"state": self.state_lock_communal.name}
+            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/communal', json.dumps(obj), 1)
+
             if not self.init:
                 self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'OFF', 1)
                 obj = {"state": 0}
@@ -113,9 +118,9 @@ class SubPhone(Device):
             "name": self.name + " Lock (Front)",
             "object_id": self.unique_id + "_lock_front",
             "unique_id": self.unique_id + "_lock_front",
-            "state_topic": self.mqtt_publish_topic,
+            "state_topic": self.mqtt_publish_topic + '/doorlock/front',
             "command_topic": self.mqtt_subscribe_topic,
-            "value_template": '{{ value_json.lock_front_state }}',
+            "value_template": '{{ value_json.state }}',
             "payload_lock": '{ "lock_front_state": "Secured" }',
             "payload_unlock": '{ "lock_front_state": "Unsecured" }',
             "state_locked": "Secured",
@@ -143,9 +148,9 @@ class SubPhone(Device):
             "name": self.name + " Lock (Communal)",
             "object_id": self.unique_id + "_lock_communal",
             "unique_id": self.unique_id + "_lock_communal",
-            "state_topic": self.mqtt_publish_topic,
+            "state_topic": self.mqtt_publish_topic + '/doorlock/communal',
             "command_topic": self.mqtt_subscribe_topic,
-            "value_template": '{{ value_json.lock_communal_state }}',
+            "value_template": '{{ value_json.state }}',
             "payload_lock": '{ "lock_communal_state": "Secured" }',
             "payload_unlock": '{ "lock_communal_state": "Unsecured" }',
             "state_locked": "Secured",
@@ -219,6 +224,10 @@ class SubPhone(Device):
             self.state_lock_communal = StateDoorLock(lock_communal)
             self.publishMQTT()
             writeLog(f"Lock Communal: {self.state_lock_communal.name}", self)
+        
+        if not self.init:
+            self.publishMQTT()
+            self.init = True
 
     def makePacketCommon(self, header: int) -> bytearray:
         return bytearray([0x7F, max(0, min(0xFF, header)), 0x00, 0x00, 0xEE])
