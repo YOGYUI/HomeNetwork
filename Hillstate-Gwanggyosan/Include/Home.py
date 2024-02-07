@@ -778,13 +778,15 @@ class Home:
                 rotation_speed = result.get('rotation_speed')
                 device.updateState(state, rotation_speed=rotation_speed)
             elif dev_type is DeviceType.ELEVATOR:
-                state = result.get('state')
                 device.updateState(
-                    state, 
+                    0, 
                     data_type=result.get('data_type'),
+                    command_state=result.get('command_state'),
+                    moving_state=result.get('moving_state'),
+                    call_state=result.get('call_state'),
                     ev_dev_idx=result.get('ev_dev_idx'),
-                    direction=result.get('direction'),
-                    floor=result.get('floor')
+                    floor=result.get('floor'),
+                    packet=result.get('packet'),
                 )
             elif dev_type is DeviceType.SUBPHONE:
                 device.updateState(

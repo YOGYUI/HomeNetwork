@@ -62,7 +62,7 @@ class Thermostat(Device):
         self.temp_range[1] = range_max
         self.temp_current = max(range_min, min(range_max, self.temp_current))
         self.temp_config = max(range_min, min(range_max, self.temp_config))
-        writeLog(f"{str(self)} Set Temperature Range ({self.temp_range[0]}~{self.temp_range[1]}), {self.temp_current}, {self.temp_config}", self)
+        writeLog(f"{str(self)} Set Temperature Range: {self.temp_range[0]} ~ {self.temp_range[1]}", self)
 
     def updateState(self, state: int, **kwargs):
         self.state = state

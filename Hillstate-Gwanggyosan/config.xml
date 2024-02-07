@@ -6,7 +6,7 @@
         <log>1</log>
     </webserver>
     <rs485>
-        <reconnect_limit>30</reconnect_limit>  <!-- 단위: 초 -->
+        <reconnect_limit>60</reconnect_limit>  <!-- 단위: 초 -->
         <port>
             <name>light</name>
             <index>0</index>

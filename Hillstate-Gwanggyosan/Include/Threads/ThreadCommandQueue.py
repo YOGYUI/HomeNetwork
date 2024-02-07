@@ -251,11 +251,13 @@ class ThreadCommandQueue(threading.Thread):
             packet_command = dev.makePacketCallUpside()
         elif target == 6:
             packet_command = dev.makePacketCallDownside()
+        # elif target == 0:
+        #    packet_command = dev.makePacketRevokeCall()
         else:
             return
         interval, retry_cnt = self.getSendParams(parser)
         while cnt < retry_cnt:
-            if dev.state == target:
+            if dev.state_call == target:
                 break
             if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
@@ -267,7 +269,7 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_elevator_call({})::send # = {}, elapsed = {:g} msec'.format(target, cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
-        dev.publishMQTT()
+        # dev.publishMQTT()
 
     def set_subphone_streaming_state(self, dev: SubPhone, target: int, parser: PacketParser):
         packet = dev.makePacketSetVideoStreamingState(target)

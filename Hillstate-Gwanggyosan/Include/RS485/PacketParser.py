@@ -475,36 +475,33 @@ class PacketParser:
             # YY: 현재 층수 (string encoded), ex) 지하3층 = B3, 5층 = 05
             # ZZ: 호기, ex) 01=1호기, 02=2호기, ...
             # **: Checksum (XOR SUM)
-            state_h = (packet[8] & 0xF0) >> 4  # 상위 4비트, 0x0: stopped, 0xA: moving (up), 0x0B: moving (down)
+            state_h = (packet[8] & 0xF0) >> 4  # 상위 4비트, 0x0: stopped, 0xA: moving upside, 0x0B: moving downside
             state_l = packet[8] & 0x0F  # 하위 4비트, 0x0: idle, 0x1: arrived, 0x5: command (up), 0x6: command (down)
             floor = '{:02X}'.format(packet[9])
             ev_dev_idx = packet[10]  # 엘리베이터 n호기, 2대 이상의 정보가 교차로 들어오게 됨, idle일 경우 0
 
-            state = 0  # idle (command done, command off)
+            command_state = 0
+            moving_state = 0
             if state_h == 0x0:
-                direction = 0
-                if state_l == 0x1:
-                    state = 1  # arrived
-            else:
-                direction = 0
-                if state_h == 0xA:  # Up
-                    direction = 5
-                elif state_h == 0xB:  # Down
-                    direction = 6
-                if state_l == 0x5:  # Up
-                    state = 5
-                elif state_l == 0x6:  # Down
-                    state = 6
-                
+                if state_l == 0x1:  # packet[8] = 0x01
+                    moving_state = 1
+                else:  # packet[8] = 0x00
+                    pass
+            elif state_h == 0xA:  # packet[8] = 0xA*
+                command_state = state_l
+                moving_state = 5
+            elif state_h == 0xB:  # packet[8] = 0xB*
+                command_state = state_l
+                moving_state = 6
             result = {
                 'device': DeviceType.ELEVATOR,
                 'data_type': 'query',
-                'state': state,
+                'command_state': command_state,
+                'moving_state': moving_state,
                 'ev_dev_idx': ev_dev_idx,
-                'direction': direction,
-                'floor': floor
+                'floor': floor,
+                'packet': self.prettifyPacket(packet)
             }
-            # print(f'Query: {self.prettifyPacket(packet)}, {result}')
             self.updateDeviceState(result)
         elif packet[4] == 0x02:
             pass
@@ -513,13 +510,13 @@ class PacketParser:
             # XX: 하위 4비트: 6 = 하행 호출  ** 상행 호출에 해당하는 5 값은 발견되지 않는다
             # YY: Checksum (XOR SUM)
             # 미니패드의 '엘리베이터 호출' 버튼의 상태를 반환함
-            state = packet[8] & 0x0F  # 0 = idle, 6 = command (하행) 호출
+            call_state = packet[8] & 0x0F  # 0 = idle, 6 = command (하행) 호출
             result = {
                 'device': DeviceType.ELEVATOR,
                 'data_type': 'response',
-                'state': state
+                'call_state': call_state,
+                'packet': self.prettifyPacket(packet)
             }
-            # print(f'Response: {self.prettifyPacket(packet)}, {result}')
             self.updateDeviceState(result)
 
     def handleEnergyMonitoring(self, packet: bytearray):

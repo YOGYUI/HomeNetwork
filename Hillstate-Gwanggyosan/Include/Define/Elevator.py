@@ -3,13 +3,13 @@ from Device import *
 from enum import IntEnum
 
 
-class Direction(IntEnum):
-    UNKNOWN = 0
-    UP = 5
-    DOWN = 6
+class CommandState(IntEnum):
+    IDLE = 0
+    UPSIDE = 5
+    DOWNSIDE = 6
 
 
-class State(IntEnum):
+class MovingState(IntEnum):
     IDLE = 0
     ARRIVED = 1
     MOVINGUP = 5
@@ -18,18 +18,20 @@ class State(IntEnum):
 
 class DevInfo:
     index: int  # n호기
-    state: State
-    direction: Direction
+    command_state: CommandState
+    moving_state: MovingState
     floor: str
+    floor_prev: str
 
     def __init__(self, index: int):
         self.index = index
-        self.state = State.IDLE
-        self.direction = Direction.UNKNOWN
+        self.command_state = CommandState.IDLE
+        self.moving_state = MovingState.IDLE
         self.floor = ''
+        self.floor_prev = ''
 
     def __repr__(self) -> str:
-        return f'<Elevator({self.index}) - STAT:{self.state.name}, DIR:{self.direction.name}, FLOOR:{self.floor}>'
+        return f'<Elevator#{self.index}: Command State: {self.command_state.name}, Moving State:{self.moving_state.name}, FLOOR:{self.floor}>'
 
 
 class Elevator(Device):
@@ -42,8 +44,11 @@ class Elevator(Device):
     time_call_started: float = 0.
     time_threshold_check_duration: float = 10.
 
-    state_calling: int = 0
     packet_call_type: int = 0
+
+    state_call: int = 0  # 미니월패드 호출중 상태, 0 = idle, 5 = 상행호출중(미지원), 6 = 하행호출중
+    state_call_prev: int = 0
+    arrived_flag: bool = False
 
     def __init__(self, name: str = 'Elevator', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
@@ -67,13 +72,11 @@ class Elevator(Device):
         if self.mqtt_client is None:
             return
         obj = {
-            "state": self.state, 
-            "index": [x.index for x in self.dev_info_list],
-            "direction": [x.direction.value for x in self.dev_info_list],
-            "floor": [x.floor for x in self.dev_info_list]
+            "state": self.state if not self.arrived_flag else 1
         }
         self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
-        self.publishMQTTDevInfo()        
+        self.publishMQTTDevInfo()
+        # writeLog(f"pub <{self.mqtt_publish_topic}>: {obj}", self)
     
     def publishMQTTDevInfo(self):
         for elem in self.ha_dev_config_list:
@@ -81,9 +84,12 @@ class Elevator(Device):
             dev_find = list(filter(lambda x: x.index == ev_index, self.dev_info_list))
             if len(dev_find) > 0:
                 dev = dev_find[0]
+                moving_state = dev.moving_state
+                direction = moving_state.name if moving_state in [MovingState.MOVINGUP, MovingState.MOVINGDOWN] else ""
+                floor = dev.floor if moving_state in [MovingState.MOVINGUP, MovingState.MOVINGDOWN] else ""
                 obj = {
-                    "direction": dev.direction.name,
-                    "floor": dev.floor
+                    "direction": direction.replace("MOVING", ""),
+                    "floor": floor
                 }
             else:
                 obj = {
@@ -92,6 +98,7 @@ class Elevator(Device):
                 }
             topic = self.mqtt_publish_topic + f'/dev/{ev_index}'
             self.mqtt_client.publish(topic, json.dumps(obj), 1)
+            # writeLog(f"pub <{topic}>: {obj}", self)
 
     def configMQTT(self, retain: bool = False):
         if self.mqtt_client is None:
@@ -129,134 +136,138 @@ class Elevator(Device):
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
-    def configMQTTDevInfo(self, ev_info: dict, retain: bool = False):
+    def configMQTTDevInfo(self, ev_dev_idx: int, retain: bool = False):
         if self.mqtt_client is None:
             return
         
-        index = ev_info.get('index', 0)
-        if ev_info.get('config', False):
-           return
+        find = list(filter(lambda x: x.get('index') == ev_dev_idx, self.ha_dev_config_list))
+        if len(find) == 0:
+            ev_info = {
+                'index': ev_dev_idx,
+                'config': False
+            }
+            self.ha_dev_config_list.append(ev_info)
+        else:
+            ev_info = find[0]
 
-        topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_{index}_floor/config'
-        obj = {
-            "name": self.name + f" #{index} Floor",
-            "object_id": self.unique_id + f"_{index}_floor",
-            "unique_id": self.unique_id + f"_{index}_floor",
-            "state_topic": self.mqtt_publish_topic + f'/dev/{index}',
-            "value_template": "{{ value_json.floor }}",
-            "icon": "mdi:counter"
-        }
-        self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+        if not ev_info.get('config', False):
+            topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_{ev_dev_idx}_floor/config'
+            obj = {
+                "name": self.name + f" #{ev_dev_idx} Floor",
+                "object_id": self.unique_id + f"_{ev_dev_idx}_floor",
+                "unique_id": self.unique_id + f"_{ev_dev_idx}_floor",
+                "state_topic": self.mqtt_publish_topic + f'/dev/{ev_dev_idx}',
+                "value_template": "{{ value_json.floor }}",
+                "icon": "mdi:counter"
+            }
+            self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
-        topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_{index}_direction/config'
-        obj = {
-            "name": self.name + f" #{index} Direction",
-            "object_id": self.unique_id + f"_{index}_direction",
-            "unique_id": self.unique_id + f"_{index}_direction",
-            "state_topic": self.mqtt_publish_topic + f'/dev/{index}',
-            "value_template": "{{ value_json.direction }}",
-            "icon": "mdi:swap-vertical-bold"
-        }
-        self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+            topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_{ev_dev_idx}_direction/config'
+            obj = {
+                "name": self.name + f" #{ev_dev_idx} Direction",
+                "object_id": self.unique_id + f"_{ev_dev_idx}_direction",
+                "unique_id": self.unique_id + f"_{ev_dev_idx}_direction",
+                "state_topic": self.mqtt_publish_topic + f'/dev/{ev_dev_idx}',
+                "value_template": "{{ value_json.direction }}",
+                "icon": "mdi:swap-vertical-bold"
+            }
+            self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
-        ev_info['config'] = True
-        writeLog(f"EV#{index} HA entity configured", self)
+            ev_info['config'] = True
+            writeLog(f"EV#{ev_dev_idx} HA entity configured", self)
 
-    def updateState(self, state: int, **kwargs):
-        # TODO: 월패드 오류로 인해 미니패드가 계속 눌린 상태일 때는 어떻게하나?
+    def updateState(self, _: int, **kwargs):
         data_type = kwargs.get('data_type')
         if data_type == 'query':
-            # 월패드 -> 복도 미니패드 상태 쿼리 패킷 (packet[4] == 0x01)
-            ev_dev_idx = kwargs.get('ev_dev_idx')
-            direction = kwargs.get('direction')
-            floor = kwargs.get('floor')
-            if ev_dev_idx == 0:  # idle 상태
-                if self.ready_to_clear and len(self.dev_info_list) > 0:
-                    self.dev_info_list.clear()
-                """
-                if self.state_prev in [5, 6]:  # '도착' 정보가 담긴 패킷을 놓치는 경우에 대한 처리
-                    if time.perf_counter() - self.time_call_started > self.time_threshold_check_duration:
-                        writeLog(f"Arrived (Missing Packet) ({self.state}, {self.state_prev})", self)
-                        self.state = 1
-                        self.state_prev = 0
-                else:
-                    self.state = 0
-                """
-                if self.state_calling != 0:
-                    if self.state_prev in [5, 6]:
-                        writeLog(f"Arrived (Missing Packet) ({self.state}, {self.state_prev})", self)
-                        self.state = 1
-                        self.state_prev = self.state_calling
-                else:
-                    self.state = 0
-            else:
+            command_state = CommandState(kwargs.get('command_state', 0))  # possible values: 0(idle), 5(command up), 6(command down)
+            moving_state = MovingState(kwargs.get('moving_state', 0))  # possible values: 0(idle), 1(arrived), 5(moving upside), 6(moving downside)
+            ev_dev_idx = kwargs.get('ev_dev_idx', 0)
+            floor = kwargs.get('floor', '')
+            # packet = kwargs.get('packet')
+            # writeLog(f"[Q] command: {command_state.name}, moving: {moving_state.name}, index: {ev_dev_idx}, floor: {floor}")
+            if command_state != CommandState.IDLE:
+                # if CommandState(self.state_call) == command_state:
+                #    self.state = self.state_call
+
                 find = list(filter(lambda x: x.index == ev_dev_idx, self.dev_info_list))
                 if len(find) == 0:
                     dev_info = DevInfo(ev_dev_idx)
+                    writeLog(f"EV#{ev_dev_idx} object is not in list, appending", self)
                     self.dev_info_list.append(dev_info)
                     self.dev_info_list.sort(key=lambda x: x.index)
                 else:
                     dev_info = find[0]
-                dev_info.state = State(state)
-                dev_info.direction = Direction(direction)
+                dev_info.command_state = command_state
+                dev_info.moving_state = moving_state
                 dev_info.floor = floor
-
-                # HA Config MQTT Each Elevators
-                find = list(filter(lambda x: x.get('index') == ev_dev_idx, self.ha_dev_config_list))
-                if len(find) == 0:
-                    elem = {
-                        'index': ev_dev_idx,
-                        'config': False
-                    }
-                    self.ha_dev_config_list.append(elem)
-                else:
-                    elem = find[0]
-                if not elem.get('config', False):
-                    self.configMQTTDevInfo(elem, True)
-            
-            for e in self.dev_info_list:
-                # 여러대의 엘리베이터 중 한대라도 '도착'이면 state를 1로 전환
-                if e.state == State.ARRIVED:
-                    if self.state_prev != 1:
-                        # elapsed = time.perf_counter() - self.time_call_started
-                        writeLog(f"Arrived (#{e.index})", self)
+                self.configMQTTDevInfo(ev_dev_idx, True)  # HA Config MQTT Each Elevators
+                self.publishMQTTDevInfo()
+            else:
+                if moving_state == MovingState.IDLE:
+                    if CommandState(self.state_call) == command_state:
+                        self.state = 0
+                elif moving_state == MovingState.ARRIVED:
                     self.state = 1
-                    break
+                for dev in self.dev_info_list:
+                    dev.command_state = CommandState.IDLE
+                    dev.moving_state = MovingState.IDLE
+                    dev.floor = ''
+                self.publishMQTTDevInfo()
         elif data_type == 'response':
-            # 복도 미니패드 -> 월패드 상태 응답 패킷 (packet[4] == 0x04)
-            # state값은 0(idle) 혹은 6(하행 호출)만 전달됨
-            self.state = state
-            self.state_calling = state
-            if self.state != 0:  # 0이 아니면 미니패드가 엘리베이터를 '호출한 상태'
-                self.time_call_started = time.perf_counter()
-                if self.state_prev == 0:
-                    writeLog("Called", self)
+            self.state_call = kwargs.get('call_state', 0)
+            # writeLog(f"[R] call: {self.state_call}")
+            # packet = kwargs.get('packet')
+            if self.state_call != self.state_call_prev:
+                if self.state_call:
+                    self.state = self.state_call
+                    writeLog(f"Started calling ({self.state_call})", self)
+                    self.time_call_started = time.perf_counter()
+                else:
+                    writeLog(f"Finished calling", self)
+            self.state_call_prev = self.state_call
         
+        # console log current floor
+        ev_dev_info_str = ''
+        diff_floor = False
+        for dev in self.dev_info_list:
+            if dev.command_state is not CommandState.IDLE:
+                    ev_dev_info_str += f'EV#{dev.index} Floor: {dev.floor} ({dev.moving_state.name}), '
+            if dev.floor != dev.floor_prev:
+                diff_floor = True
+            dev.floor_prev = dev.floor
+        if len(ev_dev_info_str) > 0 and diff_floor:
+            writeLog(ev_dev_info_str[:-2], self)
+
+        if self.state != self.state_prev:
+            writeLog(f"State changed from {self.state_prev} to {self.state}", self)
+            self.arrived_flag = False
+            if self.state_prev == 0 and self.state in [5, 6]:
+                self.publishMQTT()
+            elif self.state_prev in [5, 6]:
+                if self.state == 1:
+                    self.time_arrived = time.perf_counter()
+                    elapsed = self.time_arrived - self.time_call_started
+                    writeLog("Arrived! (elapsed from call start: {:g} sec)".format(elapsed), self)
+                    self.publishMQTT()
+                elif self.state == 0:
+                    elapsed = time.perf_counter() - self.time_call_started
+                    writeLog("Called but did not arrived (maybe wallpad error(timeout), elapsed from call start: {:g} sec)".format(elapsed), self)
+                    self.publishMQTT()
+            elif self.state_prev == 1 and self.state == 0:
+                writeLog("Set arrived flag", self)
+                self.arrived_flag = True
+        self.state_prev = self.state
+
+        if self.arrived_flag:
+            elapsed = time.perf_counter() - self.time_arrived
+            if elapsed > self.time_threshold_arrived_change:
+                writeLog("Clear arrived flag (elapsed from flag set: {:g} sec)".format(elapsed), self)
+                self.arrived_flag = False
+                self.publishMQTT()
+
         if not self.init:
             self.publishMQTT()
             self.init = True
-
-        if self.state != self.state_prev:
-            if self.state == 1:  # Arrived
-                self.ready_to_clear = False
-                self.time_arrived = time.perf_counter()
-                writeLog("State changed as <arrived>, elapsed: {:g} sec".format(self.time_arrived - self.time_call_started), self)
-                self.publishMQTT()
-                self.state_prev = self.state
-            else:
-                if self.state_prev == 1:
-                    self.publishMQTTDevInfo()
-                    # 도착 후 상태가 다시 idle로 바뀔 때 시간차가 적으면 occupancy sensor가 즉시 off가 되어
-                    # notification이 제대로 되지 않는 문제가 있어, 상태 변화 딜레이를 줘야한다
-                    time_elapsed_last_arrived = time.perf_counter() - self.time_arrived
-                    if time_elapsed_last_arrived > self.time_threshold_arrived_change:
-                        writeLog(f"Ready to rollback state (idle) ({self.state}, {self.state_prev})", self)
-                        self.ready_to_clear = True
-                        self.publishMQTT()
-                        self.state_prev = self.state
-                else:
-                    self.publishMQTT()
-                    self.state_prev = self.state
     
     def makePacketCallDownside(self) -> bytearray:
         # 하행 호출
@@ -283,3 +294,15 @@ class Elevator(Device):
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
         return packet
+
+    """
+    def makePacketRevokeCall(self) -> bytearray:
+        packet = bytearray([0xF7, 0x0B, 0x01, 0x34])
+        if self.packet_call_type == 1:
+            packet.extend([0x04, 0x41, 0x10, 0x00, 0x00])
+        else:
+            packet.extend([0x02, 0x41, 0x10, 0x00, 0x00])
+        packet.append(self.calcXORChecksum(packet))
+        packet.append(0xEE)
+        return packet
+    """
