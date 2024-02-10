@@ -8,3 +8,4 @@
 *.sock
 *.pid
 /Hillstate-Gwanggyosan/venv
+/Hillstate-Gwanggyosan/test.sh

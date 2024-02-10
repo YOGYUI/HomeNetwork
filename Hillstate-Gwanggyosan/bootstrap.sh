@@ -1,4 +1,11 @@
-script_dir=$(dirname $(realpath $"0"))
+if [ -n "${BASH_SOURCE-}" ]; then
+    script_path="${BASH_SOURCE}"
+elif [ -n "${ZSH_VERSION-}" ]; then
+    script_path="${(%):-%x}"
+else
+    script_path=$0
+fi
+script_dir=$(dirname $(realpath $script_path))
 
 # create python virtual environment
 PY_VENV_PATH=${script_dir}/venv
