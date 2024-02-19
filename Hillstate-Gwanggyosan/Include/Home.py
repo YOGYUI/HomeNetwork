@@ -82,6 +82,7 @@ class Home:
 
     ha_mqtt_discover_enable: bool = False
     ha_mqtt_discover_prefix: str = 'homeassistant'
+    ha_mqtt_topic_status: str = 'homeassistant/status'
 
     verbose_unreg_dev_packet: bool = False
 
@@ -146,9 +147,8 @@ class Home:
         for dev in self.device_list:
             dev.setMqttClient(self.mqtt_client)
             dev.sig_set_state.connect(partial(self.onDeviceSetState, dev))
-            if self.ha_mqtt_discover_enable:
-                dev.setHomeAssistantDiscoveryPrefix(self.ha_mqtt_discover_prefix)
-                dev.configMQTT(True)
+            dev.setHomeAssistantDiscoveryPrefix(self.ha_mqtt_discover_prefix)
+            dev.configMQTT()
 
     def release(self):
         if self.isSubphoneActivated():
@@ -842,6 +842,7 @@ class Home:
 
     def startMqttSubscribe(self):
         self.mqtt_client.subscribe('home/command/system')
+        self.mqtt_client.subscribe(self.ha_mqtt_topic_status)
         for dev in self.device_list:
             self.mqtt_client.subscribe(dev.mqtt_subscribe_topic)
         if self.thinq is not None:
@@ -882,8 +883,12 @@ class Home:
             if self.enable_mqtt_console_log:
                 writeLog('Mqtt Client Message: {}, {}'.format(userdata, message), self)
             topic = message.topic
-            msg_dict = json.loads(message.payload.decode("utf-8"))
-            writeLog(f'MQTT Message: {topic}: {msg_dict}', self)
+            payload = message.payload.decode("utf-8")
+            try:
+                msg_dict = json.loads(payload)
+                writeLog(f'MQTT Message: {topic}: {msg_dict}', self)
+            except Exception:
+                msg_dict = dict()
             if 'command/system' in topic:
                 self.onMqttCommandSystem(topic, msg_dict)
             if 'command/light' in topic:
@@ -906,6 +911,13 @@ class Home:
                 self.onMqttCommandThinq(topic, msg_dict)
             if 'command/batchoffsw' in topic:
                 self.onMqttCommandBatchOffSwitch(topic, msg_dict)
+            if self.ha_mqtt_topic_status in topic:
+                if payload == 'online':
+                    writeLog(f'Homeassistant has been started', self)
+                    for dev in self.device_list:
+                        dev.configMQTT()
+                elif payload == 'offline':
+                    writeLog(f'Homeassistant has been started', self)
             """
             if 'command/doorlock' in topic:
                 self.onMqttCommandDookLock(topic, msg_dict)
