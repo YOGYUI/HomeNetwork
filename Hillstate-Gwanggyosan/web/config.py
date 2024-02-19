@@ -1,4 +1,5 @@
 import os
+import shutil
 from flask import Flask
 import xml.etree.ElementTree as ET
 
@@ -14,6 +15,11 @@ class Config:
         curpath = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/web
         projpath = os.path.dirname(curpath)  # {$PROJECT}
         xml_path = os.path.join(projpath, 'config.xml')
+    
+        if not os.path.isfile(xml_path):
+            xml_default_path = os.path.join(projpath, 'config_default.xml')
+            if os.path.isfile(xml_default_path):
+                shutil.copy(xml_default_path, xml_path)
 
         try:
             if os.path.isfile(xml_path):

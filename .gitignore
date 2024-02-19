@@ -9,3 +9,4 @@
 *.pid
 /Hillstate-Gwanggyosan/venv
 /Hillstate-Gwanggyosan/test.sh
+/Hillstate-Gwanggyosan/config.xml

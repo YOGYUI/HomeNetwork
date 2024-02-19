@@ -5,7 +5,6 @@ flask_httpauth
 flask_bootstrap
 werkzeug
 paho-mqtt==1.6.1
-# PyQt5
 pyserial
 requests
 beautifulsoup4

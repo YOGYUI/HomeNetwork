@@ -2,7 +2,7 @@
 <config>
     <webserver>
         <host>0.0.0.0</host>
-        <port>1234</port>
+        <port>7929</port>
         <log>0</log>
     </webserver>
     <rs485>
