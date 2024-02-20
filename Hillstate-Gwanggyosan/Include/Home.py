@@ -916,8 +916,9 @@ class Home:
                     writeLog(f'Homeassistant has been started', self)
                     for dev in self.device_list:
                         dev.configMQTT()
+                    self.publish_all()
                 elif payload == 'offline':
-                    writeLog(f'Homeassistant has been started', self)
+                    writeLog(f'Homeassistant has been terminated', self)
             """
             if 'command/doorlock' in topic:
                 self.onMqttCommandDookLock(topic, msg_dict)

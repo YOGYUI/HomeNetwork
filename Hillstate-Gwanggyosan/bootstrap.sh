@@ -15,4 +15,5 @@ python3 -m venv ${PY_VENV_PATH}
 source ${PY_VENV_PATH}/bin/activate
 
 # install python packages
-pip install -r ${script_dir}/requirements.txt
+pip install --upgrade pip
+pip install --no-cache-dir -r ${script_dir}/requirements.txt
