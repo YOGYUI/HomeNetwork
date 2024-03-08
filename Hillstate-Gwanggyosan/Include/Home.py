@@ -507,6 +507,9 @@ class Home:
                             packet_call_type_node = dev_node.find('packet_call_type')
                             packet_call_type = int(packet_call_type_node.text) if packet_call_type_node is not None else 0
                             device.setPacketCallType(packet_call_type)
+                            check_command_method_node = dev_node.find('check_command_method')
+                            check_command_method = int(check_command_method_node.text) if check_command_method_node is not None else 0
+                            device.setCheckCommandMethod(check_command_method)
                         elif tag_name == 'batchoffsw':
                             device = BatchOffSwitch(name, index, room)
                         elif tag_name == 'subphone':
@@ -1398,6 +1401,7 @@ class Home:
                 elif dev_type is DeviceType.ELEVATOR:
                     entry_info['type'] = 'elevator'
                     entry_info['packet_call_type'] = 0
+                    entry_info['check_command_method'] = 0
                 elif dev_type is DeviceType.SUBPHONE:
                     entry_info['type'] = 'subphone'
                     entry_info['ffmpeg'] = {

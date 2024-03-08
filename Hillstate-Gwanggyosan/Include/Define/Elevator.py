@@ -16,6 +16,11 @@ class MovingState(IntEnum):
     MOVINGDOWN = 6
 
 
+class CheckCommandMethod(IntEnum):
+    CALL_STATE = 0
+    DEV_CMD_STATE = 1
+
+
 class DevInfo:
     index: int  # n호기
     command_state: CommandState
@@ -50,6 +55,8 @@ class Elevator(Device):
     state_call_prev: int = 0
     arrived_flag: bool = False
 
+    check_command_method: CheckCommandMethod = CheckCommandMethod.CALL_STATE
+
     def __init__(self, name: str = 'Elevator', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.ELEVATOR
@@ -67,6 +74,12 @@ class Elevator(Device):
     
     def getPacketCallType(self) -> int:
         return self.packet_call_type
+
+    def setCheckCommandMethod(self, value: int):
+        try:
+            self.check_command_method = CheckCommandMethod(value)
+        except Exception:
+            self.check_command_method = CheckCommandMethod.CALL_STATE
 
     def publishMQTT(self):
         if self.mqtt_client is None:
@@ -184,7 +197,7 @@ class Elevator(Device):
             ev_dev_idx = kwargs.get('ev_dev_idx', 0)
             floor = kwargs.get('floor', '')
             # packet = kwargs.get('packet')
-            # writeLog(f"[Q] command: {command_state.name}, moving: {moving_state.name}, index: {ev_dev_idx}, floor: {floor}")
+            # writeLog(f"[Q] command: {command_state.name}, moving: {moving_state.name}, index: {ev_dev_idx}, floor: {floor}, packet: {packet}")
             if command_state != CommandState.IDLE:
                 # if CommandState(self.state_call) == command_state:
                 #    self.state = self.state_call
@@ -215,14 +228,15 @@ class Elevator(Device):
                 self.publishMQTTDevInfo()
         elif data_type == 'response':
             self.state_call = kwargs.get('call_state', 0)
-            # writeLog(f"[R] call: {self.state_call}")
             # packet = kwargs.get('packet')
+            # writeLog(f"[R] call: {self.state_call}, packet: {packet}")
             if self.state_call != self.state_call_prev:
                 if self.state_call:
                     self.state = self.state_call
                     writeLog(f"Started calling ({self.state_call})", self)
                     self.time_call_started = time.perf_counter()
                 else:
+                    # 0 = IDLE
                     writeLog(f"Finished calling", self)
             self.state_call_prev = self.state_call
         
@@ -306,3 +320,15 @@ class Elevator(Device):
         packet.append(0xEE)
         return packet
     """
+
+    def check_call_command_done(self, target: int) -> bool:
+        if self.check_command_method is CheckCommandMethod.CALL_STATE:
+            if self.state_call == target:
+                writeLog(f"check command done: call state is now <{target}>", self)
+                return True
+        elif self.check_command_method is CheckCommandMethod.DEV_CMD_STATE:
+            for info in self.dev_info_list:
+                if info.command_state in [target, 1]:
+                    writeLog(f"check command done: dev<{info.index}> command state is now <{info.command_state}>", self)
+                    return True
+        return False
