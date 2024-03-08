@@ -28,6 +28,7 @@
             </ew11>
             <check>1</check>
             <buffsize>64</buffsize>
+            <thermo_len_per_dev>3</thermo_len_per_dev>
         </port>
     </rs485>
     <mqtt>

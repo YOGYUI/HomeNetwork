@@ -37,6 +37,8 @@ class PacketParser:
 
     log_send_result: bool = True
 
+    thermo_len_per_dev: int = 3  # 난방 노멀 쿼리 > 각 기기당 바이트 수는 3 혹은 8?
+
     # for debugging (todo: remove or refactoring)
     enable_store_packet_header_18: bool = False
     enable_store_packet_header_19: bool = False
@@ -397,9 +399,9 @@ class PacketParser:
             pass
         elif packet[4] == 0x04:  # 상태 응답
             if room_idx == 0:  # 일반 쿼리 (존재하는 모든 디바이스)
-                thermostat_count = (len(packet) - 10) // 3
+                thermostat_count = (len(packet) - 10) // self.thermo_len_per_dev
                 for idx in range(thermostat_count):
-                    dev_packet = packet[8 + idx * 3: 8 + (idx + 1) * 3]
+                    dev_packet = packet[8 + idx * self.thermo_len_per_dev: 8 + (idx + 1) * self.thermo_len_per_dev]
                     if dev_packet[0] != 0x00:  # 0이면 존재하지 않는 디바이스
                         state = 0 if dev_packet[0] == 0x04 else 1                            
                         temp_current = dev_packet[1]  # 현재 온도

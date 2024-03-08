@@ -316,6 +316,12 @@ class Home:
                     writeLog(f"Failed to read <ew11>-<port> node ({e})", self)
                     cfg.socket_port = 8899
             
+            try:
+                thermo_len_per_dev = int(cnode.find('thermo_len_per_dev').text)
+            except Exception as e:
+                writeLog(f"Failed to read <thermo_len_per_dev> node ({e})", self)
+                thermo_len_per_dev = 3
+            
             cfg.enable = enable
             cfg.comm_type = RS485HwType(hwtype)
             cfg.check_connection = check
@@ -324,6 +330,7 @@ class Home:
                 rs485.sig_connected.connect(self.onRS485SubPhoneConnected)
             parser = PacketParser(rs485, name, index, ParserType(packettype))
             parser.setBufferSize(buffsize)
+            parser.thermo_len_per_dev = thermo_len_per_dev
             parser.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
             self.rs485_info_list.append(RS485Info(rs485, cfg, parser, index))
             writeLog(f"Create RS485 Instance (name: {name})")
