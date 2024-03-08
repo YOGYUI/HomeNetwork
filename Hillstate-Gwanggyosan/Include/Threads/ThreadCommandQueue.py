@@ -256,8 +256,9 @@ class ThreadCommandQueue(threading.Thread):
         else:
             return
         interval, retry_cnt = self.getSendParams(parser)
+        
         while cnt < retry_cnt:
-            if dev.state_call == target:
+            if dev.check_call_command_done(target):
                 break
             if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
