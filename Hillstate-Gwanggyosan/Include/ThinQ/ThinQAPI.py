@@ -70,6 +70,8 @@ class ThinQ:
     device_discover_list: List[dict]
     discovered_device_id_list: List[str]
     robot_cleaner_dev_id: str = ''
+    robot_cleaner_state: str = ''
+    robot_cleaner_prev_state: str = ''
     mqtt_topic: str = ''
 
     thread_query_devices: Union[ThreadQueryDevices, None] = None
@@ -105,24 +107,26 @@ class ThinQ:
         self.generate_rsa_csr_pemfiles()
         self.get_aws_root_ca_pem()
 
-    def start(self):
-        if not self.query_thinq_uris():
+        self.startThreadQueryDevices()
+
+    def start(self, verbose: bool = True):
+        if not self.query_thinq_uris(verbose):
             return
-        if not self.query_oauth_uris():
+        if not self.query_oauth_uris(verbose):
             return
-        if not self.query_access_token():
+        if not self.query_access_token(verbose):
             return
-        if not self.query_user_number():
+        if not self.query_user_number(verbose):
             return
-        if not self.query_jsession_id():
+        if not self.query_jsession_id(verbose):
             return
-        if not self.query_home_device_list():
+        if not self.query_home_device_list(verbose):
             return
-        if not self.get_certificate_from_server():
+        if not self.get_certificate_from_server(verbose):
             return
         if not self.connect_mqtt_broker():
             return
-        self.startThreadQueryDevices()
+        # self.startThreadQueryDevices()
 
     def stop(self):
         if self.mqtt_client is not None:
@@ -130,13 +134,14 @@ class ThinQ:
             self.mqtt_client.disconnect()
             del self.mqtt_client
             self.mqtt_client = None
-        self.stopThreadQueryDevices()
+        # self.stopThreadQueryDevices()
 
     def restart(self):
         self.stop()
-        self.start()
+        self.start(verbose=False)
 
     def release(self):
+        self.stopThreadQueryDevices()
         self.stop()
         self.client_id = None
         self.user_no = None
@@ -198,7 +203,7 @@ class ThinQ:
             headers['x-thinq-jsessionId'] = self.jsession_id
         return headers    
     
-    def query_thinq_uris(self) -> bool:
+    def query_thinq_uris(self, verbose: bool = True) -> bool:
         result: bool
         url = "https://route.lgthinq.com:46030/v1/service/application/gateway-uri"
         response = requests.get(url, headers=self.generate_default_header())
@@ -207,15 +212,16 @@ class ThinQ:
             result = response_json.get('result')
             self.uri_thinq1 = result.get('thinq1Uri')
             self.uri_thinq2 = result.get('thinq2Uri')
-            elapsed = response.elapsed.microseconds
-            writeLog('query thinq uri success ({:g} msec)'.format(elapsed / 1000), self)
+            if verbose:
+                elapsed = response.elapsed.microseconds
+                writeLog('query thinq uri success ({:g} msec)'.format(elapsed / 1000), self)
             result = True
         else:
             writeLog(f'failed to query thinq uri ({response.status_code}, {response.text})', self)
             result = False
         return result
     
-    def query_oauth_uris(self) -> bool:
+    def query_oauth_uris(self, verbose: bool = True) -> bool:
         result: bool
         if self.uri_thinq1 is None:
             writeLog(f'thinq uri is not queried yet!', self)
@@ -238,15 +244,16 @@ class ThinQ:
             response_json = json.loads(response.text)
             lgemdRoot = response_json.get('lgedmRoot')
             self.uri_oauth = lgemdRoot.get('oauthUri')
-            elapsed = response.elapsed.microseconds
-            writeLog('query oauth uri success ({:g} msec)'.format(elapsed / 1000), self)
+            if verbose:
+                elapsed = response.elapsed.microseconds
+                writeLog('query oauth uri success ({:g} msec)'.format(elapsed / 1000), self)
             result = True
         else:
             writeLog(f'failed to query oauth uri ({response.status_code}, {response.text})', self)
             result = False
         return result
 
-    def query_access_token(self) -> bool:
+    def query_access_token(self, verbose: bool = True) -> bool:
         result: bool
         if self.uri_oauth is None:
             writeLog(f'oauth uri is not queried yet!', self)
@@ -274,15 +281,16 @@ class ThinQ:
             response_json = json.loads(response.text)
             self.access_token = response_json.get('access_token')
             # expires_in_ = int(response_json.get('expires_in'))
-            elapsed = response.elapsed.microseconds
-            writeLog('query access token success ({:g} msec)'.format(elapsed / 1000), self)
+            if verbose:
+                elapsed = response.elapsed.microseconds
+                writeLog('query access token success ({:g} msec)'.format(elapsed / 1000), self)
             result = True
         else:
             writeLog(f'failed to query access token ({response.status_code}, {response.text})', self)
             result = False
         return result
 
-    def query_user_number(self) -> bool:
+    def query_user_number(self, verbose: bool = True) -> bool:
         result: bool
         if self.access_token is None:
             writeLog(f'access token is not queried yet!', self)
@@ -308,8 +316,9 @@ class ThinQ:
             response_json = json.loads(response.text)
             account = response_json.get('account')
             self.user_no = account.get('userNo')
-            elapsed = response.elapsed.microseconds
-            writeLog('query user number success ({:g} msec)'.format(elapsed / 1000), self)
+            if verbose:
+                elapsed = response.elapsed.microseconds
+                writeLog('query user number success ({:g} msec)'.format(elapsed / 1000), self)
             # create client id
             obj_hash = hashlib.sha256()
             now = int(datetime.datetime.now().timestamp())
@@ -321,7 +330,7 @@ class ThinQ:
             result = False
         return result
 
-    def query_jsession_id(self) -> bool:
+    def query_jsession_id(self, verbose: bool = True) -> bool:
         result: bool
         if self.access_token is None:
             writeLog(f'access token is not queried yet!', self)
@@ -346,8 +355,9 @@ class ThinQ:
             response_json = json.loads(response.text)
             lgemdRoot = response_json.get('lgedmRoot')
             self.jsession_id = lgemdRoot.get('jsessionId')
-            elapsed = response.elapsed.microseconds
-            writeLog('query jsession id success ({:g} msec)'.format(elapsed / 1000), self)
+            if verbose:
+                elapsed = response.elapsed.microseconds
+                writeLog('query jsession id success ({:g} msec)'.format(elapsed / 1000), self)
             result = True
         else:
             writeLog(f'failed to query jsession id ({response.status_code}, {response.text})', self)
@@ -380,7 +390,7 @@ class ThinQ:
             if verbose:
                 self.print_device_discover_list()
             for elem in self.device_discover_list:
-                self.handleDeviceState(elem.get('deviceId'), elem.get('snapshot'), verbose)
+                self.handleDeviceState(elem.get('deviceId'), elem.get('snapshot'))
             return True
         else:
             writeLog(f'failed to query home - device list ({response.status_code}, {response.text})', self)
@@ -419,7 +429,7 @@ class ThinQ:
             with open(csr_pem_path, 'w') as fp:
                 fp.write(csr_pem)
 
-    def get_certificate_from_server(self) -> bool:
+    def get_certificate_from_server(self, verbose: bool = True) -> bool:
         result: bool
         if self.uri_thinq2 is None:
             writeLog(f'thinq uri is not queried yet!', self)
@@ -453,8 +463,9 @@ class ThinQ:
                 self.subscribe_topics.clear()
                 subscriptions = result.get('subscriptions')  # 구독할 Topic
                 self.subscribe_topics.extend(subscriptions)
-                elapsed = response.elapsed.microseconds
-                writeLog('query certificate success ({:g} msec)'.format(elapsed / 1000), self)
+                if verbose:
+                    elapsed = response.elapsed.microseconds
+                    writeLog('query certificate success ({:g} msec)'.format(elapsed / 1000), self)
                 result = True
             else:
                 writeLog(f'failed to query certificate ({response.status_code}, {response.text})', self)
@@ -464,7 +475,7 @@ class ThinQ:
             result = False
         return result
 
-    def get_aws_root_ca_pem(self) -> bool:
+    def get_aws_root_ca_pem(self, verbose: bool = True) -> bool:
         result: bool
         rootca_pem_path = os.path.join(CURPATH, 'aws_root_ca.pem')
         if os.path.isfile(rootca_pem_path):
@@ -476,8 +487,9 @@ class ThinQ:
             rootca_pem = response.text
             with open(rootca_pem_path, 'w') as fp:
                 fp.write(rootca_pem)
-            elapsed = response.elapsed.microseconds
-            writeLog('query root CA from AWS ({:g} msec)'.format(elapsed / 1000), self)
+            if verbose:
+                elapsed = response.elapsed.microseconds
+                writeLog('query root CA from AWS ({:g} msec)'.format(elapsed / 1000), self)
             result = True
         else:
             writeLog(f'failed to query root CA from AWS ({response.status_code}, {response.text})', self)
@@ -555,23 +567,24 @@ class ThinQ:
     def setEnableLogMqttMessage(self, enable: bool):
         self.log_mqtt_message = enable
 
-    def handleDeviceState(self, device_id: str, state: dict, verbose: bool = True):
+    def handleDeviceState(self, device_id: str, state: dict):
         try:
             if device_id == self.robot_cleaner_dev_id:
-                robot_state = state.get('ROBOT_STATE')
-                if robot_state is not None:
-                    # possible state: 'SLEEP', 'CHARGING', 'INITAILIZING', 'CLEAN_SELECT', 'HOMING', 'CLEAN_EDGE', 
-                    # 'PAUSE_EDGE', 'HOMING_PAUSE', 'PAUSE_SELECT' ...,
-                    # {'EMERGENCY': 'ROBOT_LIFT', 'ROBOT_STUCK'}
-                    if verbose:
-                        writeLog(f'Robot Cleaner Current State: {robot_state}', self)
-                    topic = self.mqtt_topic + '/robotcleaner'
-                    if 'CLEAN' in robot_state or robot_state in ['INITAILIZING', 'HOMING']:
-                        cleaning = 1
-                    else:
-                        cleaning = 0
-                    message = {'cleaning': cleaning}
-                    self.sig_publish_mqtt.emit(topic, message)
+                self.robot_cleaner_state = state.get('ROBOT_STATE')
+                # possible state: 'SLEEP', 'CHARGING', 'INITAILIZING', 'CLEAN_SELECT', 'HOMING', 'CLEAN_EDGE', 
+                # 'PAUSE_EDGE', 'HOMING_PAUSE', 'PAUSE_SELECT' ...,
+                # {'EMERGENCY': 'ROBOT_LIFT', 'ROBOT_STUCK'}
+                if self.robot_cleaner_state is not None:
+                    if self.robot_cleaner_state != self.robot_cleaner_prev_state:
+                        writeLog(f'Robot Cleaner Current State: {self.robot_cleaner_state}', self)
+                        topic = self.mqtt_topic + '/robotcleaner'
+                        if 'CLEAN' in self.robot_cleaner_state or self.robot_cleaner_state in ['INITAILIZING', 'HOMING']:
+                            cleaning = 1
+                        else:
+                            cleaning = 0
+                        message = {'cleaning': cleaning}
+                        self.sig_publish_mqtt.emit(topic, message)
+                    self.robot_cleaner_prev_state = self.robot_cleaner_state
         except Exception as e:
             writeLog(f'handleDeviceState::exception {e}')
 
