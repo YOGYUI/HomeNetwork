@@ -75,6 +75,7 @@ class ThinQ:
     mqtt_topic: str = ''
 
     thread_query_devices: Union[ThreadQueryDevices, None] = None
+    access_token_expire_time: datetime.datetime = datetime.datetime.now()
 
     def __init__(self, **kwargs):
         self.sig_publish_mqtt = Callback(str, dict)
@@ -280,10 +281,12 @@ class ThinQ:
         if response.status_code == 200:
             response_json = json.loads(response.text)
             self.access_token = response_json.get('access_token')
-            # expires_in_ = int(response_json.get('expires_in'))
+            expires_in = int(response_json.get('expires_in'))  # 단위: 초 (3600초 = 60분 = 1시간)
+            now = datetime.datetime.now()
+            self.access_token_expire_time = now + datetime.timedelta(seconds=expires_in)
             if verbose:
                 elapsed = response.elapsed.microseconds
-                writeLog('query access token success ({:g} msec)'.format(elapsed / 1000), self)
+                writeLog('query access token success ({:g} msec), expires in {:d} seconds'.format(elapsed / 1000, expires_in), self)
             result = True
         else:
             writeLog(f'failed to query access token ({response.status_code}, {response.text})', self)
@@ -602,6 +605,12 @@ class ThinQ:
     
     def onThreadQueryDevicesAction(self):
         self.query_home_device_list(False)
+        expire_remain = self.access_token_expire_time - datetime.datetime.now()
+        remain_seconds = expire_remain.seconds
+        if remain_seconds <= 60.0:
+            # 만료되기 전에 다시 갱신
+            writeLog("Access token is about to be expired, restarting...", self)
+            self.restart()
 
     def onThreadQueryDevicesTerminated(self):
         del self.thread_query_devices

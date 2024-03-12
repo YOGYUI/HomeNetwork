@@ -48,16 +48,9 @@ class Callback(object):
             callback(*args)
 
 
-def timestampToString(timestamp: datetime.datetime):
-    h = timestamp.hour
-    m = timestamp.minute
-    s = timestamp.second
-    us = timestamp.microsecond
-    return '%02d:%02d:%02d.%06d' % (h, m, s, us)
-
-
 def getCurTimeStr():
-    return '<%s>' % timestampToString(datetime.datetime.now())
+    now = datetime.datetime.now()
+    return '<%04d-%02d-%02d %02d:%02d:%02d.%03d>' % (now.year, now.month, now.day, now.hour, now.minute, now.second, now.microsecond // 1000)
 
 
 def writeLog(strMsg: str, obj: object = None):
