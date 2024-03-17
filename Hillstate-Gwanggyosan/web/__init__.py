@@ -7,7 +7,7 @@ del CURPATH
 from flask import Flask
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
-from config import config
+from config import Config, get_app_config
 
 bootstrap = Bootstrap()
 moment = Moment()
@@ -15,9 +15,11 @@ moment = Moment()
 
 def create_webapp():
     app = Flask(__name__)
-    app.config.from_object(config)
 
-    config.init_app(app)
+    app_config: Config = get_app_config()
+    app.config.from_object(app_config)
+
+    app_config.init_app(app)
     bootstrap.init_app(app)
     moment.init_app(app)
 

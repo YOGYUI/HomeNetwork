@@ -10,6 +10,7 @@ from collections import OrderedDict
 import paho.mqtt.client as mqtt
 import xml.etree.ElementTree as ET
 import multiprocessing
+import subprocess
 from Define import *
 from Threads import *
 from RS485 import *
@@ -50,6 +51,7 @@ class Home:
     device_list: List[Device]
     config_tree: Union[ET.ElementTree, None] = None
     thinq: ThinQ = None
+    config_file_path: str = None
 
     thread_cmd_queue: Union[ThreadCommandQueue, None] = None
     thread_parse_result_queue: Union[ThreadParseResultQueue, None] = None
@@ -86,7 +88,7 @@ class Home:
 
     verbose_unreg_dev_packet: bool = False
 
-    def __init__(self, name: str = 'Home', init_service: bool = True):
+    def __init__(self, name: str = 'Home', init_service: bool = True, config_file_path: str = None):
         self.name = name
         self.device_list = list()
         self.discovered_dev_list = list()
@@ -105,6 +107,9 @@ class Home:
             DeviceType.BATCHOFFSWITCH: 0,
             DeviceType.HEMS: 0,
         }
+        self.config_file_path = config_file_path
+        if self.config_file_path is None:
+            self.config_file_path = os.path.join(PROJPATH, 'config.xml')
         self.initialize(init_service, False)
     
     def initialize(self, init_service: bool, connect_rs485: bool):
@@ -190,11 +195,10 @@ class Home:
         return topics
 
     def loadConfig(self):
-        xml_path = os.path.join(PROJPATH, 'config.xml')
-        if not os.path.isfile(xml_path):
+        if not os.path.isfile(self.config_file_path):
             self.config_tree = None
             return
-        self.config_tree = ET.parse(xml_path)
+        self.config_tree = ET.parse(self.config_file_path)
         root = self.config_tree.getroot()
 
         try:
@@ -1304,6 +1308,7 @@ class Home:
         self.thread_discovery = None
 
         self.saveDiscoverdDevicesToConfigFile()
+        self.deactivateHaAddonDiscoveryOption()
         if self.discover_reload:
             self.restart()
         else:
@@ -1509,18 +1514,53 @@ class Home:
                 parser_mapping_node.append(child_node)
             child_node.text = str(self.parser_mapping.get(DeviceType.HEMS, 0))
 
-            writeXmlFile(root, os.path.join(PROJPATH, 'config.xml'))
+            writeXmlFile(root, self.config_file_path)
         except Exception as e:
             writeLog('saveDiscoverdDevicesToConfigFile::Exception::{}'.format(e), self)
+
+    def deactivateHaAddonDiscoveryOption(self):
+        try:
+            if not os.path.isfile('/usr/bin/bashio'):
+                writeLog('cannot locate bashio', self)
+                return False
+
+            # create shell script file
+            tmp_path = os.path.join(CURPATH, 'temp.sh')
+            with open(tmp_path, 'w') as fp:
+                fp.write("\n".join([
+                    "#!/usr/bin/env bashio", 
+                    "$(bashio::addon.option 'discovery.activate' ^false)"
+                    ]))
+
+            if not os.path.isfile(tmp_path):
+                writeLog('Failed to create temp shell script', self)
+                return
+            
+            # call shell script using bashio
+            cmd = f"/usr/bin/bashio {tmp_path}"
+            with subprocess.Popen(cmd,
+                shell=True, 
+                stdin=subprocess.PIPE, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.STDOUT
+            ) as subproc:
+                buff = subproc.stdout.read()
+                msg = f"deactivateHaAddonDiscoveryOption::bashio call result:{buff.decode(encoding='UTF-8', errors='ignore')}"
+                writeLog(msg, self)
+            
+            # remove shell script file
+            os.remove(tmp_path)
+        except Exception as e:
+            writeLog('deactivateHaAddonDiscoveryOption::Exception::{}'.format(e), self)
 
 
 home_: Union[Home, None] = None
 
 
-def get_home(name: str = '') -> Home:
+def get_home(name: str = '', config_file_path: str = None) -> Home:
     global home_
     if home_ is None:
-        home_ = Home(name=name)
+        home_ = Home(name=name, config_file_path=config_file_path)
     return home_
 
 
