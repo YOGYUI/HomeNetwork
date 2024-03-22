@@ -239,7 +239,7 @@ class Home:
             traceback.print_exc()
         
     def loadRS485Config(self, node: ET.Element):
-        writeLog("Loading RS485 configurations")
+        writeLog("Loading RS485 configurations", self)
         try:
             self.rs485_reconnect_limit = int(node.find('reconnect_limit').text)
         except Exception as e:
@@ -583,25 +583,28 @@ class Home:
                     else:
                         # 이미 config에 등록된 기기는 탐색 시 제외해야 한다 (중복 등록 방지)
                         if tag_name == 'light':
-                            self.discovered_dev_list.append({'type': DeviceType.LIGHT, 'index': index, 'room_index': room})
+                            devtype = DeviceType.LIGHT
                         elif tag_name == 'outlet':
-                            self.discovered_dev_list.append({'type': DeviceType.OUTLET, 'index': index, 'room_index': room})
+                            devtype = DeviceType.OUTLET
                         elif tag_name == 'thermostat':
-                            self.discovered_dev_list.append({'type': DeviceType.THERMOSTAT, 'index': index, 'room_index': room})
+                            devtype = DeviceType.THERMOSTAT
                         elif tag_name == 'airconditioner':
-                            self.discovered_dev_list.append({'type': DeviceType.AIRCONDITIONER, 'index': index, 'room_index': room})
+                            devtype = DeviceType.AIRCONDITIONER
                         elif tag_name == 'gasvalve':
-                            self.discovered_dev_list.append({'type': DeviceType.GASVALVE, 'index': index, 'room_index': room})
+                            devtype = DeviceType.GASVALVE
                         elif tag_name == 'ventilator':
-                            self.discovered_dev_list.append({'type': DeviceType.VENTILATOR, 'index': index, 'room_index': room})
+                            devtype = DeviceType.VENTILATOR
                         elif tag_name == 'elevator':
-                            self.discovered_dev_list.append({'type': DeviceType.ELEVATOR, 'index': index, 'room_index': room})
+                            devtype = DeviceType.ELEVATOR
                         elif tag_name == 'batchoffsw':
-                            self.discovered_dev_list.append({'type': DeviceType.BATCHOFFSWITCH, 'index': index, 'room_index': room})
+                            devtype = DeviceType.BATCHOFFSWITCH
                         elif tag_name == 'subphone':
-                            self.discovered_dev_list.append({'type': DeviceType.SUBPHONE, 'index': index, 'room_index': room})
+                            devtype = DeviceType.SUBPHONE
                         elif tag_name == 'hems':
-                            self.discovered_dev_list.append({'type': DeviceType.HEMS, 'index': index, 'room_index': room})
+                            devtype = DeviceType.HEMS
+                        else:
+                            continue
+                        self.discovered_dev_list.append({'type': devtype, 'index': index, 'room_index': room, 'parser_index': self.parser_mapping[devtype]})
                 except Exception as e:
                     writeLog(f"Failed to load device entry ({e})", self)
                     traceback.print_exc()
@@ -609,8 +612,11 @@ class Home:
         except Exception as e:
             writeLog(f"Failed to load device config ({e})", self)
         
-        dev_cnt = len(self.device_list)
-        writeLog(f"Total {dev_cnt} Device(s) added (tag #: {dev_entry_cnt})", self)
+        if not self.discover_device:
+            dev_cnt = len(self.device_list)
+            writeLog(f"Total {dev_cnt} Device(s) added (tag #: {dev_entry_cnt})", self)
+        else:
+            writeLog("Start device discovery!", self)
 
     def loadThinqConfig(self, node: ET.Element):
         try:
@@ -1380,15 +1386,9 @@ class Home:
     def updateDiscoverDeviceList(self, result: dict):
         try:
             dev_type: DeviceType = result.get('device')
-            dev_idx: int = result.get('index')
-            if dev_idx is None:
-                dev_idx = 0
-            room_index: int = result.get('room_index')
-            if room_index is None:
-                room_index = 0
-            parser_index: int = result.get('parser_index')
-            if parser_index is None:
-                parser_index = 0
+            dev_idx: int = result.get('index', 0)
+            room_index: int = result.get('room_index', 0)
+            parser_index: int = result.get('parser_index', 0)
             
             if self.findDevice(dev_type, dev_idx, room_index):
                 return
@@ -1406,6 +1406,45 @@ class Home:
             writeLog(f"discovered {dev_type.name} (index: {dev_idx}, room: {room_index}, parser index: {parser_index})", self)
         except Exception as e:
             writeLog('updateDiscoverDeviceList::Exception::{} ({})'.format(e, result), self)
+
+    def getRegisteredDeviceList(self, entry_node: ET.Element) -> List[dict]:
+        registered = list()
+        for elem in list(entry_node):
+            entry = dict()
+            if elem.tag == 'light':
+                entry['type'] = DeviceType.LIGHT
+            elif elem.tag == 'outlet':
+                entry['type'] = DeviceType.OUTLET
+            elif elem.tag == 'thermostat':
+                entry['type'] = DeviceType.THERMOSTAT
+            elif elem.tag == 'airconditioner':
+                entry['type'] = DeviceType.AIRCONDITIONER
+            elif elem.tag == 'gasvalve':
+                entry['type'] = DeviceType.GASVALVE
+            elif elem.tag == 'ventilator':
+                entry['type'] = DeviceType.VENTILATOR
+            elif elem.tag == 'elevator':
+                entry['type'] = DeviceType.ELEVATOR
+            elif elem.tag == 'subphone':
+                entry['type'] = DeviceType.SUBPHONE
+            elif elem.tag == 'batchoffsw':
+                entry['type'] = DeviceType.BATCHOFFSWITCH
+            elif elem.tag == 'hems':
+                entry['type'] = DeviceType.HEMS
+            else:
+                continue
+            try:
+                child = elem.find('index')
+                entry['index'] = int(child.text)
+            except Exception:
+                entry['index'] = None
+            try:
+                child = elem.find('room')
+                entry['room_index'] = int(child.text)
+            except Exception:
+                entry['room_index'] = None
+            registered.append(entry)
+        return registered
 
     def saveDiscoverdDevicesToConfigFile(self):
         try:
@@ -1429,12 +1468,18 @@ class Home:
                 device_node.append(entry_node)
 
             self.discovered_dev_list.sort(key=lambda x: (x.get('type').value, x.get('room_index'), x.get('index')))
+            registered = self.getRegisteredDeviceList(entry_node)
 
             for elem in self.discovered_dev_list:
                 dev_type: DeviceType = elem.get('type')
                 dev_idx: int = elem.get('index')
                 room_index: int = elem.get('room_index')
                 parser_index: int = elem.get('parser_index')
+
+                find = list(filter(lambda x: x.get('type') == dev_type and x.get('index') == dev_idx and x.get('room_index') == room_index, registered))
+                if len(find) > 0:
+                    # writeLog(f"{dev_type.name} (index: {dev_idx}, room: {room_index}) is already registered", self)
+                    continue
 
                 entry_info = OrderedDict()
                 if room_index > 0:
