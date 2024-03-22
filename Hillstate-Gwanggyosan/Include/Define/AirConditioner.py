@@ -136,7 +136,7 @@ class AirConditioner(Device):
 
     def makePacketQueryState(self) -> bytearray:
         # F7 0B 01 1C 01 40 XX 00 00 YY EE
-        # XX: 상위 4비트=공간 인덱스, 하위 4비트=디바이스 인덱스 (1-based
+        # XX: 상위 4비트=공간 인덱스, 하위 4비트=디바이스 인덱스 (1-based)
         # YY: Checksum (XOR SUM)
         packet = bytearray([0xF7, 0x0B, 0x01, 0x1C, 0x01, 0x40])
         packet.append((self.room_index << 4) + (self.index + 1))

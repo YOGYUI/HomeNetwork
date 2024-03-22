@@ -73,7 +73,8 @@ class Ventilator(Device):
         # F7 0B 01 2B 01 40 11 00 00 XX EE
         # XX: Checksum (XOR SUM)
         packet = bytearray([0xF7, 0x0B, 0x01, 0x2B, 0x01, 0x40])
-        packet.extend([0x11, 0x00, 0x00])
+        packet.append(0x11)
+        packet.extend([0x00, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
         return packet

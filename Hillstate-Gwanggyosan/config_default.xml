@@ -67,6 +67,11 @@
             <timeout>60</timeout>
             <reload>1</reload>
         </discovery>
+        <periodic_query_state>
+            <enable>0</enable>
+            <period>100</period>
+            <verbose>0</verbose>
+        </periodic_query_state>
         <entry>
         </entry>
     </device>

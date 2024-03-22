@@ -23,6 +23,8 @@ class ThreadCommandQueue(threading.Thread):
         self._queue = queue_
         self._retry_cnt = 10
         self._delay_response = 0.4
+        self.sig_start_seq = Callback()
+        self.sig_finish_seq = Callback()
         self.sig_terminated = Callback()
 
     def run(self):
@@ -46,6 +48,7 @@ class ThreadCommandQueue(threading.Thread):
                         writeLog('parser is not designated', self)
                         continue
 
+                    self.sig_start_seq.emit()
                     if isinstance(dev, Light):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
@@ -109,6 +112,7 @@ class ThreadCommandQueue(threading.Thread):
                             if target == 'Unsecured':
                                 self.set_doorlock_open(dev, parser)
                     """
+                    self.sig_finish_seq.emit()
                 except Exception as e:
                     writeLog(str(e), self)
             else:

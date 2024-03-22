@@ -22,6 +22,9 @@ parser.add_argument(
     '--parser_mapping', 
     help='RS485 parser mapping configuration (json formatted string)')
 parser.add_argument(
+    '--periodic_query_state', 
+    help='Periodic query state configuration (json formatted string)')
+parser.add_argument(
     '--etc', 
     help='Other optional configuration (json formatted string)')
 args = parser.parse_args()
@@ -48,6 +51,10 @@ try:
     app_config.set_config_parser_mapping(json.loads(args.parser_mapping))
 except Exception as e:
     print(f'no <parser_mapping> argument ({e})')
+try:
+    app_config.set_config_periodic_query_state(json.loads(args.periodic_query_state))
+except Exception as e:
+    print(f'no <periodic_query_state> argument ({e})')
 try:
     app_config.set_config_etc(json.loads(args.etc))
 except Exception as e:

@@ -10,3 +10,4 @@ from ThreadTimer import ThreadTimer
 from ThreadParseResultQueue import ThreadParseResultQueue
 from ThreadEnergyMonitor import ThreadEnergyMonitor
 from ThreadDiscovery import ThreadDiscovery
+from ThreadQueryState import ThreadQueryState

@@ -93,7 +93,8 @@ class Thermostat(Device):
         # F7 0B 01 18 01 46 10 00 00 XX EE
         # XX: Checksum (XOR SUM)
         packet = bytearray([0xF7, 0x0B, 0x01, 0x18, 0x01, 0x46])
-        packet.extend([0x10, 0x00, 0x00])
+        packet.append(0x10 + self.room_index)
+        packet.extend([0x00, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
         return packet

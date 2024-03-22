@@ -55,7 +55,8 @@ class Outlet(Device):
         # XX: 상위 4비트 = Room Index, 하위 4비트 = 0
         # YY: Checksum (XOR SUM)
         packet = bytearray([0xF7, 0x0B, 0x01, 0x1F, 0x01, 0x40])
-        packet.append(self.room_index << 4)
+        # packet.append(self.room_index << 4)
+        packet.append((self.room_index << 4) + (self.index + 1))
         packet.extend([0x00, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)

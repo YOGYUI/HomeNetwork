@@ -266,6 +266,38 @@ class Config:
         except Exception as e:
             print(f'Config::set_config_parser_mapping::Exception {e}')
 
+    def set_config_periodic_query_state(self, cfg: dict):
+        if not os.path.isfile(self._config_file_path):
+            return
+        try:
+            root = ET.parse(self._config_file_path).getroot()
+            node = root.find('device')
+            if node is None:
+                return
+            elem = node.find('periodic_query_state')
+            if elem is None:
+                elem = ET.Element('periodic_query_state')
+                node.append(elem)
+            elem2 = elem.find('enable')
+            if elem2 is None:
+                elem2 = ET.Element('enable')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('enable')))
+            elem2 = elem.find('period')
+            if elem2 is None:
+                elem2 = ET.Element('period')
+                elem.append(elem2)
+            elem2.text = str(cfg.get('period'))
+            elem2 = elem.find('verbose')
+            if elem2 is None:
+                elem2 = ET.Element('verbose')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose')))
+
+            writeXmlFile(root, self._config_file_path)
+        except Exception as e:
+            print(f'Config::set_config_periodic_query_state::Exception {e}')
+
     def set_config_etc(self, cfg: dict):
         if not os.path.isfile(self._config_file_path):
             return

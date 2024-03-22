@@ -58,6 +58,7 @@ class Home:
     thread_timer: Union[ThreadTimer, None] = None
     thread_energy_monitor: Union[ThreadEnergyMonitor, None] = None
     thread_discovery: Union[ThreadDiscovery, None] = None
+    thread_query_state: Union[ThreadQueryState, None] = None
     queue_command: queue.Queue
     queue_parse_result: queue.Queue
 
@@ -87,6 +88,10 @@ class Home:
     ha_mqtt_topic_status: str = 'homeassistant/status'
 
     verbose_unreg_dev_packet: bool = False
+
+    enable_periodic_query_state: bool = False
+    query_state_period: int = 1000
+    verbose_periodic_query_state: bool = False
 
     def __init__(self, name: str = 'Home', init_service: bool = True, config_file_path: str = None):
         self.name = name
@@ -121,6 +126,8 @@ class Home:
             self.startThreadCommandQueue()
             self.startThreadParseResultQueue()
             self.startThreadTimer()
+            if self.enable_periodic_query_state:
+                self.startThreadQueryState()
             try:
                 self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
             except Exception as e:
@@ -172,6 +179,7 @@ class Home:
         self.stopThreadCommandQueue()
         self.stopThreadParseResultQueue()
         self.stopThreadTimer()
+        self.stopThreadQueryState()
 
         for elem in self.rs485_info_list:
             elem.release()
@@ -469,6 +477,24 @@ class Home:
             if enable_discovery:
                 self.startDiscoverDevice()
 
+            periodic_query_state_node = node.find('periodic_query_state')
+            if periodic_query_state_node is not None:
+                try:
+                    enable_node = periodic_query_state_node.find('enable')
+                    self.enable_periodic_query_state = bool(int(enable_node.text))
+                except Exception as e:
+                    writeLog(f"Failed to read <periodic_query_state> - <enable> node ({e})", self)
+                try:
+                    period_node = periodic_query_state_node.find('period')
+                    self.query_state_period = int(period_node.text)
+                except Exception as e:
+                    writeLog(f"Failed to read <periodic_query_state> - <period> node ({e})", self)
+                try:
+                    verbose_node = periodic_query_state_node.find('verbose')
+                    self.verbose_periodic_query_state = bool(int(verbose_node.text))
+                except Exception as e:
+                    writeLog(f"Failed to read <periodic_query_state> - <verbose> node ({e})", self)
+
             entry_node = node.find('entry')
             dev_entry_cnt = len(list(entry_node))
             for dev_node in list(entry_node):
@@ -645,6 +671,8 @@ class Home:
     def startThreadCommandQueue(self):
         if self.thread_cmd_queue is None:
             self.thread_cmd_queue = ThreadCommandQueue(self.queue_command)
+            self.thread_cmd_queue.sig_start_seq.connect(self.onThreadCommandQueueStartSequence)
+            self.thread_cmd_queue.sig_finish_seq.connect(self.onThreadCommandQueueFinishSequence)
             self.thread_cmd_queue.sig_terminated.connect(self.onThreadCommandQueueTerminated)
             self.thread_cmd_queue.setDaemon(True)
             self.thread_cmd_queue.start()
@@ -657,6 +685,14 @@ class Home:
         del self.thread_cmd_queue
         self.thread_cmd_queue = None
     
+    def onThreadCommandQueueStartSequence(self):
+        if self.thread_query_state is not None:
+            self.thread_query_state.setAvailable(False)
+
+    def onThreadCommandQueueFinishSequence(self):
+        if self.thread_query_state is not None:
+            self.thread_query_state.setAvailable(True)
+
     def startThreadParseResultQueue(self):
         if self.thread_parse_result_queue is None:
             self.thread_parse_result_queue = ThreadParseResultQueue(self.queue_parse_result)
@@ -722,6 +758,27 @@ class Home:
     def onThreadEnergyMonitorTerminated(self):
         del self.thread_energy_monitor
         self.thread_energy_monitor = None
+
+    def startThreadQueryState(self):
+        if self.thread_query_state is None:
+            self.thread_query_state = ThreadQueryState(
+                self.device_list,
+                self.parser_mapping,
+                self.rs485_info_list,
+                self.query_state_period,
+                self.verbose_periodic_query_state
+            )
+            self.thread_query_state.sig_terminated.connect(self.onThreadQueryStateTerminated)
+            self.thread_query_state.setDaemon(True)
+            self.thread_query_state.start()
+
+    def stopThreadQueryState(self):
+        if self.thread_query_state is not None:
+            self.thread_query_state.stop()
+
+    def onThreadQueryStateTerminated(self):
+        del self.thread_query_state
+        self.thread_query_state = None
 
     def publish_all(self):
         for dev in self.device_list:
@@ -829,7 +886,7 @@ class Home:
     def isHEMSActivated(self) -> bool:
         return self.findDevice(DeviceType.HEMS, 0, 0) is not None
 
-    def command(self, **kwargs):
+    def send_command(self, **kwargs):
         try:
             dev: Device = kwargs['device']
             dev_type: DeviceType = dev.getType()
@@ -837,18 +894,18 @@ class Home:
             info: RS485Info = self.rs485_info_list[index]
             kwargs['parser'] = info.parser
         except Exception as e:
-            writeLog('command Exception::{}'.format(e), self)
+            writeLog('send_command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
 
     def onDeviceSetState(self, dev: Device, state: int):
         if isinstance(dev, AirConditioner):
-            self.command(
+            self.send_command(
                 device=dev,
                 category='active',
                 target=state
             )
         elif isinstance(dev, Thermostat):
-            self.command(
+            self.send_command(
                 device=dev,
                 category='state',
                 target='HEAT' if state else 'OFF'
@@ -989,7 +1046,7 @@ class Home:
         device = self.findDevice(DeviceType.LIGHT, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='state',
                     target=message['state']
@@ -1006,7 +1063,7 @@ class Home:
         device = self.findDevice(DeviceType.OUTLET, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='state',
                     target=message['state']
@@ -1023,7 +1080,7 @@ class Home:
         device = self.findDevice(DeviceType.GASVALVE, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='state',
                     target=message['state']
@@ -1040,13 +1097,13 @@ class Home:
         device = self.findDevice(DeviceType.THERMOSTAT, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='state',
                     target=message['state']
                 )
             if 'targetTemperature' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='temperature',
                     target=message['targetTemperature']
@@ -1068,7 +1125,7 @@ class Home:
         device = self.findDevice(DeviceType.VENTILATOR, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='state',
                     target=message['state']
@@ -1077,7 +1134,7 @@ class Home:
                 if device.state == 1:
                     # 전원이 켜져있을 경우에만 풍량설정 가능하도록..
                     # 최초 전원 ON시 풍량 '약'으로 설정!
-                    self.command(
+                    self.send_command(
                         device=device,
                         category='rotationspeed',
                         target=message['rotationspeed']
@@ -1094,19 +1151,19 @@ class Home:
         device = self.findDevice(DeviceType.AIRCONDITIONER, dev_idx, room_idx)
         if device is not None:
             if 'active' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='active',
                     target=message['active']
                 )
             if 'targetTemperature' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='temperature',
                     target=message['targetTemperature']
                 )
             if 'rotationspeed' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='rotationspeed',
                     target=message['rotationspeed']
@@ -1114,7 +1171,7 @@ class Home:
             if 'rotationspeed_name' in message.keys():  # for HA
                 speed_dict = {'Max': 100, 'Medium': 75, 'Min': 50, 'Auto': 25}
                 target = speed_dict[message['rotationspeed_name']]
-                self.command(
+                self.send_command(
                     device=device,
                     category='rotationspeed',
                     target=target
@@ -1136,7 +1193,7 @@ class Home:
         device = self.findDevice(DeviceType.ELEVATOR, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='state',
                     target=message['state']
@@ -1153,26 +1210,26 @@ class Home:
         device = self.findDevice(DeviceType.SUBPHONE, dev_idx, room_idx)
         if device is not None:
             if 'streaming_state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='streaming',
                     target=message['streaming_state']
                 )
             if 'doorlock_state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='doorlock',
                     target=message['doorlock_state']
                 )
             # 세대현관문, 공동현관문 분리
             if 'lock_front_state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='lock_front',
                     target=message['lock_front_state']
                 )
             if 'lock_communal_state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='lock_communal',
                     target=message['lock_communal_state']
@@ -1198,7 +1255,7 @@ class Home:
         device = self.findDevice(DeviceType.BATCHOFFSWITCH, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
-                self.command(
+                self.send_command(
                     device=device,
                     category='state',
                     target=message['state']
@@ -1281,7 +1338,7 @@ class Home:
     """
     def onMqttCommandDookLock(self, topic: str, message: dict):
         if 'state' in message.keys():
-            self.command(
+            self.send_command(
                 device=self.doorlock,
                 category='state',
                 target=message['state']
