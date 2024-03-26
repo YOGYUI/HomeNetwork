@@ -1,4 +1,5 @@
 import os
+import ssl
 import time
 import json
 import queue
@@ -63,8 +64,15 @@ class Home:
     queue_parse_result: queue.Queue
 
     mqtt_client: mqtt.Client
+    mqtt_username: str = ''
+    mqtt_password: str = ''
     mqtt_host: str = '127.0.0.1'
     mqtt_port: int = 1883
+    mqtt_client_id: str = 'yogyui_hyundai_ht'
+    mqtt_tls_enable: bool = False
+    mqtt_tls_ca_certs: str = ''
+    mqtt_tls_certfile: str = ''
+    mqtt_tls_keyfile: str = ''
     mqtt_is_connected: bool = False
     enable_mqtt_console_log: bool = True
     verbose_mqtt_regular_publish: dict
@@ -93,6 +101,8 @@ class Home:
     query_state_period: int = 1000
     verbose_periodic_query_state: bool = False
 
+    clear_all_devices: bool = False
+
     def __init__(self, name: str = 'Home', init_service: bool = True, config_file_path: str = None):
         self.name = name
         self.device_list = list()
@@ -118,9 +128,14 @@ class Home:
         self.initialize(init_service, False)
     
     def initialize(self, init_service: bool, connect_rs485: bool):
-        self.initMQTT()
         self.loadConfig()
+        self.initMQTT()
         self.initDevices()
+
+        if self.clear_all_devices:
+            self.clearAllDevices()
+            self.restart()
+            return
 
         if init_service:
             self.startThreadCommandQueue()
@@ -146,7 +161,29 @@ class Home:
         writeLog(f'Initialized <{self.name}>', self)
 
     def initMQTT(self):
-        self.mqtt_client = mqtt.Client(client_id="Yogyui_Hillstate_Gwanggyosan")
+        self.mqtt_client = mqtt.Client(
+            client_id=self.mqtt_client_id,
+            protocol=mqtt.MQTTv311,
+            transport='tcp',
+            reconnect_on_failure=True
+        )
+        self.mqtt_client.username_pw_set(self.mqtt_username, self.mqtt_password)
+        
+        # tls setting
+        if self.mqtt_tls_enable:
+            ca_certs = self.mqtt_tls_ca_certs if os.path.isfile(self.mqtt_tls_ca_certs) else None
+            certfile = self.mqtt_tls_certfile if os.path.isfile(self.mqtt_tls_certfile) else None
+            keyfile = self.mqtt_tls_keyfile if os.path.isfile(self.mqtt_tls_keyfile) else None
+            
+            self.mqtt_client.tls_set(
+                ca_certs=ca_certs,
+                certfile=certfile,
+                keyfile=keyfile,
+                tls_version=ssl.PROTOCOL_TLSv1_2,
+                cert_reqs=ssl.CERT_REQUIRED
+            )
+        
+        # set callback functions
         self.mqtt_client.on_connect = self.onMqttClientConnect
         self.mqtt_client.on_disconnect = self.onMqttClientDisconnect
         self.mqtt_client.on_subscribe = self.onMqttClientSubscribe
@@ -350,31 +387,72 @@ class Home:
 
     def loadMQTTConfig(self, node: ET.Element):
         try:
-            username = node.find('username').text
+            self.mqtt_username = node.find('username').text
         except Exception as e:
             writeLog(f"Failed to read <username> node ({e})", self)
-            username = ''
+            self.mqtt_username = ''
+        
         try:
-            password = node.find('password').text
+            self.mqtt_password = node.find('password').text
         except Exception as e:
             writeLog(f"Failed to read <password> node ({e})", self)
-            password = ''
+            self.mqtt_password = ''
+        
         try:
             self.mqtt_host = node.find('host').text
         except Exception as e:
             writeLog(f"Failed to read <host> node ({e})", self)
             self.mqtt_host = '127.0.0.1'
+        
         try:
             self.mqtt_port = int(node.find('port').text)
         except Exception as e:
             writeLog(f"Failed to read <port> node ({e})", self)
             self.mqtt_port = 1883
-        self.mqtt_client.username_pw_set(username, password)
+        
         try:
             self.enable_mqtt_console_log = bool(int(node.find('console_log').text))
         except Exception as e:
             writeLog(f"Failed to read <console_log> node ({e})", self)
             self.enable_mqtt_console_log = False
+        
+        try:
+            self.mqtt_client_id = node.find('client_id').text
+        except Exception as e:
+            writeLog(f"Failed to read <client_id> node ({e})", self)
+            self.mqtt_client_id = 'yogyui_hyundai_ht'
+        
+        tls_node = node.find('tls')
+        if tls_node is not None:
+            try:
+                self.mqtt_tls_enable = bool(int(tls_node.find('enable').text))
+            except Exception as e:
+                writeLog(f"Failed to read <enable> node ({e})", self)
+                self.mqtt_tls_enable = False
+            
+            try:
+                self.mqtt_tls_ca_certs = tls_node.find('ca_certs').text
+                if self.mqtt_tls_ca_certs is None:
+                    self.mqtt_tls_ca_certs = ''
+            except Exception as e:
+                writeLog(f"Failed to read <ca_certs> node ({e})", self)
+                self.mqtt_tls_ca_certs = ''
+            
+            try:
+                self.mqtt_tls_certfile = tls_node.find('certfile').text
+                if self.mqtt_tls_certfile is None:
+                    self.mqtt_tls_certfile = ''
+            except Exception as e:
+                writeLog(f"Failed to read <certfile> node ({e})", self)
+                self.mqtt_tls_certfile = ''
+            
+            try:
+                self.mqtt_tls_keyfile = tls_node.find('keyfile').text
+                if self.mqtt_tls_keyfile is None:
+                    self.mqtt_tls_keyfile = ''
+            except Exception as e:
+                writeLog(f"Failed to read <keyfile> node ({e})", self)
+                self.mqtt_tls_keyfile = ''
         
         self.verbose_mqtt_regular_publish = {
             'enable': True,
@@ -386,6 +464,7 @@ class Home:
                 self.verbose_mqtt_regular_publish['enable'] = bool(int(verbose_node.find('enable').text))
             except Exception as e:
                 writeLog(f"Failed to read <verbose_regular_publish> - <enable> node ({e})", self)
+            
             try:
                 self.verbose_mqtt_regular_publish['interval'] = int(verbose_node.find('interval').text)
             except Exception as e:
@@ -494,6 +573,14 @@ class Home:
                     self.verbose_periodic_query_state = bool(int(verbose_node.text))
                 except Exception as e:
                     writeLog(f"Failed to read <periodic_query_state> - <verbose> node ({e})", self)
+
+            self.clear_all_devices = False
+            clear_node = node.find('clear')
+            if clear_node is not None:
+                try:
+                    self.clear_all_devices = bool(int(clear_node.text))
+                except Exception as e:
+                    writeLog(f"Failed to read <clear> node ({e})", self)
 
             entry_node = node.find('entry')
             dev_entry_cnt = len(list(entry_node))
@@ -938,6 +1025,7 @@ class Home:
         """
         if rc == 0:
             self.mqtt_is_connected = True
+            writeLog('Conneted to MQTT Broker', self)
             self.startMqttSubscribe()
         else:
             self.mqtt_is_connected = False
@@ -1620,7 +1708,39 @@ class Home:
         except Exception as e:
             writeLog('saveDiscoverdDevicesToConfigFile::Exception::{}'.format(e), self)
 
-    def deactivateHaAddonDiscoveryOption(self):
+    def clearAllDevices(self):
+        try:
+            if self.config_tree is None:
+                return
+            root = self.config_tree.getroot()
+            device_node = root.find('device')
+            if device_node is None:
+                device_node = ET.Element('device')
+                root.append(device_node)
+
+            # delete all <entry> nodes
+            entry_node = device_node.find('entry')
+            if entry_node is None:
+                entry_node = ET.Element('entry')
+                device_node.append(entry_node)
+            for child in list(entry_node):
+                entry_node.remove(child)
+            
+            # set <device> - <clear> node value as 0
+            clear_node = device_node.find('clear')
+            if clear_node is None:
+                clear_node = ET.Element('clear')
+                device_node.append(clear_node)
+            clear_node.text = '0'
+
+            writeXmlFile(root, self.config_file_path)
+
+            self.disableHaAddonClearDeviceOption()
+            writeLog('Finished clearing all devices, app will be restarted...', self)
+        except Exception as e:
+            writeLog('clearAllDevices::Exception::{}'.format(e), self)
+
+    def callBashIO(self, script: str):
         try:
             if not os.path.isfile('/usr/bin/bashio'):
                 writeLog('cannot locate bashio', self)
@@ -1629,10 +1749,7 @@ class Home:
             # create shell script file
             tmp_path = os.path.join(CURPATH, 'temp.sh')
             with open(tmp_path, 'w') as fp:
-                fp.write("\n".join([
-                    "#!/usr/bin/env bashio", 
-                    "$(bashio::addon.option 'discovery.activate' ^false)"
-                    ]))
+                fp.write("\n".join(["#!/usr/bin/env bashio", script]))
 
             if not os.path.isfile(tmp_path):
                 writeLog('Failed to create temp shell script', self)
@@ -1654,6 +1771,12 @@ class Home:
             os.remove(tmp_path)
         except Exception as e:
             writeLog('deactivateHaAddonDiscoveryOption::Exception::{}'.format(e), self)
+
+    def deactivateHaAddonDiscoveryOption(self):
+        self.callBashIO("$(bashio::addon.option 'discovery.activate' ^false)")
+
+    def disableHaAddonClearDeviceOption(self):
+        self.callBashIO("$(bashio::addon.option 'etc.clear_all_devices' ^false)")
 
 
 home_: Union[Home, None] = None

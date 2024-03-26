@@ -70,6 +70,37 @@ class Config:
                 child = ET.Element('password')
                 node.append(child)
             child.text = cfg.get('password')
+            child = node.find('client_id')
+            if child is None:
+                child = ET.Element('client_id')
+                node.append(child)
+            child.text = cfg.get('client_id')
+
+            subnode = node.find('tls')
+            if subnode is None:
+                subnode = ET.Element('tls')
+                node.append(subnode)
+            child = subnode.find('enable')
+            if child is None:
+                child = ET.Element('enable')
+                subnode.append(child)
+            child.text = str(int(cfg.get('tls_enable')))
+            child = subnode.find('ca_certs')
+            if child is None:
+                child = ET.Element('ca_certs')
+                subnode.append(child)
+            child.text = cfg.get('tls_ca_certs')
+            child = subnode.find('certfile')
+            if child is None:
+                child = ET.Element('certfile')
+                subnode.append(child)
+            child.text = cfg.get('tls_certfile')
+            child = subnode.find('keyfile')
+            if child is None:
+                child = ET.Element('keyfile')
+                subnode.append(child)
+            child.text = cfg.get('tls_keyfile')
+
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
             print(f'Config::set_config_mqtt_broker::Exception {e}')
@@ -305,7 +336,8 @@ class Config:
             root = ET.parse(self._config_file_path).getroot()
             node = root.find('rs485')
             if node is None:
-                return
+                node = ET.Element('rs485')
+                root.append(elem)
             port_nodes = list(filter(lambda x: x.tag == 'port', list(node)))
             for pnode in port_nodes:
                 elem = pnode.find('thermo_len_per_dev')
@@ -316,10 +348,12 @@ class Config:
             
             node = root.find('device')
             if node is None:
-                return
+                node = ET.Element('device')
+                root.append(node)
             entry_node = node.find('entry')
             if entry_node is None:
-                return
+                entry_node = ET.Element('entry')
+                node.append(entry_node)
             
             elev_nodes = list(filter(lambda x: x.tag == 'elevator', list(entry_node)))
             for pnode in list(elev_nodes):
@@ -359,6 +393,12 @@ class Config:
                     elem = ET.Element('range_max')
                     pnode.append(elem)
                 elem.text = str(cfg.get('airconditioner_range_max'))
+            
+            clear_node = node.find('clear')
+            if clear_node is None:
+                clear_node = ET.Element('clear')
+                node.append(clear_node)
+            clear_node.text = str(int(cfg.get('clear_all_devices')))
 
             writeXmlFile(root, self._config_file_path)
         except Exception as e:

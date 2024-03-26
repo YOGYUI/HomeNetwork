@@ -34,8 +34,15 @@
     <mqtt>
 		<host>127.0.0.1</host>
         <port>1883</port>
-		<username></username>
-		<password></password>
+		<username>username</username>
+		<password>password</password>
+        <client_id>yogyui_hyundai_ht</client_id>
+        <tls>
+            <enable>0</enable>
+            <ca_certs></ca_certs>
+            <certfile>/config/ssl/fullchain.pem</certfile>
+            <keyfile>/config/ssl/privkey.pem</keyfile>
+        </tls>
         <console_log>0</console_log>
         <verbose_regular_publish>
             <enable>1</enable>
@@ -72,6 +79,7 @@
             <period>100</period>
             <verbose>0</verbose>
         </periodic_query_state>
+        <clear>0</clear>
         <entry>
         </entry>
     </device>
