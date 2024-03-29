@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import datetime
 from enum import IntEnum, auto, unique
 from typing import Union, List
@@ -101,6 +102,9 @@ class PacketParser:
 
     def handlePacket(self):
         # self.log(f'buffer: {self.prettifyPacket(self.buffer)}')
+        if len(self.buffer) == 0:
+            time.sleep(1e-3)
+        
         if self.type_interpret is ParserType.REGULAR:
             count = 0
             while True:
@@ -117,6 +121,12 @@ class PacketParser:
                     break
                 if len(self.buffer) >= 2:
                     packet_length = self.buffer[1]
+                    # issue: abnormal - packet length 0
+                    if packet_length == 0:
+                        self.log(f'Warning: abnormal packet (length 0), buffer: {self.prettifyPacket(self.buffer)}')
+                        self.buffer.clear()
+                        break
+
                     if len(self.buffer) >= packet_length:
                         if self.buffer[packet_length - 1] == 0xEE:
                             self.line_busy = False
@@ -128,12 +138,12 @@ class PacketParser:
                                 self.interpretPacket(packet)
                                 if checksum_calc != checksum_recv:
                                     pacstr = self.prettifyPacket(packet)
-                                    self.log(f'Checksum Error (calc={checksum_calc}, recv={checksum_recv}) ({pacstr})')
+                                    self.log(f'Warning: Checksum Error (calc={checksum_calc}, recv={checksum_recv}) ({pacstr})')
+                                count -= 1
                             except IndexError:
                                 buffstr = self.prettifyPacket(self.buffer)
                                 pacstr = self.prettifyPacket(packet)
                                 self.log(f'Index Error (buffer={buffstr}, packet_len={packet_length}, packet={pacstr})')
-                            count -= 1
                             continue
                         else:
                             if len(self.buffer) > 0:
