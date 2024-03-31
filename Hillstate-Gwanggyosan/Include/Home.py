@@ -164,8 +164,7 @@ class Home:
         self.mqtt_client = mqtt.Client(
             client_id=self.mqtt_client_id,
             protocol=mqtt.MQTTv311,
-            transport='tcp',
-            reconnect_on_failure=True
+            transport='tcp'
         )
         self.mqtt_client.username_pw_set(self.mqtt_username, self.mqtt_password)
         
