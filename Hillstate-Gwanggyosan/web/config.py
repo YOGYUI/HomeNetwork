@@ -276,7 +276,7 @@ class Config:
                 node.append(elem)
 
             names = [
-                'light', 
+                'light',
                 'outlet',
                 'gasvalve',
                 'thermostat',
@@ -285,7 +285,8 @@ class Config:
                 'elevator',
                 'subphone',
                 'batchoffsw',
-                'hems'
+                'hems',
+                'emotionlight',
             ]
             for n in names:
                 elem2 = elem.find(n)

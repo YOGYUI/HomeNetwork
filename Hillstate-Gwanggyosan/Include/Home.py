@@ -112,6 +112,7 @@ class Home:
         self.rs485_info_list = list()
         self.parser_mapping = {
             DeviceType.LIGHT: 0,
+            DeviceType.EMOTIONLIGHT: 0,
             DeviceType.OUTLET: 0,
             DeviceType.GASVALVE: 0,
             DeviceType.THERMOSTAT: 0,
@@ -128,6 +129,7 @@ class Home:
         self.initialize(init_service, False)
     
     def initialize(self, init_service: bool, connect_rs485: bool):
+        self.loadAppInfo()
         self.loadConfig()
         self.initMQTT()
         self.initDevices()
@@ -237,6 +239,16 @@ class Home:
         topics = [x.replace('\t', '') for x in topics]
         topics = list(filter(lambda x: len(x) > 0, topics))
         return topics
+
+    def loadAppInfo(self):
+        app_version = 'unknown'
+        app_info_json_path = os.path.join(PROJPATH, 'app_info.json')
+        if os.path.isfile(app_info_json_path):
+            with open(app_info_json_path, 'r') as fp:
+                app_info = json.load(fp)
+                if 'version' in app_info.keys():
+                    app_version = app_info.get('version')
+        writeLog(f'Version: {app_version}', self)
 
     def loadConfig(self):
         if not os.path.isfile(self.config_file_path):
@@ -493,6 +505,10 @@ class Home:
                 except Exception as e:
                     writeLog(f"Failed to read <parser_mapping> - <light> node ({e})", self)
                 try:
+                    self.parser_mapping[DeviceType.EMOTIONLIGHT] = int(parser_mapping_node.find('emotionlight').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <emotionlight> node ({e})", self)
+                try:
                     self.parser_mapping[DeviceType.OUTLET] = int(parser_mapping_node.find('outlet').text)
                 except Exception as e:
                     writeLog(f"Failed to read <parser_mapping> - <outlet> node ({e})", self)
@@ -601,6 +617,8 @@ class Home:
                         device: Device = None
                         if tag_name == 'light':
                             device = Light(name, index, room)
+                        elif tag_name == 'emotionlight':
+                            device = EmotionLight(name, index, room)
                         elif tag_name == 'outlet':
                             device = Outlet(name, index, room)
                             enable_off_cmd_node = dev_node.find('enable_off_cmd')
@@ -670,6 +688,8 @@ class Home:
                         # 이미 config에 등록된 기기는 탐색 시 제외해야 한다 (중복 등록 방지)
                         if tag_name == 'light':
                             devtype = DeviceType.LIGHT
+                        elif tag_name == 'emotionlight':
+                            devtype = DeviceType.EMOTIONLIGHT
                         elif tag_name == 'outlet':
                             devtype = DeviceType.OUTLET
                         elif tag_name == 'thermostat':
@@ -911,7 +931,12 @@ class Home:
                     writeLog(f'updateDeviceState::Device is not registered ({dev_type.name}, idx={dev_idx}, room={room_idx})', self)
                 return
             
-            if dev_type in [DeviceType.LIGHT, DeviceType.OUTLET, DeviceType.GASVALVE, DeviceType.BATCHOFFSWITCH]:
+            if dev_type in [
+                    DeviceType.LIGHT,
+                    DeviceType.EMOTIONLIGHT,
+                    DeviceType.OUTLET,
+                    DeviceType.GASVALVE,
+                    DeviceType.BATCHOFFSWITCH]:
                 state = result.get('state')
                 device.updateState(state)
             elif dev_type is DeviceType.THERMOSTAT:
@@ -1057,6 +1082,8 @@ class Home:
                 self.onMqttCommandSystem(topic, msg_dict)
             if 'command/light' in topic:
                 self.onMqttCommandLight(topic, msg_dict)
+            if 'command/emotionlight' in topic:
+                self.onMqttCommandEmotionLight(topic, msg_dict)
             if 'command/outlet' in topic:
                 self.onMqttCommandOutlet(topic, msg_dict)
             if 'command/gasvalve' in topic:
@@ -1137,6 +1164,23 @@ class Home:
             writeLog(f'onMqttCommandLight::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
         device = self.findDevice(DeviceType.LIGHT, dev_idx, room_idx)
+        if device is not None:
+            if 'state' in message.keys():
+                self.send_command(
+                    device=device,
+                    category='state',
+                    target=message['state']
+                )
+
+    def onMqttCommandEmotionLight(self, topic: str, message: dict):
+        splt = topic.split('/')
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandEmotionLight::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
+        device = self.findDevice(DeviceType.EMOTIONLIGHT, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
                 self.send_command(
@@ -1500,6 +1544,8 @@ class Home:
             entry = dict()
             if elem.tag == 'light':
                 entry['type'] = DeviceType.LIGHT
+            if elem.tag == 'emotionlight':
+                entry['type'] = DeviceType.EMOTIONLIGHT
             elif elem.tag == 'outlet':
                 entry['type'] = DeviceType.OUTLET
             elif elem.tag == 'thermostat':
@@ -1584,6 +1630,8 @@ class Home:
                 
                 if dev_type is DeviceType.LIGHT:
                     entry_info['type'] = 'light'
+                elif dev_type is DeviceType.EMOTIONLIGHT:
+                    entry_info['type'] = 'emotionlight'
                 elif dev_type is DeviceType.OUTLET:
                     entry_info['type'] = 'outlet'
                     entry_info['enable_off_cmd'] = 1
@@ -1648,6 +1696,12 @@ class Home:
                 child_node = ET.Element('light')
                 parser_mapping_node.append(child_node)
             child_node.text = str(self.parser_mapping.get(DeviceType.LIGHT, 0))
+        
+            child_node = parser_mapping_node.find('emotionlight')
+            if child_node is None:
+                child_node = ET.Element('emotionlight')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping.get(DeviceType.EMOTIONLIGHT, 0))
 
             child_node = parser_mapping_node.find('outlet')
             if child_node is None:

@@ -41,6 +41,7 @@ class PacketParser:
     thermo_len_per_dev: int = 3  # 난방 노멀 쿼리 > 각 기기당 바이트 수는 3 혹은 8?
 
     # for debugging (todo: remove or refactoring)
+    enable_store_packet_header_15: bool = False
     enable_store_packet_header_18: bool = False
     enable_store_packet_header_19: bool = False
     enable_store_packet_header_1B: bool = False
@@ -183,7 +184,11 @@ class PacketParser:
         # self.log(f'packet: {self.prettifyPacket(packet)}')
         try:
             if self.type_interpret == ParserType.REGULAR:
-                if packet[3] == 0x18:  # 난방
+                if packet[3] == 0x15:  # 감성조명
+                    self.handleEmotionLight(packet)
+                    packet_info['device'] = 'emotion light'
+                    store = self.enable_store_packet_header_15
+                elif packet[3] == 0x18:  # 난방
                     self.handleThermostat(packet)
                     packet_info['device'] = 'thermostat'
                     store = self.enable_store_packet_header_18
@@ -347,6 +352,27 @@ class PacketParser:
                 state = 0 if packet[8] == 0x02 else 1
                 result = {
                     'device': DeviceType.LIGHT, 
+                    'index': dev_idx - 1,
+                    'room_index': room_idx,
+                    'state': state
+                }
+                self.updateDeviceState(result)
+
+    def handleEmotionLight(self, packet: bytearray):
+        room_idx = packet[6] >> 4
+        if packet[4] == 0x01:  # 상태 쿼리
+            pass
+        elif packet[4] == 0x02:  # 상태 변경 명령
+            pass
+        elif packet[4] == 0x04:  # 각 방별 On/Off
+            dev_idx = packet[6] & 0x0F
+            if dev_idx == 0:  # 일반 쿼리 (존재하는 모든 디바이스)
+                self.log(f'Warning: Un-implemented packet interpreter (zero device index, {self.prettifyPacket(packet)})')
+            else:  # 상태 변경 명령 직후 응답
+                state = 0 if packet[8] == 0x02 else 1
+                # todo: packet[9], packet[10]이 뭔가 정보를 담고 있긴 한거 같은데...
+                result = {
+                    'device': DeviceType.EMOTIONLIGHT, 
                     'index': dev_idx - 1,
                     'room_index': room_idx,
                     'state': state

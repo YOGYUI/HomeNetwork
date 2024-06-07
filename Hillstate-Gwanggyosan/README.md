@@ -124,7 +124,7 @@ file. <br>
         </device>
     </config>
     ```
-    `dev_type`: light, outlet, thermostat, airconditioner, gasvalve, ventilator, elevator, subphone, hems, batchoffsw<br>
+    `dev_type`: light, outlet, thermostat, airconditioner, gasvalve, ventilator, elevator, subphone, hems, batchoffsw, emotionlight<br>
     `index` and `room` tag value is **0-based** integer. <br>
     `enable` tag means whether or not add this device. (1=enable, 2=disable) <br>
     MQTT topic is automatically assigned when device is created. If you want to customize topic, uncomment and modify pub/sub topic.
@@ -147,6 +147,7 @@ file. <br>
                 <subphone>2</subphone>
                 <batchoffsw>1</batchoffsw>
                 <hems>2</hems>
+                <emotionlight>0</emotionlight>
             </parser_mapping>
         </device>
     </config>
@@ -449,6 +450,29 @@ default topic: `/home/command/subphone/0/0`
 </div>
 </details>
 
+<details>
+<summary>Emotion Light</summary>
+<div markdown="1">
+
+### Application `Publish` / IoT platform `Subscribe`
+default topic: `/home/state/emotionlight/0/0`
+```json
+{
+    "state": 1  // possible value: 0, 1 (numeric)
+}
+```
+`state`: 0 means light is turned 'OFF', 1 means turned 'ON'
+### Application `Subscribe` / IoT platform `Publish`
+default topic: `/home/command/emotionlight/0/0`
+```json
+{
+    "state": 0  // possible value: 0 (numeric)
+}
+```
+`state`: 0 means turn 'OFF' light, 1 means turn 'ON'
+</div>
+</details>
+
 Homebridge & Home Assistant(HA) Configuration
 ---
 You can find home IoT platform configuration template (json for homebridge, yaml for HA) is this repository. 
@@ -514,3 +538,4 @@ Reference URLs (Blog)
 - Kitchen Subphone: [힐스테이트 광교산::주방 비디오폰 연동 - 세대 및 공동 현관문 제어 (애플 홈킷)](https://yogyui.tistory.com/entry/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8-%EA%B4%91%EA%B5%90%EC%82%B0%EC%A3%BC%EB%B0%A9-%EC%84%9C%EB%B8%8C%ED%8F%B0-%EC%97%B0%EB%8F%99-%ED%98%84%EA%B4%80%EB%AC%B8-%EB%B9%84%EB%94%94%EC%98%A4) <br>
 - Batch Off Switch: [힐스테이트 광교산::일괄소등 스위치 RS-485 패킷 분석 및 애플 홈 연동](https://yogyui.tistory.com/entry/%ED%9E%90%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%8A%B8-%EA%B4%91%EA%B5%90%EC%82%B0%EC%9D%BC%EA%B4%84%EC%86%8C%EB%93%B1-%EC%8A%A4%EC%9C%84%EC%B9%98-RS-485-%ED%8C%A8%ED%82%B7-%EB%B6%84%EC%84%9D-%EB%B0%8F-IoT-%EC%97%B0%EB%8F%99) <br>
 - Automatic Device Discovery: [현대통신 월패드 RS-485 디바이스 자동 탐지 및 HA MQTT Discovery 지원 기능 추가](https://yogyui.tistory.com/entry/%ED%98%84%EB%8C%80%ED%86%B5%EC%8B%A0-%EC%9B%94%ED%8C%A8%EB%93%9C-RS-485-%EB%94%94%EB%B0%94%EC%9D%B4%EC%8A%A4-%EC%9E%90%EB%8F%99-%ED%83%90%EC%A7%80-%EB%B0%8F-HA-MQTT-Discovery-%EC%A7%80%EC%9B%90-%EA%B8%B0%EB%8A%A5-%EC%B6%94%EA%B0%80)
+- Emotion Light: [현대통신 월패드 '감성조명' 제어 기능 추가](https://yogyui.tistory.com/entry/%ED%98%84%EB%8C%80%ED%86%B5%EC%8B%A0-%EC%9B%94%ED%8C%A8%EB%93%9C-%EA%B0%90%EC%84%B1%EC%A1%B0%EB%AA%85-%EC%A0%9C%EC%96%B4-%EA%B8%B0%EB%8A%A5-%EC%B6%94%EA%B0%80)

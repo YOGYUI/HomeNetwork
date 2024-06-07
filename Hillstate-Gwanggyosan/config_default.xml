@@ -67,6 +67,7 @@
             <subphone>0</subphone>
             <batchoffsw>0</batchoffsw>
             <hems>0</hems>
+            <emotionlight>0</emotionlight>
         </parser_mapping>
         <verbose_unreg_dev_packet>1</verbose_unreg_dev_packet>
         <discovery>
