@@ -1,4 +1,9 @@
 {
-    "version": "2024.06.07",
-    "author": "yogyui"
+    "version": "1.0.9",
+    "date": "2024.06.07",
+    "author": {
+        "name": "yogyui",
+        "email": "lee2002w@gmail.com",
+        "url": "https://yogyui.tistory.com"
+    }
 }
