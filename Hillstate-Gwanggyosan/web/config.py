@@ -293,7 +293,10 @@ class Config:
                 if elem2 is None:
                     elem2 = ET.Element(n)
                     elem.append(elem2)
-                elem2.text = str(cfg.get(n))
+                if n in cfg.keys():
+                    elem2.text = str(cfg.get(n))
+                else:
+                    elem2.text = '0'
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
             print(f'Config::set_config_parser_mapping::Exception {e}')
