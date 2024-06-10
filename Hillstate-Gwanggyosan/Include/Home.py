@@ -1657,6 +1657,7 @@ class Home:
                     entry_info['check_command_method'] = 0
                 elif dev_type is DeviceType.SUBPHONE:
                     entry_info['type'] = 'subphone'
+                    entry_info['enable_video_streaming'] = 0
                     entry_info['ffmpeg'] = {
                         'conf_file_path': '/etc/ffserver.conf',
                         'feed_path': 'http://0.0.0.0:8090/feed.ffm',
