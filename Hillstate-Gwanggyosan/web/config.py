@@ -402,17 +402,17 @@ class Config:
             if elem is None:
                 elem = ET.Element('frame_rate')
                 ffmpeg_node.append(elem)
-            elem.text = cfg.get('frame_rate')
+            elem.text = str(cfg.get('frame_rate'))
             elem = ffmpeg_node.find('width')
             if elem is None:
                 elem = ET.Element('width')
                 ffmpeg_node.append(elem)
-            elem.text = cfg.get('width')
+            elem.text = str(cfg.get('width'))
             elem = ffmpeg_node.find('height')
             if elem is None:
                 elem = ET.Element('height')
                 ffmpeg_node.append(elem)
-            elem.text = cfg.get('height')
+            elem.text = str(cfg.get('height'))
 
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
