@@ -7,6 +7,8 @@ import xml.etree.ElementTree as ET
 CURPATH = os.path.dirname(os.path.abspath(__file__))  # {$PROJECT}/web
 PROJPATH = os.path.dirname(CURPATH)  # {$PROJECT}
 INCPATH = os.path.join(PROJPATH, 'Include')
+sys.path.extend([CURPATH, PROJPATH, INCPATH])
+sys.path = list(set(sys.path))
 from Common import writeXmlFile
 
 
@@ -332,6 +334,89 @@ class Config:
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
             print(f'Config::set_config_periodic_query_state::Exception {e}')
+
+    def set_config_subphone(self, cfg: dict):
+        if not os.path.isfile(self._config_file_path):
+            return
+        try:
+            root = ET.parse(self._config_file_path).getroot()
+            node = root.find('device')
+            if node is None:
+                node = ET.Element('device')
+                root.append(node)
+            entry_node = node.find('entry')
+            if entry_node is None:
+                entry_node = ET.Element('entry')
+                node.append(entry_node)
+            subphone_nodes = list(filter(lambda x: x.tag == 'subphone', list(entry_node)))
+            if len(subphone_nodes) == 0:
+                subphone_node = ET.Element('subphone')
+                entry_node.append(subphone_node)
+            else:
+                subphone_node = subphone_nodes[0]  # todo: 실수로 여러개 추가했을 경우의 예외처리?
+            elem = subphone_node.find('name')
+            if elem is None:
+                elem = ET.Element('name')
+                subphone_node.append(elem)
+                elem.text = 'SUBPHONE'
+            elem = subphone_node.find('index')
+            if elem is None:
+                elem = ET.Element('index')
+                subphone_node.append(elem)
+                elem.text = '0'
+            elem = subphone_node.find('room')
+            if elem is None:
+                elem = ET.Element('room')
+                subphone_node.append(elem)
+                elem.text = '0'
+            elem = subphone_node.find('enable')
+            if elem is None:
+                elem = ET.Element('enable')
+                subphone_node.append(elem)
+            elem.text = str(int(cfg.get('enable')))
+            elem = subphone_node.find('enable_video_streaming')
+            if elem is None:
+                elem = ET.Element('enable_video_streaming')
+                subphone_node.append(elem)
+            elem.text = str(int(cfg.get('enable_video_streaming')))
+            ffmpeg_node = subphone_node.find('ffmpeg')
+            if ffmpeg_node is None:
+                ffmpeg_node = ET.Element('ffmpeg')
+                subphone_node.append(ffmpeg_node)
+            elem = ffmpeg_node.find('conf_file_path')
+            if elem is None:
+                elem = ET.Element('conf_file_path')
+                ffmpeg_node.append(elem)
+            elem.text = cfg.get('conf_file_path')
+            elem = ffmpeg_node.find('feed_path')
+            if elem is None:
+                elem = ET.Element('feed_path')
+                ffmpeg_node.append(elem)
+            elem.text = cfg.get('feed_path')
+            elem = ffmpeg_node.find('input_device')
+            if elem is None:
+                elem = ET.Element('input_device')
+                ffmpeg_node.append(elem)
+            elem.text = cfg.get('input_device')
+            elem = ffmpeg_node.find('frame_rate')
+            if elem is None:
+                elem = ET.Element('frame_rate')
+                ffmpeg_node.append(elem)
+            elem.text = cfg.get('frame_rate')
+            elem = ffmpeg_node.find('width')
+            if elem is None:
+                elem = ET.Element('width')
+                ffmpeg_node.append(elem)
+            elem.text = cfg.get('width')
+            elem = ffmpeg_node.find('height')
+            if elem is None:
+                elem = ET.Element('height')
+                ffmpeg_node.append(elem)
+            elem.text = cfg.get('height')
+
+            writeXmlFile(root, self._config_file_path)
+        except Exception as e:
+            print(f'Config::set_config_subphone::Exception {e}')
 
     def set_config_etc(self, cfg: dict):
         if not os.path.isfile(self._config_file_path):

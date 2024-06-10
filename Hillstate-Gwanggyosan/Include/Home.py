@@ -656,6 +656,12 @@ class Home:
                         elif tag_name == 'subphone':
                             device = SubPhone(name, index, room)
                             device.sig_state_streaming.connect(self.onSubphoneStateStreaming)
+                            enable_streaming_node = dev_node.find('enable_video_streaming')
+                            try:
+                                device.enable_streaming = bool(int(enable_streaming_node.text))
+                            except Exception as e:
+                                writeLog(f"Failed to read subphone <enable_video_streaming node> ({e})", self)
+                                device.enable_streaming = False
                             ffmpeg_node = dev_node.find('ffmpeg')
                             if ffmpeg_node is not None:
                                 device.streaming_config['conf_file_path'] = ffmpeg_node.find('conf_file_path').text
@@ -664,8 +670,6 @@ class Home:
                                 device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
                                 device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
                                 device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
-                            else:
-                                device.enable_streaming = False
                         elif tag_name == 'hems':
                             device = HEMS(name, index, room)
                         elif tag_name == 'airquality':

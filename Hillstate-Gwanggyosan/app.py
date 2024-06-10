@@ -25,6 +25,9 @@ parser.add_argument(
     '--periodic_query_state', 
     help='Periodic query state configuration (json formatted string)')
 parser.add_argument(
+    '--subphone',
+    help="Kitchen subphone configuration (json formatted string)")
+parser.add_argument(
     '--etc', 
     help='Other optional configuration (json formatted string)')
 args = parser.parse_args()
@@ -55,6 +58,10 @@ try:
     app_config.set_config_periodic_query_state(json.loads(args.periodic_query_state))
 except Exception as e:
     print(f'no <periodic_query_state> argument ({e})')
+try:
+    app_config.set_config_subphone(json.loads(args.subphone))
+except Exception as e:
+    print(f'no <subphone> argument ({e})')
 try:
     app_config.set_config_etc(json.loads(args.etc))
 except Exception as e:
