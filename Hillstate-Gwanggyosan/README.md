@@ -38,6 +38,7 @@ file. <br>
                 <index>0</index>
                 <enable>1</enable>
                 <packettype>0</packettype>
+                <check>1</check>
             </port>
         </rs485>
         ```
@@ -45,6 +46,7 @@ file. <br>
         `index`: unique number (zero based) for mapping port with device. (Minimum index value shoud be **0**. See **4. Parser Mapping** also) <br>
         `enable`: 1=enable this port, 0=disable this port. <br>
         `packettype`: 0=regular, 1=kitchen subphone <br>
+        `check`: periodic check connection status and try to reconnect. <br>
     - RS-485 to USB converter <br>
         `hwtype` should be **0**
         ```xml
