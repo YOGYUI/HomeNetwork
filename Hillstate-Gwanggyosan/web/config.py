@@ -198,7 +198,7 @@ class Config:
                 if elem is None:
                     elem = ET.Element('check')
                     child.append(elem)
-                elem.text = '1'
+                elem.text = str(int(port_conf.get('check_connection')))
                 elem = child.find('buffsize')
                 if elem is None:
                     elem = ET.Element('buffsize')
