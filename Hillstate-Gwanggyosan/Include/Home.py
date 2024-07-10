@@ -113,6 +113,7 @@ class Home:
         self.parser_mapping = {
             DeviceType.LIGHT: 0,
             DeviceType.EMOTIONLIGHT: 0,
+            DeviceType.DIMMINGLIGHT: 0,
             DeviceType.OUTLET: 0,
             DeviceType.GASVALVE: 0,
             DeviceType.THERMOSTAT: 0,
@@ -509,6 +510,10 @@ class Home:
                 except Exception as e:
                     writeLog(f"Failed to read <parser_mapping> - <emotionlight> node ({e})", self)
                 try:
+                    self.parser_mapping[DeviceType.DIMMINGLIGHT] = int(parser_mapping_node.find('dimminglight').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <parser_mapping> - <dimminglight> node ({e})", self)
+                try:
                     self.parser_mapping[DeviceType.OUTLET] = int(parser_mapping_node.find('outlet').text)
                 except Exception as e:
                     writeLog(f"Failed to read <parser_mapping> - <outlet> node ({e})", self)
@@ -617,6 +622,8 @@ class Home:
                         device: Device = None
                         if tag_name == 'light':
                             device = Light(name, index, room)
+                        elif tag_name == 'dimminglight':
+                            device = DimmingLight(name, index, room)
                         elif tag_name == 'emotionlight':
                             device = EmotionLight(name, index, room)
                         elif tag_name == 'outlet':
@@ -694,6 +701,8 @@ class Home:
                             devtype = DeviceType.LIGHT
                         elif tag_name == 'emotionlight':
                             devtype = DeviceType.EMOTIONLIGHT
+                        elif tag_name == 'dimminglight':
+                            devtype = DeviceType.DIMMINGLIGHT
                         elif tag_name == 'outlet':
                             devtype = DeviceType.OUTLET
                         elif tag_name == 'thermostat':
@@ -938,6 +947,7 @@ class Home:
             if dev_type in [
                     DeviceType.LIGHT,
                     DeviceType.EMOTIONLIGHT,
+                    DeviceType.DIMMINGLIGHT,
                     DeviceType.OUTLET,
                     DeviceType.GASVALVE,
                     DeviceType.BATCHOFFSWITCH]:
@@ -1086,6 +1096,8 @@ class Home:
                 self.onMqttCommandSystem(topic, msg_dict)
             if 'command/light' in topic:
                 self.onMqttCommandLight(topic, msg_dict)
+            if 'command/dimminglight' in topic:
+                self.onMqttCommandDimmingLight(topic, msg_dict)
             if 'command/emotionlight' in topic:
                 self.onMqttCommandEmotionLight(topic, msg_dict)
             if 'command/outlet' in topic:
@@ -1168,6 +1180,23 @@ class Home:
             writeLog(f'onMqttCommandLight::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
         device = self.findDevice(DeviceType.LIGHT, dev_idx, room_idx)
+        if device is not None:
+            if 'state' in message.keys():
+                self.send_command(
+                    device=device,
+                    category='state',
+                    target=message['state']
+                )
+
+    def onMqttCommandDimmingLight(self, topic: str, message: dict):
+        splt = topic.split('/')
+        try:
+            room_idx = int(splt[-2])
+            dev_idx = int(splt[-1])
+        except Exception as e:
+            writeLog(f'onMqttCommandDimmingLight::topic template error ({e}, {topic})', self)
+            room_idx, dev_idx = 0, 0
+        device = self.findDevice(DeviceType.DIMMINGLIGHT, dev_idx, room_idx)
         if device is not None:
             if 'state' in message.keys():
                 self.send_command(
@@ -1548,7 +1577,9 @@ class Home:
             entry = dict()
             if elem.tag == 'light':
                 entry['type'] = DeviceType.LIGHT
-            if elem.tag == 'emotionlight':
+            elif elem.tag == 'dimminglight':
+                entry['type'] = DeviceType.DIMMINGLIGHT
+            elif elem.tag == 'emotionlight':
                 entry['type'] = DeviceType.EMOTIONLIGHT
             elif elem.tag == 'outlet':
                 entry['type'] = DeviceType.OUTLET
@@ -1634,6 +1665,8 @@ class Home:
                 
                 if dev_type is DeviceType.LIGHT:
                     entry_info['type'] = 'light'
+                elif dev_type is DeviceType.DIMMINGLIGHT:
+                    entry_info['type'] = 'dimminglight'
                 elif dev_type is DeviceType.EMOTIONLIGHT:
                     entry_info['type'] = 'emotionlight'
                 elif dev_type is DeviceType.OUTLET:
@@ -1701,6 +1734,12 @@ class Home:
                 child_node = ET.Element('light')
                 parser_mapping_node.append(child_node)
             child_node.text = str(self.parser_mapping.get(DeviceType.LIGHT, 0))
+
+            child_node = parser_mapping_node.find('dimminglight')
+            if child_node is None:
+                child_node = ET.Element('dimminglight')
+                parser_mapping_node.append(child_node)
+            child_node.text = str(self.parser_mapping.get(DeviceType.DIMMINGLIGHT, 0))
         
             child_node = parser_mapping_node.find('emotionlight')
             if child_node is None:

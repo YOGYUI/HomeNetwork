@@ -101,6 +101,7 @@ class DeviceType(IntEnum):
     BATCHOFFSWITCH = auto()
     DOORLOCK = auto()
     EMOTIONLIGHT = auto()
+    DIMMINGLIGHT = auto()
 
 
 @unique

@@ -7,6 +7,7 @@ del CURPATH
 
 from Device import Device
 from Light import Light
+from DimmingLight import DimmingLight
 from Outlet import Outlet
 from GasValve import GasValve
 from Thermostat import Thermostat
