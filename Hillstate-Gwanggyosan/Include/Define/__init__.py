@@ -7,7 +7,6 @@ del CURPATH
 
 from Device import Device
 from Light import Light
-from DimmingLight import DimmingLight
 from Outlet import Outlet
 from GasValve import GasValve
 from Thermostat import Thermostat
@@ -15,6 +14,7 @@ from Ventilator import Ventilator
 from AirConditioner import AirConditioner
 from Elevator import Elevator
 from EmotionLight import EmotionLight
+from DimmingLight import DimmingLight
 # from DoorLock import DoorLock
 from SubPhone import SubPhone
 from AirqualitySensor import AirqualitySensor

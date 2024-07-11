@@ -46,7 +46,6 @@ class DimmingLight(Device):
         packet.extend([0x00, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
-        print("MADE QUERY PACKET: " + ' '.join(['%02X' % x for x in packet]))
         return packet
 
     def makePacketSetState(self, state: bool) -> bytearray:
@@ -62,5 +61,4 @@ class DimmingLight(Device):
             packet.extend([0x02, 0x00])
         packet.append(self.calcXORChecksum(packet))
         packet.append(0xEE)
-        print("MADE SET STATE PACKET: " + ' '.join(['%02X' % x for x in packet]))
         return packet

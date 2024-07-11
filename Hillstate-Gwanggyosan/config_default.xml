@@ -68,6 +68,7 @@
             <batchoffsw>0</batchoffsw>
             <hems>0</hems>
             <emotionlight>0</emotionlight>
+            <dimminglight>0</dimminglight>
         </parser_mapping>
         <verbose_unreg_dev_packet>1</verbose_unreg_dev_packet>
         <discovery>

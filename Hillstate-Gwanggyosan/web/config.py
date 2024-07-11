@@ -289,6 +289,7 @@ class Config:
                 'batchoffsw',
                 'hems',
                 'emotionlight',
+                'dimminglight',
             ]
             for n in names:
                 elem2 = elem.find(n)

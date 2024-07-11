@@ -52,10 +52,10 @@ class ThreadCommandQueue(threading.Thread):
                     if isinstance(dev, Light):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
-                    elif isinstance(dev, DimmingLight):
+                    elif isinstance(dev, EmotionLight):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
-                    elif isinstance(dev, EmotionLight):
+                    elif isinstance(dev, DimmingLight):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
                     elif isinstance(dev, Outlet):
