@@ -196,6 +196,10 @@ class PacketParser:
                     self.handleLight(packet)
                     packet_info['device'] = 'light'
                     store = self.enable_store_packet_header_19
+                elif packet[3] == 0x1A:  # 디밍조명
+                    self.handleDimmingLight(packet)
+                    packet_info['device'] = 'dimming light'
+                    store = self.enable_store_packet_header_19
                 elif packet[3] == 0x1B:  # 가스차단기
                     self.handleGasValve(packet)
                     packet_info['device'] = 'gasvalve'
@@ -352,6 +356,35 @@ class PacketParser:
                 state = 0 if packet[8] == 0x02 else 1
                 result = {
                     'device': DeviceType.LIGHT, 
+                    'index': dev_idx - 1,
+                    'room_index': room_idx,
+                    'state': state
+                }
+                self.updateDeviceState(result)
+
+    def handleDimmingLight(self, packet: bytearray):
+        room_idx = packet[6] >> 4
+        if packet[4] == 0x01:  # 상태 쿼리
+            pass
+        elif packet[4] == 0x02:  # 상태 변경 명령
+            pass
+        elif packet[4] == 0x04:  # 각 방별 On/Off
+            dev_idx = packet[6] & 0x0F
+            if dev_idx == 0:  # 일반 쿼리 (존재하는 모든 디바이스)
+                light_count = len(packet) - 10
+                for idx in range(light_count):
+                    state = 0 if packet[8 + idx] == 0x02 else 1
+                    result = {
+                        'device': DeviceType.DIMMINGLIGHT, 
+                        'index': idx,
+                        'room_index': room_idx,
+                        'state': state
+                    }
+                    self.updateDeviceState(result)
+            else:  # 상태 변경 명령 직후 응답
+                state = 0 if packet[8] == 0x02 else 1
+                result = {
+                    'device': DeviceType.DIMMINGLIGHT, 
                     'index': dev_idx - 1,
                     'room_index': room_idx,
                     'state': state
