@@ -58,6 +58,8 @@ class ThreadCommandQueue(threading.Thread):
                     elif isinstance(dev, DimmingLight):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
+                        elif category == 'brightness':
+                            self.set_brightness(dev, target, parser)
                     elif isinstance(dev, Outlet):
                         if category == 'state':
                             self.set_state_common(dev, target, parser)
@@ -164,6 +166,26 @@ class ThreadCommandQueue(threading.Thread):
         if cnt > 0:
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_state_common::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
+            time.sleep(self._delay_response)
+        dev.publishMQTT()
+
+    def set_brightness(self, dev: Union[DimmingLight], brightness: int, parser: PacketParser):
+        tm_start = time.perf_counter()
+        cnt = 0
+        packet_command = dev.makePacketSetBrightness(brightness)
+        interval, retry_cnt = self.getSendParams(parser)
+        while cnt < retry_cnt:
+            if dev.brightness == brightness:
+                break
+            if parser.isRS485LineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
+            parser.sendPacket(packet_command)
+            cnt += 1
+            time.sleep(interval)  # wait for parsing response
+        if cnt > 0:
+            tm_elapsed = time.perf_counter() - tm_start
+            writeLog('set_brightness::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
         dev.publishMQTT()
 

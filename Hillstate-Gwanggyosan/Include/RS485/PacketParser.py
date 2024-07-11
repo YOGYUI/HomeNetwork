@@ -391,8 +391,10 @@ class PacketParser:
         elif packet[4] == 0x02:  # 상태 변경 명령
             pass
         elif packet[4] == 0x04:  # 각 방별 On/Off
+            state_type = packet[5]
             dev_idx = packet[6] & 0x0F
             if dev_idx == 0:  # 일반 쿼리 (존재하는 모든 디바이스)
+                # todo: 아마 없는 형태의 패킷 아닐까?
                 light_count = len(packet) - 10
                 for idx in range(light_count):
                     state = 0 if packet[8 + idx] == 0x02 else 1
@@ -404,14 +406,26 @@ class PacketParser:
                     }
                     self.updateDeviceState(result)
             else:  # 상태 변경 명령 직후 응답
-                state = 0 if packet[8] == 0x02 else 1
-                result = {
-                    'device': DeviceType.DIMMINGLIGHT, 
-                    'index': dev_idx - 1,
-                    'room_index': room_idx,
-                    'state': state
-                }
-                self.updateDeviceState(result)
+                if state_type == 0x40:
+                    state = 0 if packet[8] == 0x02 else 1
+                    result = {
+                        'device': DeviceType.DIMMINGLIGHT, 
+                        'index': dev_idx - 1,
+                        'room_index': room_idx,
+                        'state': state,
+                        'brightness': None
+                    }
+                    self.updateDeviceState(result)
+                elif state_type == 0x42:
+                    brightness = packet[8]
+                    result = {
+                        'device': DeviceType.DIMMINGLIGHT, 
+                        'index': dev_idx - 1,
+                        'room_index': room_idx,
+                        'state': None,
+                        'brightness': brightness
+                    }
+                    self.updateDeviceState(result)
 
     def handleOutlet(self, packet: bytearray):
         room_idx = packet[6] >> 4

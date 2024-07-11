@@ -626,6 +626,10 @@ class Home:
                             device = EmotionLight(name, index, room)
                         elif tag_name == 'dimminglight':
                             device = DimmingLight(name, index, room)
+                            max_brightness_level_node = dev_node.find('max_brightness_level')
+                            if max_brightness_level_node is not None:
+                                max_brightness_level = int(max_brightness_level_node.text)
+                                device.setMaxBrightnessLevel(max_brightness_level)
                         elif tag_name == 'outlet':
                             device = Outlet(name, index, room)
                             enable_off_cmd_node = dev_node.find('enable_off_cmd')
@@ -954,7 +958,15 @@ class Home:
                 device.updateState(state)
             elif dev_type is DeviceType.DIMMINGLIGHT:
                 state = result.get('state')
-                device.updateState(state)
+                if state is None:
+                    state = device.state
+                brightness = result.get('brightness')
+                if brightness is None:
+                    brightness = device.brightness
+                device.updateState(
+                    state, 
+                    brightness=brightness
+                )
             elif dev_type is DeviceType.THERMOSTAT:
                 state = result.get('state')
                 temp_current = result.get('temp_current')
@@ -1222,6 +1234,12 @@ class Home:
                     device=device,
                     category='state',
                     target=message['state']
+                )
+            if 'brightness' in message.keys():
+                self.send_command(
+                    device=device,
+                    category='brightness',
+                    target=message['brightness']
                 )
 
     def onMqttCommandOutlet(self, topic: str, message: dict):
@@ -1671,6 +1689,7 @@ class Home:
                     entry_info['type'] = 'emotionlight'
                 elif dev_type is DeviceType.DIMMINGLIGHT:
                     entry_info['type'] = 'dimminglight'
+                    entry_info['max_brightness_level'] = 10
                 elif dev_type is DeviceType.OUTLET:
                     entry_info['type'] = 'outlet'
                     entry_info['enable_off_cmd'] = 1

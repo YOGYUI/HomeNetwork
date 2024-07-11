@@ -484,6 +484,14 @@ class Config:
                     pnode.append(elem)
                 elem.text = str(cfg.get('airconditioner_range_max'))
             
+            dimming_light_nodes = list(filter(lambda x: x.tag == 'dimminglight', list(entry_node)))
+            for pnode in list(dimming_light_nodes):
+                elem = pnode.find('max_brightness_level')
+                if elem is None:
+                    elem = ET.Element('max_brightness_level')
+                    pnode.append(elem)
+                elem.text = str(cfg.get('dimminglight_max_brightness_level'))
+            
             clear_node = node.find('clear')
             if clear_node is None:
                 clear_node = ET.Element('clear')
