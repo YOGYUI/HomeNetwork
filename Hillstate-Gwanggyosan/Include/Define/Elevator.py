@@ -39,6 +39,35 @@ class DevInfo:
         return f'<Elevator#{self.index}: Command State: {self.command_state.name}, Moving State:{self.moving_state.name}, FLOOR:{self.floor}>'
 
 
+class ThreadStateChangeTimer(threading.Thread):
+    _keepAlive: bool = True
+
+    def __init__(self, dev: Device, change_time: float):
+        threading.Thread.__init__(self, name=f'Device({dev}) State Change Timer')
+        self._change_time = change_time
+        self._tick_start: float = 0.
+        self.sig_action = Callback()
+        self.sig_terminated = Callback()
+    
+    def run(self):
+        writeLog(f'{self.name} Started', self)
+        self._tick_start = time.perf_counter()
+        while self._keepAlive:
+            elapsed = time.perf_counter() - self._tick_start
+            if elapsed >= self._change_time:
+                self.sig_action.emit()
+                break
+            time.sleep(100e-3)
+        writeLog(f'{self.name} Terminated', self)
+        self.sig_terminated.emit()
+    
+    def stop(self):
+        self._keepAlive = False
+    
+    def reset(self):
+        self.self._tick_start = time.perf_counter()
+
+
 class Elevator(Device):
     time_arrived: float = 0.
     time_threshold_arrived_change: float = 10.
@@ -56,6 +85,8 @@ class Elevator(Device):
     arrived_flag: bool = False
 
     check_command_method: CheckCommandMethod = CheckCommandMethod.CALL_STATE
+
+    _thread_state_change_timer: Union[ThreadStateChangeTimer, None] = None
 
     def __init__(self, name: str = 'Elevator', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
@@ -255,8 +286,15 @@ class Elevator(Device):
         if self.state != self.state_prev:
             writeLog(f"State changed from {self.state_prev} to {self.state}", self)
             self.arrived_flag = False
-            if self.state_prev == 0 and self.state in [5, 6]:
-                self.publishMQTT()
+            if self.state_prev == 0:
+                if self.state in [5, 6]:
+                    self.publishMQTT()
+                elif self.state == 1:
+                    # 미니패드가 없는 경우, 엘리베이터의 현재 상태가 5/6으로 바뀌지 못한다 (월패드-미니패드간 통신 없음)
+                    # 주기적인 패킷 파싱이 불가능하기 때문에 우선 arrived 상태임을 publish한 뒤, 일정 시간(타이머) 뒤에
+                    # idle 상태를 publish하게 임시조치
+                    self.publishMQTT()
+                    self.startThreadStateChangeTimer()
             elif self.state_prev in [5, 6]:
                 if self.state == 1:
                     self.time_arrived = time.perf_counter()
@@ -332,3 +370,27 @@ class Elevator(Device):
                     writeLog(f"check command done: dev<{info.index}> command state is now <{info.command_state}>", self)
                     return True
         return False
+
+    def startThreadStateChangeTimer(self):
+        if self._thread_state_change_timer is None:
+            self._thread_state_change_timer = ThreadStateChangeTimer(self, self.time_threshold_arrived_change)
+            self._thread_state_change_timer.sig_action.connect(self.onThreadStateChangeTimerAction)
+            self._thread_state_change_timer.sig_terminated.connect(self.onThreadStateChangeTimerTerminated)
+            self._thread_state_change_timer.setDaemon(True)
+            self._thread_state_change_timer.start()
+        else:
+            self._thread_state_change_timer.reset()
+
+    def stopThreadStateChangeTimer(self):
+        if self._thread_state_change_timer is not None:
+            self._thread_state_change_timer.stop()
+
+    def onThreadStateChangeTimerTerminated(self):
+        del self._thread_state_change_timer
+        self._thread_state_change_timer = None
+
+    def onThreadStateChangeTimerAction(self):
+        writeLog("Clear arrived flag (from timer)", self)
+        self.state = 0
+        self.arrived_flag = False
+        self.publishMQTT()
