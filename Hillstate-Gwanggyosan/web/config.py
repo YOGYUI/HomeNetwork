@@ -56,27 +56,27 @@ class Config:
             if child is None:
                 child = ET.Element('host')
                 node.append(child)
-            child.text = cfg.get('host')
+            child.text = cfg.get('host', 'core-mosquitto')
             child = node.find('port')
             if child is None:
                 child = ET.Element('port')
                 node.append(child)
-            child.text = str(cfg.get('port'))
+            child.text = str(cfg.get('port', 1883))
             child = node.find('username')
             if child is None:
                 child = ET.Element('username')
                 node.append(child)
-            child.text = cfg.get('username')
+            child.text = cfg.get('username', 'username')
             child = node.find('password')
             if child is None:
                 child = ET.Element('password')
                 node.append(child)
-            child.text = cfg.get('password')
+            child.text = cfg.get('password', 'password')
             child = node.find('client_id')
             if child is None:
                 child = ET.Element('client_id')
                 node.append(child)
-            child.text = cfg.get('client_id')
+            child.text = cfg.get('client_id', 'yogyui_hyundai_ht')
 
             subnode = node.find('tls')
             if subnode is None:
@@ -86,22 +86,22 @@ class Config:
             if child is None:
                 child = ET.Element('enable')
                 subnode.append(child)
-            child.text = str(int(cfg.get('tls_enable')))
+            child.text = str(int(cfg.get('tls_enable', False)))
             child = subnode.find('ca_certs')
             if child is None:
                 child = ET.Element('ca_certs')
                 subnode.append(child)
-            child.text = cfg.get('tls_ca_certs')
+            child.text = cfg.get('tls_ca_certs', '/config/ssl/cacert.pem')
             child = subnode.find('certfile')
             if child is None:
                 child = ET.Element('certfile')
                 subnode.append(child)
-            child.text = cfg.get('tls_certfile')
+            child.text = cfg.get('tls_certfile', '/config/ssl/fullchain.pem')
             child = subnode.find('keyfile')
             if child is None:
                 child = ET.Element('keyfile')
                 subnode.append(child)
-            child.text = cfg.get('tls_keyfile')
+            child.text = cfg.get('tls_keyfile', '/config/ssl/privkey.pem')
 
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
@@ -234,7 +234,7 @@ class Config:
             if elem3 is None:
                 elem3 = ET.Element('prefix')
                 elem2.append(elem3)
-            elem3.text = cfg.get('prefix')
+            elem3.text = cfg.get('prefix', 'homeassistant')
 
             node = root.find('device')
             if node is None:
@@ -253,12 +253,12 @@ class Config:
             if elem2 is None:
                 elem2 = ET.Element('enable')
                 elem.append(elem2)
-            elem2.text = str(int(cfg.get('activate')))
+            elem2.text = str(int(cfg.get('activate', False)))
             elem2 = elem.find('timeout')
             if elem2 is None:
                 elem2 = ET.Element('timeout')
                 elem.append(elem2)
-            elem2.text = str(cfg.get('timeout'))
+            elem2.text = str(cfg.get('timeout', 60))
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
             print(f'Config::set_config_discovery::Exception {e}')
@@ -320,17 +320,17 @@ class Config:
             if elem2 is None:
                 elem2 = ET.Element('enable')
                 elem.append(elem2)
-            elem2.text = str(int(cfg.get('enable')))
+            elem2.text = str(int(cfg.get('enable', False)))
             elem2 = elem.find('period')
             if elem2 is None:
                 elem2 = ET.Element('period')
                 elem.append(elem2)
-            elem2.text = str(cfg.get('period'))
+            elem2.text = str(cfg.get('period', 1000))
             elem2 = elem.find('verbose')
             if elem2 is None:
                 elem2 = ET.Element('verbose')
                 elem.append(elem2)
-            elem2.text = str(int(cfg.get('verbose')))
+            elem2.text = str(int(cfg.get('verbose', True)))
 
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
@@ -374,12 +374,12 @@ class Config:
             if elem is None:
                 elem = ET.Element('enable')
                 subphone_node.append(elem)
-            elem.text = str(int(cfg.get('enable')))
+            elem.text = str(int(cfg.get('enable', False)))
             elem = subphone_node.find('enable_video_streaming')
             if elem is None:
                 elem = ET.Element('enable_video_streaming')
                 subphone_node.append(elem)
-            elem.text = str(int(cfg.get('enable_video_streaming')))
+            elem.text = str(int(cfg.get('enable_video_streaming', False)))
             ffmpeg_node = subphone_node.find('ffmpeg')
             if ffmpeg_node is None:
                 ffmpeg_node = ET.Element('ffmpeg')
@@ -388,32 +388,32 @@ class Config:
             if elem is None:
                 elem = ET.Element('conf_file_path')
                 ffmpeg_node.append(elem)
-            elem.text = cfg.get('conf_file_path')
+            elem.text = cfg.get('conf_file_path', '/etc/ffserver.conf')
             elem = ffmpeg_node.find('feed_path')
             if elem is None:
                 elem = ET.Element('feed_path')
                 ffmpeg_node.append(elem)
-            elem.text = cfg.get('feed_path')
+            elem.text = cfg.get('feed_path', 'http://0.0.0.0:8090/feed.ffm')
             elem = ffmpeg_node.find('input_device')
             if elem is None:
                 elem = ET.Element('input_device')
                 ffmpeg_node.append(elem)
-            elem.text = cfg.get('input_device')
+            elem.text = cfg.get('input_device', '/dev/video0')
             elem = ffmpeg_node.find('frame_rate')
             if elem is None:
                 elem = ET.Element('frame_rate')
                 ffmpeg_node.append(elem)
-            elem.text = str(cfg.get('frame_rate'))
+            elem.text = str(cfg.get('frame_rate', 30))
             elem = ffmpeg_node.find('width')
             if elem is None:
                 elem = ET.Element('width')
                 ffmpeg_node.append(elem)
-            elem.text = str(cfg.get('width'))
+            elem.text = str(cfg.get('width', 640))
             elem = ffmpeg_node.find('height')
             if elem is None:
                 elem = ET.Element('height')
                 ffmpeg_node.append(elem)
-            elem.text = str(cfg.get('height'))
+            elem.text = str(cfg.get('height', 480))
 
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
@@ -434,7 +434,7 @@ class Config:
                 if elem is None:
                     elem = ET.Element('thermo_len_per_dev')
                     pnode.append(elem)
-                elem.text = str(cfg.get('thermo_len_per_dev'))
+                elem.text = str(cfg.get('thermo_len_per_dev', 3))
             
             node = root.find('device')
             if node is None:
@@ -451,12 +451,12 @@ class Config:
                 if elem is None:
                     elem = ET.Element('packet_call_type')
                     pnode.append(elem)
-                elem.text = str(cfg.get('elevator_packet_call_type'))
+                elem.text = str(cfg.get('elevator_packet_call_type', 0))
                 elem = pnode.find('check_command_method')
                 if elem is None:
                     elem = ET.Element('check_command_method')
                     pnode.append(elem)
-                elem.text = str(cfg.get('elevator_check_command_method'))
+                elem.text = str(cfg.get('elevator_check_command_method', 0))
             
             thermo_nodes = list(filter(lambda x: x.tag == 'thermostat', list(entry_node)))
             for pnode in list(thermo_nodes):
@@ -464,12 +464,12 @@ class Config:
                 if elem is None:
                     elem = ET.Element('range_min')
                     pnode.append(elem)
-                elem.text = str(cfg.get('thermostat_range_min'))
+                elem.text = str(cfg.get('thermostat_range_min', 0))
                 elem = pnode.find('range_max')
                 if elem is None:
                     elem = ET.Element('range_max')
                     pnode.append(elem)
-                elem.text = str(cfg.get('thermostat_range_max'))
+                elem.text = str(cfg.get('thermostat_range_max', 100))
             
             aircon_nodes = list(filter(lambda x: x.tag == 'airconditioner', list(entry_node)))
             for pnode in list(aircon_nodes):
@@ -477,12 +477,12 @@ class Config:
                 if elem is None:
                     elem = ET.Element('range_min')
                     pnode.append(elem)
-                elem.text = str(cfg.get('airconditioner_range_min'))
+                elem.text = str(cfg.get('airconditioner_range_min', 0))
                 elem = pnode.find('range_max')
                 if elem is None:
                     elem = ET.Element('range_max')
                     pnode.append(elem)
-                elem.text = str(cfg.get('airconditioner_range_max'))
+                elem.text = str(cfg.get('airconditioner_range_max', 100))
             
             dimming_light_nodes = list(filter(lambda x: x.tag == 'dimminglight', list(entry_node)))
             for pnode in list(dimming_light_nodes):
@@ -490,13 +490,13 @@ class Config:
                 if elem is None:
                     elem = ET.Element('max_brightness_level')
                     pnode.append(elem)
-                elem.text = str(cfg.get('dimminglight_max_brightness_level'))
+                elem.text = str(cfg.get('dimminglight_max_brightness_level', 10))
             
             clear_node = node.find('clear')
             if clear_node is None:
                 clear_node = ET.Element('clear')
                 node.append(clear_node)
-            clear_node.text = str(int(cfg.get('clear_all_devices')))
+            clear_node.text = str(int(cfg.get('clear_all_devices', False)))
 
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
