@@ -172,10 +172,12 @@ class ThreadCommandQueue(threading.Thread):
     def set_brightness(self, dev: Union[DimmingLight], brightness: int, parser: PacketParser):
         tm_start = time.perf_counter()
         cnt = 0
-        packet_command = dev.makePacketSetBrightness(brightness)
+        # HA의 0~255 범위 brightness값을 알맞게 스케일링해서 입력해야 한다
+        conv = int(brightness / 255 * dev.max_brightness_level)
+        packet_command = dev.makePacketSetBrightness(conv)
         interval, retry_cnt = self.getSendParams(parser)
         while cnt < retry_cnt:
-            if dev.brightness == brightness:
+            if dev.brightness == conv:
                 break
             if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation

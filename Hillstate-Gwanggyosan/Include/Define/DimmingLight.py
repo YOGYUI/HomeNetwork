@@ -18,9 +18,11 @@ class DimmingLight(Device):
         self.name = 'DimmingLight'
 
     def publishMQTT(self):
+        # HA 엔티티는 0 ~ 255 범위의 밝기값을 가진다
+        brightness_conv = int(255 * self.brightness / self.max_brightness_level)
         obj = {
             "state": self.state,
-            "brightness": self.brightness
+            "brightness": brightness_conv
         }
         if self.mqtt_client is not None:
             self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
@@ -37,16 +39,15 @@ class DimmingLight(Device):
             "state_topic": self.mqtt_publish_topic,
             "command_topic": self.mqtt_subscribe_topic,
             "schema": "template",
+            "command_on_template": '{'\
+                '"state": 1'\
+                '{%- if brightness is defined -%}'\
+                ', "brightness": {{ brightness }}'\
+                '{%- endif -%}'\
+            '}',
+            "command_off_template": '{"state": 0}',
             "state_template": "{% if value_json.state %} on {% else %} off {% endif %}",
-            "command_on_template": '{"state": 1}',
-            "command_off_template": '{"state": 0 }',
-            "brightness_state_topic ": self.mqtt_publish_topic,
-            "brightness_command_topic ": self.mqtt_subscribe_topic,
-            "brightness_value_template": "{{ value_json.brightness }}",
-            "brightness_command_template": '{ "brightness": {{ value }} }',
-            "brightness": True,
-            "brightness_scale": self.max_brightness_level,
-            "supported_color_modes": ["brightness"]
+            "brightness_template": '{{ value_json.brightness }}'
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 

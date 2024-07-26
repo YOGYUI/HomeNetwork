@@ -32,7 +32,7 @@ class Light(Device):
             "schema": "template",
             "state_template": "{% if value_json.state %} on {% else %} off {% endif %}",
             "command_on_template": '{"state": 1}',
-            "command_off_template": '{"state": 0 }'
+            "command_off_template": '{"state": 0}'
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
