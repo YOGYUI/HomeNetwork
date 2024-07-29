@@ -1,11 +1,13 @@
 import json
+import math
 from Device import *
 
 
 class DimmingLight(Device):
     brightness: int = 0  # 현재 밝기 레벨
     brightness_prev: int = 0  # 현재 밝기 레벨 버퍼
-    max_brightness_level: int = 10
+    max_brightness_level: int = 7
+    conv_method: int = 0  # 0 = 반올림, 1 = 내림, 2 = 올림
 
     def __init__(self, name: str = 'DimmingLight', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
@@ -18,8 +20,7 @@ class DimmingLight(Device):
         self.name = 'DimmingLight'
 
     def publishMQTT(self):
-        # HA 엔티티는 0 ~ 255 범위의 밝기값을 가진다
-        brightness_conv = int(255 * self.brightness / self.max_brightness_level)
+        brightness_conv = self.convert_word_to_level(self.brightness)
         obj = {
             "state": self.state,
             "brightness": brightness_conv
@@ -54,6 +55,31 @@ class DimmingLight(Device):
     def setMaxBrightnessLevel(self, level: int):
         self.max_brightness_level = level
         writeLog(f"{str(self)} Set Max Brightness Level: {self.max_brightness_level}", self)
+
+    def setConvertMethod(self, method: int):
+        if method not in [0, 1, 2]:
+            writeLog(f"{str(self)} warning:: invalid convert method (only 0, 1, 2 is available)", self)
+            method = 0
+        self.conv_method = method
+        writeLog(f"{str(self)} Set Convert Method: {self.conv_method}", self)
+
+    def convert_level_to_word(self, level: int) -> int:
+        # HA 엔티티의 밝기 레벨 (범위 0 ~ 255)를 월패드상의 밝기 레벨로 변환
+        if self.conv_method == 1:  # 내림
+            return math.floor(level / 255 * self.max_brightness_level)
+        elif self.conv_method == 2:  # 올림
+            return math.ceil(level / 255 * self.max_brightness_level)
+        # 반올림
+        return round(level / 255 * self.max_brightness_level)
+
+    def convert_word_to_level(self, word: int) -> int:
+        # 월패드상의 밝기 레벨을 HA 엔티티의 밝기 레벨 (범위 0 ~ 255)로 변환
+        if self.conv_method == 1:  # 내림
+            return math.floor(255 * word / self.max_brightness_level)
+        elif self.conv_method == 2:  # 올림
+            return math.ceil(255 * word / self.max_brightness_level)
+        # 반올림
+        return round(255 * word / self.max_brightness_level)
 
     def updateState(self, state: int, **kwargs):
         self.state = state

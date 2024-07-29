@@ -630,6 +630,10 @@ class Home:
                             if max_brightness_level_node is not None:
                                 max_brightness_level = int(max_brightness_level_node.text)
                                 device.setMaxBrightnessLevel(max_brightness_level)
+                            convert_method_node = dev_node.find('convert_method')
+                            if convert_method_node is not None:
+                                convert_method = int(convert_method_node.text)
+                                device.setConvertMethod(convert_method)
                         elif tag_name == 'outlet':
                             device = Outlet(name, index, room)
                             enable_off_cmd_node = dev_node.find('enable_off_cmd')
@@ -1689,7 +1693,8 @@ class Home:
                     entry_info['type'] = 'emotionlight'
                 elif dev_type is DeviceType.DIMMINGLIGHT:
                     entry_info['type'] = 'dimminglight'
-                    entry_info['max_brightness_level'] = 10
+                    entry_info['max_brightness_level'] = 7
+                    entry_info['convert_method'] = 0
                 elif dev_type is DeviceType.OUTLET:
                     entry_info['type'] = 'outlet'
                     entry_info['enable_off_cmd'] = 1

@@ -175,8 +175,8 @@ class Device:
 class ThreadDeviceTimerOnOff(threading.Thread):
     _keepAlive: bool = True
     _dev: Device
-    _on_time: float = 10  # unit: minute
-    _off_time: float = 50  # unit: minute
+    _on_time: float = 10.  # unit: minute
+    _off_time: float = 50.  # unit: minute
     _repeat: bool = True
 
     def __init__(self, dev: Device):

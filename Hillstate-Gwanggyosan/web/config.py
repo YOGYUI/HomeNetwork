@@ -490,7 +490,12 @@ class Config:
                 if elem is None:
                     elem = ET.Element('max_brightness_level')
                     pnode.append(elem)
-                elem.text = str(cfg.get('dimminglight_max_brightness_level', 10))
+                elem.text = str(cfg.get('dimminglight_max_brightness_level', 7))
+                elem = pnode.find('convert_method')
+                if elem is None:
+                    elem = ET.Element('convert_method')
+                    pnode.append(elem)
+                elem.text = str(cfg.get('dimminglight_convert_method', 0))
             
             clear_node = node.find('clear')
             if clear_node is None:
