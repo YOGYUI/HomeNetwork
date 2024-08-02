@@ -326,17 +326,20 @@ climate:
     modes:
       - "off"
       - "cool"
+      - "auto"
+      - "dry"
+      - "fan_only"
     fan_modes:
       - "Max"
       - "Medium"
       - "Min"
       - "Auto"
     mode_state_topic: "home/state/airconditioner/1/0"
-    mode_state_template: '{% if value_json.active %} cool {% else %} off {% endif %}'
+    mode_state_template: "{{ value_json.mode }}"
     mode_command_topic: "home/command/airconditioner/1/0"
     mode_command_template: >-
-      {% set values = {'off': 0, 'cool': 1} %}
-      { "active": {{ values[value] if value in values.keys() else 0 }} }
+      {% set values = {"off": 0, "cool": 1, "auto": 2, "dry": 3, "fan_only": 4} %}
+      { "mode": {{ values[value] if value in values.keys() else 0 }} }
     temperature_state_topic: "home/state/airconditioner/1/0"
     temperature_state_template: "{{ value_json.targetTemperature }}"
     temperature_command_topic: "home/command/airconditioner/1/0"
@@ -356,17 +359,20 @@ climate:
     modes:
       - "off"
       - "cool"
+      - "auto"
+      - "dry"
+      - "fan_only"
     fan_modes:
       - "Max"
       - "Medium"
       - "Min"
       - "Auto"
     mode_state_topic: "home/state/airconditioner/2/0"
-    mode_state_template: '{% if value_json.active %} cool {% else %} off {% endif %}'
+    mode_state_template: "{{ value_json.mode }}"
     mode_command_topic: "home/command/airconditioner/2/0"
     mode_command_template: >-
-      {% set values = {'off': 0, 'cool': 1} %}
-      { "active": {{ values[value] if value in values.keys() else 0 }} }
+      {% set values = {"off": 0, "cool": 1, "auto": 2, "dry": 3, "fan_only": 4} %}
+      { "mode": {{ values[value] if value in values.keys() else 0 }} }
     temperature_state_topic: "home/state/airconditioner/2/0"
     temperature_state_template: "{{ value_json.targetTemperature }}"
     temperature_command_topic: "home/command/airconditioner/2/0"
@@ -386,17 +392,20 @@ climate:
     modes:
       - "off"
       - "cool"
+      - "auto"
+      - "dry"
+      - "fan_only"
     fan_modes:
       - "Max"
       - "Medium"
       - "Min"
       - "Auto"
     mode_state_topic: "home/state/airconditioner/3/0"
-    mode_state_template: '{% if value_json.active %} cool {% else %} off {% endif %}'
+    mode_state_template: "{{ value_json.mode }}"
     mode_command_topic: "home/command/airconditioner/3/0"
     mode_command_template: >-
-      {% set values = {'off': 0, 'cool': 1} %}
-      { "active": {{ values[value] if value in values.keys() else 0 }} }
+      {% set values = {"off": 0, "cool": 1, "auto": 2, "dry": 3, "fan_only": 4} %}
+      { "mode": {{ values[value] if value in values.keys() else 0 }} }
     temperature_state_topic: "home/state/airconditioner/3/0"
     temperature_state_template: "{{ value_json.targetTemperature }}"
     temperature_command_topic: "home/command/airconditioner/3/0"
@@ -416,17 +425,20 @@ climate:
     modes:
       - "off"
       - "cool"
+      - "auto"
+      - "dry"
+      - "fan_only"
     fan_modes:
       - "Max"
       - "Medium"
       - "Min"
       - "Auto"
     mode_state_topic: "home/state/airconditioner/4/0"
-    mode_state_template: '{% if value_json.active %} cool {% else %} off {% endif %}'
+    mode_state_template: "{{ value_json.mode }}"
     mode_command_topic: "home/command/airconditioner/4/0"
     mode_command_template: >-
-      {% set values = {'off': 0, 'cool': 1} %}
-      { "active": {{ values[value] if value in values.keys() else 0 }} }
+      {% set values = {"off": 0, "cool": 1, "auto": 2, "dry": 3, "fan_only": 4} %}
+      { "mode": {{ values[value] if value in values.keys() else 0 }} }
     temperature_state_topic: "home/state/airconditioner/4/0"
     temperature_state_template: "{{ value_json.targetTemperature }}"
     temperature_command_topic: "home/command/airconditioner/4/0"

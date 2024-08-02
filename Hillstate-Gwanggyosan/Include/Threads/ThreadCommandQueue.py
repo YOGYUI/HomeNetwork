@@ -91,10 +91,29 @@ class ThreadCommandQueue(threading.Thread):
                             self.set_rotation_speed(dev, target, parser)
                     elif isinstance(dev, AirConditioner):
                         if category == 'active':
+                            # for handling homebridge entity
                             self.set_state_common(dev, target, parser)
                             if target:
                                 self.set_airconditioner_mode(dev, 1, parser)  # 최초 가동 시 모드를 '냉방'으로 바꿔준다
                                 # self.set_rotation_speed(dev, 1, parser)  # 최초 가동 시 풍량을 '자동'으로 바꿔준다
+                        elif category == 'mode':
+                            # for handling homeassistant entity
+                            # "off": 0, "cool": 1, "auto": 2, "dry": 3, "fan_only": 4
+                            if not target:  
+                                self.set_state_common(dev, 0, parser)
+                            else:
+                                self.set_state_common(dev, 1, parser)
+                                mode_value = 1  # default = 냉방
+                                if target == 2:
+                                    # 자동
+                                    mode_value = 0
+                                elif target == 3:
+                                    # 제습
+                                    mode_value = 2
+                                elif target == 4:
+                                    # 송풍
+                                    mode_value = 3
+                                self.set_airconditioner_mode(dev, mode_value, parser)
                         elif category == 'temperature':
                             self.set_target_temperature(dev, target, parser)
                         elif category == 'rotationspeed':

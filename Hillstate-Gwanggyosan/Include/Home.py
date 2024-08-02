@@ -1350,6 +1350,12 @@ class Home:
                     category='active',
                     target=message['active']
                 )
+            if 'mode' in message.keys():
+                self.send_command(
+                    device=device,
+                    category='mode',
+                    target=message['mode']
+                )
             if 'targetTemperature' in message.keys():
                 self.send_command(
                     device=device,

@@ -27,14 +27,28 @@ class AirConditioner(Device):
     def publishMQTT(self):
         # https://ddhometech.wordpress.com/2021/01/03/ha-mqtt-hvac-integration-using-tasmota-ir-bridge/
         if self.state:
-            state = 'COOLING'
+            # state = 'COOLING'
+            state_str = 'ACTIVE'
         else:
-            state = 'INACTIVE'
+            state_str = 'INACTIVE'
         target_state = 'COOL'
+
+        mode_str = 'off'
+        if self.state:
+            if self.mode == 0:
+                mode_str = 'auto'
+            elif self.mode == 1:
+                mode_str = 'cool'
+            elif self.mode == 2:
+                mode_str = 'dry'
+            elif self.mode == 3:
+                mode_str = 'fan_only'
+
         obj = {
             "active": self.state,
-            "state": state,
+            "state": state_str,
             "target_state": target_state,
+            "mode": mode_str,
             "currentTemperature": self.temp_current,
             "targetTemperature": self.temp_config,
             "timer": int(self.isTimerOnOffRunning())
@@ -63,13 +77,13 @@ class AirConditioner(Device):
             "name": self.name,
             "object_id": self.unique_id,
             "unique_id": self.unique_id,
-            "modes": ["off", "cool"],
-            "fan_modes": ["Max", "Medium", "Min", "Auto"],
+            "modes": ["off", "cool", "auto", "dry", "fan_only"],
+            "fan_modes": ["Max", "Medium", "Min", "Auto"],  # TODO: [“auto”, “low”, “medium”, “high”]로 대체해야하나?
             "mode_state_topic": self.mqtt_publish_topic,
-            "mode_state_template": "{% if value_json.active %} cool {% else %} off {% endif %}",
+            "mode_state_template": "{{ value_json.mode }}",
             "mode_command_topic": self.mqtt_subscribe_topic,
-            "mode_command_template": '{% set values = {"off": 0, "cool": 1} %} \
-                                      { "active": {{ values[value] if value in values.keys() else 0 }} }',
+            "mode_command_template": '{% set values = {"off": 0, "cool": 1, "auto": 2, "dry": 3, "fan_only": 4} %} \
+                                      { "mode": {{ values[value] if value in values.keys() else 0 }} }',
             "temperature_state_topic": self.mqtt_publish_topic,
             "temperature_state_template": "{{ value_json.targetTemperature }}",
             "temperature_command_topic": self.mqtt_subscribe_topic,
@@ -118,7 +132,7 @@ class AirConditioner(Device):
                 self.publishMQTT()
             self.temp_config_prev = self.temp_config
         # 모드
-        # 0=자동, 1=냉방, 2=제습, 3=공기청정
+        # 0=자동, 1=냉방, 2=제습, 3=송풍
         mode = kwargs.get('mode')
         if mode is not None:
             self.mode = mode
@@ -186,8 +200,8 @@ class AirConditioner(Device):
 
     def makePacketSetMode(self, mode: int) -> bytearray:
         # F7 0B 01 1C 02 5C XX YY 00 ZZ EE
-        # XX: 상위 4비트=공간 인덱스, 하위 4비트=디바이스 인덱스 (1-based
-        # YY: 0x0=자동, 0x01=냉방, 0x03=제습, 0x04=공기청정
+        # XX: 상위 4비트=공간 인덱스, 하위 4비트=디바이스 인덱스 (1-based)
+        # YY: 0x0=자동, 0x01=냉방, 0x02=제습, 0x03=송풍
         # ZZ: Checksum (XOR SUM)
         packet = bytearray([0xF7, 0x0B, 0x01, 0x1C, 0x02, 0x5C])
         packet.append((self.room_index << 4) + (self.index + 1))
