@@ -536,22 +536,29 @@ class PacketParser:
         elif packet[4] == 0x02:  # On/Off, 온도 변경 명령
             pass
         elif packet[4] == 0x04:  # 상태 응답
-            state = 0 if packet[8] == 0x02 else 1  # On/Off 상태
-            temp_current = packet[9]  # 현재 온도
-            temp_config = packet[10]  # 설정 온도
-            mode = packet[11]  # 모드 (0=자동, 1=냉방, 2=제습, 3=송풍)
-            rotation_speed = packet[12]  # 풍량 (1=자동, 2=미풍, 3=약풍, 4=강풍)
-            result = {
-                'device': DeviceType.AIRCONDITIONER,
-                'index': dev_idx - 1,
-                'room_index': room_idx,
-                'state': state,
-                'temp_current': temp_current,
-                'temp_config': temp_config,
-                'mode': mode,
-                'rotation_speed': rotation_speed
-            }
-            self.updateDeviceState(result)
+            if dev_idx == 0:
+                if packet[5] == 0x5E:
+                    # todo: https://github.com/YOGYUI/HomeNetwork/pull/12#issuecomment-2271148687
+                    pass
+                else:
+                    pass
+            else:
+                state = 0 if packet[8] == 0x02 else 1  # On/Off 상태
+                temp_current = packet[9]  # 현재 온도
+                temp_config = packet[10]  # 설정 온도
+                mode = packet[11]  # 모드 (0=자동, 1=냉방, 2=제습, 3=송풍)
+                rotation_speed = packet[12]  # 풍량 (1=자동, 2=미풍, 3=약풍, 4=강풍)
+                result = {
+                    'device': DeviceType.AIRCONDITIONER,
+                    'index': dev_idx - 1,
+                    'room_index': room_idx,
+                    'state': state,
+                    'temp_current': temp_current,
+                    'temp_config': temp_config,
+                    'mode': mode,
+                    'rotation_speed': rotation_speed
+                }
+                self.updateDeviceState(result)
 
     def handleElevator(self, packet: bytearray):
         if packet[4] == 0x01:  # 상태 쿼리 (월패드 -> 복도 미니패드)
