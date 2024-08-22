@@ -39,6 +39,12 @@ file. <br>
                 <enable>1</enable>
                 <packettype>0</packettype>
                 <check>1</check>
+                <buffsize>64</buffsize>
+                <thermo_len_per_dev>3</thermo_len_per_dev>
+                <command>
+                    <interval_ms>100</interval_ms>
+                    <retry_count>50</retry_count>
+                </command>
             </port>
         </rs485>
         ```

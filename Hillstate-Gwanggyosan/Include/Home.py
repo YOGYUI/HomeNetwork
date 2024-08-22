@@ -376,12 +376,25 @@ class Home:
                 except Exception as e:
                     writeLog(f"Failed to read <ew11>-<port> node ({e})", self)
                     cfg.socket_port = 8899
-            
+
             try:
                 thermo_len_per_dev = int(cnode.find('thermo_len_per_dev').text)
             except Exception as e:
                 writeLog(f"Failed to read <thermo_len_per_dev> node ({e})", self)
                 thermo_len_per_dev = 3
+            
+            cmd_interval_ms = 100
+            cmd_retry_count = 50
+            command_node = cnode.find('command')
+            if command_node is not None:
+                try:
+                    cmd_interval_ms = int(command_node.find('interval_ms').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <command_node>-<interval_ms> node ({e})", self)
+                try:
+                    cmd_retry_count = int(command_node.find('retry_count').text)
+                except Exception as e:
+                    writeLog(f"Failed to read <command_node>-<retry_count> node ({e})", self)
             
             cfg.enable = enable
             cfg.comm_type = RS485HwType(hwtype)
@@ -389,12 +402,12 @@ class Home:
             rs485 = RS485Comm(f'RS485-{name}')
             if packettype == 1:  # subphone
                 rs485.sig_connected.connect(self.onRS485SubPhoneConnected)
-            parser = PacketParser(rs485, name, index, ParserType(packettype))
+            parser = PacketParser(rs485, name, index, cmd_interval_ms, cmd_retry_count, ParserType(packettype))
             parser.setBufferSize(buffsize)
             parser.thermo_len_per_dev = thermo_len_per_dev
             parser.sig_parse_result.connect(lambda x: self.queue_parse_result.put(x))
             self.rs485_info_list.append(RS485Info(rs485, cfg, parser, index))
-            writeLog(f"Create RS485 Instance (name: {name})")
+            writeLog(f"Created RS485 Instance (name: {name})", self)
         self.rs485_info_list.sort(key=lambda x: x.index)
 
     def loadMQTTConfig(self, node: ET.Element):

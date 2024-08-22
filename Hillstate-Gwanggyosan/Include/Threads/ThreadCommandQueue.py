@@ -4,7 +4,7 @@ import time
 import math
 import queue
 import threading
-from typing import Union
+from typing import Union, Tuple
 CURPATH = os.path.dirname(os.path.abspath(__file__))
 INCPATH = os.path.dirname(CURPATH)
 sys.path.extend([CURPATH, INCPATH])
@@ -151,7 +151,8 @@ class ThreadCommandQueue(threading.Thread):
         self._keepAlive = False
 
     @staticmethod
-    def getSendParams(parser: PacketParser) -> tuple:
+    def getSendParams(parser: PacketParser) -> Tuple[float, int]:
+        """
         interval = 0.2
         retry_cnt = 10
         if parser.getRS485HwType() == RS485HwType.Socket:
@@ -159,7 +160,10 @@ class ThreadCommandQueue(threading.Thread):
             # 짧은 간격으로 패킷을 많이 쏴보도록 한다
             interval = 0.1
             retry_cnt = 50
-        return interval, retry_cnt
+        """
+        interval_sec = parser.send_command_interval_ms / 1000
+        retry_cnt = parser.send_command_retry_count
+        return interval_sec, retry_cnt
 
     def set_state_common(self, dev: Device, target: int, parser: PacketParser):
         tm_start = time.perf_counter()

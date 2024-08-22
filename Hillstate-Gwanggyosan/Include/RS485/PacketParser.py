@@ -11,7 +11,7 @@ INCPATH = os.path.dirname(CURPATH)  # {$PROJECT}/Include/
 sys.path.extend([CURPATH, INCPATH])
 sys.path = list(set(sys.path))
 del CURPATH, INCPATH
-from Common import DeviceType, HEMSDevType, HEMSCategory
+from Common import writeLog, DeviceType, HEMSDevType, HEMSCategory
 
 
 @unique
@@ -60,16 +60,28 @@ class PacketParser:
     enable_store_packet_general: bool = False
     enable_trace_timestamp_packet: bool = False
 
-    def __init__(self, rs485_instance: RS485Comm, name: str, index: int, type_interpret: ParserType = ParserType.REGULAR):
+    def __init__(self, 
+                 rs485_instance: RS485Comm, 
+                 name: str, 
+                 index: int, 
+                 send_command_interval_ms: int,
+                 send_command_retry_count: int,
+                 type_interpret: ParserType = ParserType.REGULAR):
         self.buffer = bytearray()
         self.name = name
         self.index = index
+        self.send_command_interval_ms: int = send_command_interval_ms
+        self.send_command_retry_count: int = send_command_retry_count
         self.rs485 = rs485_instance
         self.rs485.sig_send_data.connect(self.onSendData)
         self.rs485.sig_recv_data.connect(self.onRecvData)
         self.type_interpret = type_interpret
         self.packet_storage = list()
         self.sig_parse_result = Callback(dict)
+        writeLog(f"<{self.name}> initialized (index: {self.index}, " \
+                 f"type: {self.type_interpret.name}, " \
+                 f"command interval: {self.send_command_interval_ms}ms, " \
+                 f"command retry count: {self.send_command_retry_count})", self)
 
     def __repr__(self):
         repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})>'

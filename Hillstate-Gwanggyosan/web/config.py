@@ -130,27 +130,27 @@ class Config:
                 if elem is None:
                     elem = ET.Element('name')
                     child.append(elem)
-                elem.text = port_conf.get('name')
+                elem.text = port_conf.get('name', f'port{i + 1}')
                 elem = child.find('index')
                 if elem is None:
                     elem = ET.Element('index')
                     child.append(elem)
-                elem.text = str(port_conf.get('index'))
+                elem.text = str(port_conf.get('index', 0))
                 elem = child.find('enable')
                 if elem is None:
                     elem = ET.Element('enable')
                     child.append(elem)
-                elem.text = str(int(port_conf.get('enable')))
+                elem.text = str(int(port_conf.get('enable', True)))
                 elem = child.find('hwtype')
                 if elem is None:
                     elem = ET.Element('hwtype')
                     child.append(elem)
-                elem.text = str(int(port_conf.get('hwtype')))
+                elem.text = str(int(port_conf.get('hwtype', 0)))
                 elem = child.find('packettype')
                 if elem is None:
                     elem = ET.Element('packettype')
                     child.append(elem)
-                elem.text = str(port_conf.get('packettype'))
+                elem.text = str(port_conf.get('packettype', 0))
                 elem = child.find('usb2serial')
                 if elem is None:
                     elem = ET.Element('usb2serial')
@@ -159,27 +159,27 @@ class Config:
                 if elem2 is None:
                     elem2 = ET.Element('port')
                     elem.append(elem2)
-                elem2.text = port_conf.get('serial')
+                elem2.text = port_conf.get('serial', '/dev/ttyUSB0')
                 elem2 = elem.find('baud')
                 if elem2 is None:
                     elem2 = ET.Element('baud')
                     elem.append(elem2)
-                elem2.text = str(port_conf.get('baudrate'))
+                elem2.text = str(port_conf.get('baudrate', 9600))
                 elem2 = elem.find('databit')
                 if elem2 is None:
                     elem2 = ET.Element('databit')
                     elem.append(elem2)
-                elem2.text = str(port_conf.get('databit'))
+                elem2.text = str(port_conf.get('databit', 8))
                 elem2 = elem.find('parity')
                 if elem2 is None:
                     elem2 = ET.Element('parity')
                     elem.append(elem2)
-                elem2.text = port_conf.get('parity')
+                elem2.text = port_conf.get('parity', 'N')
                 elem2 = elem.find('stopbits')
                 if elem2 is None:
                     elem2 = ET.Element('stopbits')
                     elem.append(elem2)
-                elem2.text = str(port_conf.get('stopbits'))
+                elem2.text = str(port_conf.get('stopbits', 1))
                 elem = child.find('ew11')
                 if elem is None:
                     elem = ET.Element('ew11')
@@ -188,22 +188,36 @@ class Config:
                 if elem2 is None:
                     elem2 = ET.Element('ipaddr')
                     elem.append(elem2)
-                elem2.text = port_conf.get('socketaddr')
+                elem2.text = port_conf.get('socketaddr', '127.0.0.1')
                 elem2 = elem.find('port')
                 if elem2 is None:
                     elem2 = ET.Element('port')
                     elem.append(elem2)
-                elem2.text = str(port_conf.get('socketport'))
+                elem2.text = str(port_conf.get('socketport', 8899))
                 elem = child.find('check')
                 if elem is None:
                     elem = ET.Element('check')
                     child.append(elem)
-                elem.text = str(int(port_conf.get('check_connection')))
+                elem.text = str(int(port_conf.get('check_connection', True)))
                 elem = child.find('buffsize')
                 if elem is None:
                     elem = ET.Element('buffsize')
                     child.append(elem)
                 elem.text = '64'
+                elem = child.find('command')
+                if elem is None:
+                    elem = ET.Element('command')
+                    child.append(elem)
+                elem2 = elem.find('interval_ms')
+                if elem2 is None:
+                    elem2 = ET.Element('interval_ms')
+                    elem.append(elem2)
+                elem2.text = str(port_conf.get('cmd_interval_ms', 200))
+                elem2 = elem.find('retry_count')
+                if elem2 is None:
+                    elem2 = ET.Element('retry_count')
+                    elem.append(elem2)
+                elem2.text = str(port_conf.get('cmd_retry_count', 10))
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
             print(f'Config::set_config_rs485::Exception {e}')
