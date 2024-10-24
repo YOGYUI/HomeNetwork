@@ -39,9 +39,9 @@ class ThreadQueryState(threading.Thread):
                 if not self._keepAlive:
                     break
 
-                dev_type: DeviceType = dev.getType()
+                dev_type = dev.getType()
                 index = self.parser_mapping.get(dev_type)
-                info: RS485Info = self.rs485_info_list[index]
+                info = self.rs485_info_list[index]
                 packet_query = dev.makePacketQueryState()
                 while not self.available:
                     if not self._keepAlive:

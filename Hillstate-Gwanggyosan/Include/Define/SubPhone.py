@@ -1,4 +1,6 @@
+import time
 import json
+import threading
 from Device import *
 from enum import IntEnum
 
@@ -17,19 +19,50 @@ class StateDoorLock(IntEnum):
     Unknown = 3
 
 
+class ThreadAutoOpenDoor(threading.Thread):
+    _keepAlive: bool = True
+
+    def __init__(self, interval_sec: float):
+        threading.Thread.__init__(self)
+        self.interval_sec = interval_sec
+        self.sig_terminated = Callback(bool)
+    
+    def run(self):
+        tm_start = time.perf_counter()
+        while self._keepAlive:
+            elapsed = time.perf_counter() - tm_start
+            if elapsed >= self.interval_sec:
+                break
+            time.sleep(100e-3)
+        self.sig_terminated.emit(self._keepAlive)
+    
+    def stop(self):
+        self._keepAlive = False
+
+
 class SubPhone(Device):
     state_streaming: int = 0
+    state_streaming_prev: int = 0
     state_ringing: StateRinging = StateRinging.IDLE
     state_ringing_prev: StateRinging = StateRinging.IDLE
     state_doorlock: StateDoorLock = StateDoorLock.Secured
+    state_doorlock_prev: StateDoorLock = StateDoorLock.Secured
 
     # 세대현관문, 공동현관문 분리
     state_lock_front: StateDoorLock = StateDoorLock.Secured
+    state_lock_front_prev: StateDoorLock = StateDoorLock.Secured
     state_ringing_front: int = 0
     state_ringing_front_prev: int = 0
     state_lock_communal: StateDoorLock = StateDoorLock.Secured
+    state_lock_communal_prev: StateDoorLock = StateDoorLock.Secured
     state_ringring_communal: int = 0
     state_ringring_communal_prev: int = 0
+
+    # 세대/공동현관문 자동 열림 기능
+    enable_auto_open_front_door: bool = False
+    auto_open_front_door_interval_sec: float = 3
+    enable_auto_open_communal_door: bool = False
+    auto_open_communal_door_interval_sec: float = 3
 
     def __init__(self, name: str = 'SubPhone', index: int = 0, room_index: int = 0):
         super().__init__(name, index, room_index)
@@ -47,6 +80,10 @@ class SubPhone(Device):
             'width': 320,
             'height': 240,
         }
+        self._thread_auto_open_front_door: Union[ThreadAutoOpenDoor, None] = None
+        self._thread_auto_open_communal_door: Union[ThreadAutoOpenDoor, None] = None
+        self.sig_open_front_door = Callback(int, int)
+        self.sig_open_communal_door = Callback(int, int)
     
     def setDefaultName(self):
         self.name = 'SubPhone'
@@ -55,6 +92,14 @@ class SubPhone(Device):
         if self.mqtt_client is None:
             return
 
+        self._publishMQTT_DoorLockState()
+        self._publishMQTT_AutoOpenState()
+        self._publishMQTT_DoorBellState()
+
+    def _publishMQTT_DoorLockState(self):
+        if self.mqtt_client is None:
+            return
+        
         obj = {
             "streaming_state": self.state_streaming,
             "doorlock_state": self.state_doorlock.name,  # 도어락은 상태 조회가 안되고 '열기' 기능만 존재한다
@@ -62,11 +107,29 @@ class SubPhone(Device):
             "lock_communal_state": self.state_lock_communal.name,
         }
         self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+        
         obj = {"state": self.state_lock_front.name}
         self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/front', json.dumps(obj), 1)
+
         obj = {"state": self.state_lock_communal.name}
         self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/communal', json.dumps(obj), 1)
 
+    def _publishMQTT_AutoOpenState(self):
+        if self.mqtt_client is None:
+            return
+        
+        obj = {
+            "enable_auto_open_front": int(self.enable_auto_open_front_door),
+            "auto_open_front_interval": self.auto_open_front_door_interval_sec,
+            "enable_auto_open_communal": int(self.enable_auto_open_communal_door),
+            "auto_open_communal_interval": self.auto_open_communal_door_interval_sec
+        }
+        self.mqtt_client.publish(self.mqtt_publish_topic + '/autoopen', json.dumps(obj), 1)
+
+    def _publishMQTT_DoorBellState(self):
+        if self.mqtt_client is None:
+            return
+        
         if not self.init:
             self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'OFF', 1)
             obj = {"state": 0}
@@ -172,23 +235,60 @@ class SubPhone(Device):
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
+        topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}_auto_open_front/config'
+        obj = {
+            "name": self.name + " Auto Open (Front)",
+            "object_id": self.unique_id + "_auto_open_front",
+            "unique_id": self.unique_id + "_auto_open_front",
+            "state_topic": self.mqtt_publish_topic + '/autoopen',
+            "command_topic": self.mqtt_subscribe_topic,
+            "value_template": '{ "enable_auto_open_front": {{ value_json.enable_auto_open_front }} }',
+            "payload_on": '{ "enable_auto_open_front": 1 }',
+            "payload_off": '{ "enable_auto_open_front": 0 }',
+            "icon": "mdi:door-open"
+        }
+        self.mqtt_client.publish(topic, json.dumps(obj), 1)
+
+        topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}_auto_open_communal/config'
+        obj = {
+            "name": self.name + " Auto Open (Communal)",
+            "object_id": self.unique_id + "_auto_open_communal",
+            "unique_id": self.unique_id + "_auto_open_communal",
+            "state_topic": self.mqtt_publish_topic + '/autoopen',
+            "command_topic": self.mqtt_subscribe_topic,
+            "value_template": '{ "enable_auto_open_communal": {{ value_json.enable_auto_open_communal }} }',
+            "payload_on": '{ "enable_auto_open_communal": 1 }',
+            "payload_off": '{ "enable_auto_open_communal": 0 }',
+            "icon": "mdi:door-open"
+        }
+        self.mqtt_client.publish(topic, json.dumps(obj), 1)
+
     def updateState(self, _: int, **kwargs):
+        publish = False
         streaming = kwargs.get('streaming')
         if streaming is not None:
             self.state_streaming = streaming
             self.sig_state_streaming.emit(self.state_streaming)
-            self.publishMQTT()
             writeLog(f"Streaming: {bool(self.state_streaming)}", self)
+            """
+            if self.state_streaming != self.state_streaming_prev:
+                publish = True
+            """
+            publish = True
+            self.state_streaming_prev = self.state_streaming
 
         ringing_front = kwargs.get('ringing_front')
         if ringing_front is not None:
             if ringing_front:
                 self.state_ringing = StateRinging.FRONT
                 self.state_ringing_front = 1
+                if self.enable_auto_open_front_door:
+                    self._startThreadAutoOpenFrontDoor()
             else:
                 self.state_ringing = StateRinging.IDLE
                 self.state_ringing_front = 0
-            self.publishMQTT()
+                self._stopThreadAutoOpenFrontDoor()
+            publish = True
             self.state_ringing_prev = self.state_ringing
             self.state_ringing_front_prev = self.state_ringing_front
             writeLog(f"Ringing: {self.state_ringing.name}", self)
@@ -198,10 +298,13 @@ class SubPhone(Device):
             if ringing_communal:
                 self.state_ringing = StateRinging.COMMUNAL
                 self.state_ringring_communal = 1
+                if self.enable_auto_open_communal_door:
+                    self._startThreadAutoOpenCommunalDoor()
             else:
                 self.state_ringing = StateRinging.IDLE
                 self.state_ringring_communal = 0
-            self.publishMQTT()
+                self._stopThreadAutoOpenCommunalDoor()
+            publish = True
             self.state_ringing_prev = self.state_ringing
             self.state_ringring_communal_prev = self.state_ringring_communal
             writeLog(f"Ringing: {self.state_ringing.name}", self)
@@ -209,24 +312,42 @@ class SubPhone(Device):
         doorlock = kwargs.get('doorlock')
         if doorlock is not None:
             self.state_doorlock = StateDoorLock(doorlock)
-            self.publishMQTT()
+            """
+            if self.state_doorlock != self.state_doorlock_prev:
+                publish = True
+            """
+            publish = True
+            self.state_doorlock_prev = self.state_doorlock
             # writeLog(f"DoorLock: {self.state_doorlock.name}", self)
 
         lock_front = kwargs.get('lock_front')
         if lock_front is not None:
             self.state_lock_front = StateDoorLock(lock_front)
-            self.publishMQTT()
+            """
+            if self.state_lock_front != self.state_lock_front_prev:
+                publish = True
+            """
+            publish = True
+            self.state_lock_front_prev = self.state_lock_front
             writeLog(f"Lock Front: {self.state_lock_front.name}", self)
 
         lock_communal = kwargs.get('lock_communal')
         if lock_communal is not None:
             self.state_lock_communal = StateDoorLock(lock_communal)
-            self.publishMQTT()
+            """
+            if self.state_lock_communal != self.state_lock_communal_prev:
+                publish = True
+            """
+            publish = True
+            self.state_lock_communal_prev = self.state_lock_communal
             writeLog(f"Lock Communal: {self.state_lock_communal.name}", self)
         
-        if not self.init:
+        if publish:
             self.publishMQTT()
-            self.init = True
+        else:
+            if not self.init:
+                self.publishMQTT()
+                self.init = True
 
     def makePacketCommon(self, header: int) -> bytearray:
         return bytearray([0x7F, max(0, min(0xFF, header)), 0x00, 0x00, 0xEE])
@@ -250,7 +371,7 @@ class SubPhone(Device):
                 # 공동현관문 영상 우회 종료
                 return self.makePacketCommon(0x60)
             else:
-                # 단순 문열기용 (주방 서브폰 활성화)
+                # 단순 문열기용 (주방 서브폰 비활성화)
                 return self.makePacketCommon(0xBA)
 
     def makePacketOpenFrontDoor(self) -> bytearray:
@@ -260,3 +381,67 @@ class SubPhone(Device):
     def makePacketOpenCommunalDoor(self) -> bytearray:
         # 공동현관문 호출 후 카메라 영상이 우회된 상태에서 열림 명령
         return self.makePacketCommon(0x61)
+
+    def _startThreadAutoOpenFrontDoor(self):
+        if self._thread_auto_open_front_door is None:
+            self._thread_auto_open_front_door = ThreadAutoOpenDoor(self.auto_open_front_door_interval_sec)
+            self._thread_auto_open_front_door.sig_terminated.connect(self._onThreadAutoOpenFrontDoorTerminated)
+            self._thread_auto_open_front_door.daemon = True
+            self._thread_auto_open_front_door.start()
+            writeLog('Auto open front door thread started', self)
+
+    def _stopThreadAutoOpenFrontDoor(self):
+        if self._thread_auto_open_front_door is not None:
+            self._thread_auto_open_front_door.stop()
+
+    def _onThreadAutoOpenFrontDoorTerminated(self, command: bool):
+        del self._thread_auto_open_front_door
+        self._thread_auto_open_front_door = None
+        writeLog('Auto open front door thread terminated', self)
+        if command:
+            self.sig_open_front_door.emit(self.index, self.room_index)
+
+    def _startThreadAutoOpenCommunalDoor(self):
+        if self._thread_auto_open_communal_door is None:
+            self._thread_auto_open_communal_door = ThreadAutoOpenDoor(self.auto_open_communal_door_interval_sec)
+            self._thread_auto_open_communal_door.sig_terminated.connect(self._onThreadAutoOpenCommunalDoorTerminated)
+            self._thread_auto_open_communal_door.daemon = True
+            self._thread_auto_open_communal_door.start()
+            writeLog('Auto open communal door thread started', self)
+    
+    def _stopThreadAutoOpenCommunalDoor(self):
+        if self._thread_auto_open_communal_door is not None:
+            self._thread_auto_open_communal_door.stop()
+
+    def _onThreadAutoOpenCommunalDoorTerminated(self, command: bool):
+        del self._thread_auto_open_communal_door
+        self._thread_auto_open_communal_door = None
+        writeLog('Auto open communal door thread terminated', self)
+        if command:
+            self.sig_open_communal_door.emit(self.index, self.room_index)
+
+    def setEnableAutoOpenFrontDoor(self, enable: bool):
+        publish = enable != self.enable_auto_open_front_door
+        self.enable_auto_open_front_door = enable
+        writeLog(f'Set enable auto open front door: {enable}', self)
+        if not enable:
+            self._stopThreadAutoOpenFrontDoor()
+        if publish:
+            self._publishMQTT_AutoOpenState()
+    
+    def setAutoOpenFrontDoorInterval(self, interval: float):
+        self.auto_open_front_door_interval_sec = interval
+        writeLog(f'Set auto open front door interval: {interval} sec', self)
+
+    def setEnableAutoOpenCommunalDoor(self, enable: bool):
+        publish = enable != self.enable_auto_open_communal_door
+        self.enable_auto_open_communal_door = enable
+        writeLog(f'Set enable auto open communal door: {enable}', self)
+        if not enable:
+            self._stopThreadAutoOpenCommunalDoor()
+        if publish:
+            self._publishMQTT_AutoOpenState()
+
+    def setAutoOpenCommunalDoorInterval(self, interval: float):
+        self.auto_open_communal_door_interval_sec = interval
+        writeLog(f'Set auto open communal door interval: {interval} sec', self)

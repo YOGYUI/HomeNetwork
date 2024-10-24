@@ -684,11 +684,13 @@ class Home:
                         elif tag_name == 'subphone':
                             device = SubPhone(name, index, room)
                             device.sig_state_streaming.connect(self.onSubphoneStateStreaming)
+                            device.sig_open_front_door.connect(self.onSubphoneCommandOpenFrontDoor)
+                            device.sig_open_communal_door.connect(self.onSubphoneCommandOpenCommunalDoor)
                             enable_streaming_node = dev_node.find('enable_video_streaming')
                             try:
                                 device.enable_streaming = bool(int(enable_streaming_node.text))
                             except Exception as e:
-                                writeLog(f"Failed to read subphone <enable_video_streaming node> ({e})", self)
+                                writeLog(f"Failed to read subphone <enable_video_streaming> node ({e})", self)
                                 device.enable_streaming = False
                             ffmpeg_node = dev_node.find('ffmpeg')
                             if ffmpeg_node is not None:
@@ -698,6 +700,38 @@ class Home:
                                 device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
                                 device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
                                 device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
+                            auto_open_front_door_node = dev_node.find('auto_open_front_door')
+                            if auto_open_front_door_node is not None:
+                                enable_node = auto_open_front_door_node.find('enable')
+                                if enable_node is not None:
+                                    try:
+                                        device.setEnableAutoOpenFrontDoor(bool(int(enable_node.text)))
+                                    except Exception as e:
+                                        writeLog(f"Failed to read subphone <auto_open_front_door><enable> node ({e})", self)
+                                        device.setEnableAutoOpenFrontDoor(False)
+                                interval_node = auto_open_front_door_node.find('interval')
+                                if interval_node is not None:
+                                    try:
+                                        device.setAutoOpenFrontDoorInterval(float(interval_node.text))
+                                    except Exception as e:
+                                        writeLog(f"Failed to read subphone <auto_open_front_door><interval> node ({e})", self)
+                                        device.setAutoOpenFrontDoorInterval(3.)
+                            auto_open_communal_door_node = dev_node.find('auto_open_communal_door')
+                            if auto_open_communal_door_node is not None:
+                                enable_node = auto_open_communal_door_node.find('enable')
+                                if enable_node is not None:
+                                    try:
+                                        device.setEnableAutoOpenCommunalDoor(bool(int(enable_node.text)))
+                                    except Exception as e:
+                                        writeLog(f"Failed to read subphone <auto_open_communal_door><enable> node ({e})", self)
+                                        device.setEnableAutoOpenCommunalDoor(False)
+                                interval_node = auto_open_communal_door_node.find('interval')
+                                if interval_node is not None:
+                                    try:
+                                        device.setAutoOpenCommunalDoorInterval(float(interval_node.text))
+                                    except Exception as e:
+                                        writeLog(f"Failed to read subphone <auto_open_communal_door><interval> node ({e})", self)
+                                        device.setAutoOpenCommunalDoorInterval(3.)
                         elif tag_name == 'hems':
                             device = HEMS(name, index, room)
                         elif tag_name == 'airquality':
@@ -1420,7 +1454,7 @@ class Home:
         except Exception as e:
             writeLog(f'onMqttCommandSubPhone::topic template error ({e}, {topic})', self)
             room_idx, dev_idx = 0, 0
-        device = self.findDevice(DeviceType.SUBPHONE, dev_idx, room_idx)
+        device: SubPhone = self.findDevice(DeviceType.SUBPHONE, dev_idx, room_idx)
         if device is not None:
             if 'streaming_state' in message.keys():
                 self.send_command(
@@ -1447,6 +1481,15 @@ class Home:
                     category='lock_communal',
                     target=message['lock_communal_state']
                 )
+            # 세대/공동현관문 자동 열림 기능
+            if 'enable_auto_open_front' in message.keys():
+                device.setEnableAutoOpenFrontDoor(bool(message['enable_auto_open_front']))
+            if 'auto_open_front_interval' in message.keys():
+                device.setAutoOpenFrontDoorInterval(message['auto_open_front_interval'])
+            if 'enable_auto_open_communal' in message.keys():
+                device.setEnableAutoOpenCommunalDoor(bool(message['enable_auto_open_communal']))
+            if 'auto_open_communal_interval' in message.keys():
+                device.setAutoOpenCommunalDoorInterval(message['auto_open_communal_interval'])
 
     def onMqttCommandThinq(self, _: str, message: dict):
         if self.thinq is None:
@@ -1482,6 +1525,24 @@ class Home:
         else:
             self.stopFFMpeg()
         """
+
+    def onSubphoneCommandOpenFrontDoor(self, index: int, room_index: int):
+        device = self.findDevice(DeviceType.SUBPHONE, index, room_index)
+        if device:
+            self.send_command(
+                device=device,
+                category='lock_front',
+                target="Unsecured"
+            )
+
+    def onSubphoneCommandOpenCommunalDoor(self, index: int, room_index: int):
+        device = self.findDevice(DeviceType.SUBPHONE, index, room_index)
+        if device:
+            self.send_command(
+                device=device,
+                category='lock_communal',
+                target="Unsecured"
+            )
 
     def startFFServer(self):
         try:

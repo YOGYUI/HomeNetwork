@@ -394,6 +394,7 @@ class Config:
                 elem = ET.Element('enable_video_streaming')
                 subphone_node.append(elem)
             elem.text = str(int(cfg.get('enable_video_streaming', False)))
+            
             ffmpeg_node = subphone_node.find('ffmpeg')
             if ffmpeg_node is None:
                 ffmpeg_node = ET.Element('ffmpeg')
@@ -428,6 +429,36 @@ class Config:
                 elem = ET.Element('height')
                 ffmpeg_node.append(elem)
             elem.text = str(cfg.get('height', 480))
+
+            auto_open_front_door_node = subphone_node.find('auto_open_front_door')
+            if auto_open_front_door_node is None:
+                auto_open_front_door_node = ET.Element('auto_open_front_door')
+                subphone_node.append(auto_open_front_door_node)
+            elem = auto_open_front_door_node.find('enable')
+            if elem is None:
+                elem = ET.Element('enable')
+                auto_open_front_door_node.append(elem)
+            elem.text = str(int(cfg.get('enable_auto_open_front_door', False)))
+            elem = auto_open_front_door_node.find('interval')
+            if elem is None:
+                elem = ET.Element('interval')
+                auto_open_front_door_node.append(elem)
+            elem.text = str(cfg.get('auto_open_front_door_interval', 3.0))
+
+            auto_open_communal_door_node = subphone_node.find('auto_open_communal_door')
+            if auto_open_communal_door_node is None:
+                auto_open_communal_door_node = ET.Element('auto_open_communal_door')
+                subphone_node.append(auto_open_communal_door_node)
+            elem = auto_open_communal_door_node.find('enable')
+            if elem is None:
+                elem = ET.Element('enable')
+                auto_open_communal_door_node.append(elem)
+            elem.text = str(int(cfg.get('enable_auto_open_communal_door', False)))
+            elem = auto_open_communal_door_node.find('interval')
+            if elem is None:
+                elem = ET.Element('interval')
+                auto_open_communal_door_node.append(elem)
+            elem.text = str(cfg.get('auto_open_communal_door_interval', 3.0))
 
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
