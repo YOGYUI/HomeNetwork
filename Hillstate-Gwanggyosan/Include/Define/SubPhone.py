@@ -264,90 +264,100 @@ class SubPhone(Device):
         self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
     def updateState(self, _: int, **kwargs):
-        publish = False
         streaming = kwargs.get('streaming')
         if streaming is not None:
-            self.state_streaming = streaming
-            self.sig_state_streaming.emit(self.state_streaming)
-            writeLog(f"Streaming: {bool(self.state_streaming)}", self)
-            """
-            if self.state_streaming != self.state_streaming_prev:
-                publish = True
-            """
-            publish = True
-            self.state_streaming_prev = self.state_streaming
+            self._updateStateStreaming(streaming)
 
         ringing_front = kwargs.get('ringing_front')
         if ringing_front is not None:
-            if ringing_front:
-                self.state_ringing = StateRinging.FRONT
-                self.state_ringing_front = 1
-                if self.enable_auto_open_front_door:
-                    self._startThreadAutoOpenFrontDoor()
-            else:
-                self.state_ringing = StateRinging.IDLE
-                self.state_ringing_front = 0
-                self._stopThreadAutoOpenFrontDoor()
-            publish = True
-            self.state_ringing_prev = self.state_ringing
-            self.state_ringing_front_prev = self.state_ringing_front
-            writeLog(f"Ringing: {self.state_ringing.name}", self)
+            self._updateStateRingingFront(ringing_front)
 
         ringing_communal = kwargs.get('ringing_communal')
         if ringing_communal is not None:
-            if ringing_communal:
-                self.state_ringing = StateRinging.COMMUNAL
-                self.state_ringring_communal = 1
-                if self.enable_auto_open_communal_door:
-                    self._startThreadAutoOpenCommunalDoor()
-            else:
-                self.state_ringing = StateRinging.IDLE
-                self.state_ringring_communal = 0
-                self._stopThreadAutoOpenCommunalDoor()
-            publish = True
-            self.state_ringing_prev = self.state_ringing
-            self.state_ringring_communal_prev = self.state_ringring_communal
-            writeLog(f"Ringing: {self.state_ringing.name}", self)
+            self._updateStateRingingCommunal(ringing_communal)
 
         doorlock = kwargs.get('doorlock')
         if doorlock is not None:
-            self.state_doorlock = StateDoorLock(doorlock)
-            """
-            if self.state_doorlock != self.state_doorlock_prev:
-                publish = True
-            """
-            publish = True
-            self.state_doorlock_prev = self.state_doorlock
-            # writeLog(f"DoorLock: {self.state_doorlock.name}", self)
+            self._updateStateDoorlock(doorlock)
 
         lock_front = kwargs.get('lock_front')
         if lock_front is not None:
-            self.state_lock_front = StateDoorLock(lock_front)
-            """
-            if self.state_lock_front != self.state_lock_front_prev:
-                publish = True
-            """
-            publish = True
-            self.state_lock_front_prev = self.state_lock_front
-            writeLog(f"Lock Front: {self.state_lock_front.name}", self)
+            self._updateStateLockFront(lock_front)
 
         lock_communal = kwargs.get('lock_communal')
         if lock_communal is not None:
-            self.state_lock_communal = StateDoorLock(lock_communal)
-            """
-            if self.state_lock_communal != self.state_lock_communal_prev:
-                publish = True
-            """
-            publish = True
-            self.state_lock_communal_prev = self.state_lock_communal
-            writeLog(f"Lock Communal: {self.state_lock_communal.name}", self)
+            self._updateStateLockCommunal(lock_communal)
         
-        if publish:
+        if not self.init:
             self.publishMQTT()
+            self.init = True
+
+    def _updateStateStreaming(self, state: int):
+        self.state_streaming = state
+        self.sig_state_streaming.emit(self.state_streaming)
+        writeLog(f"Streaming: {bool(self.state_streaming)}", self)
+        if self.state_streaming != self.state_streaming_prev:
+            # self.publishMQTT()
+            pass
+        self.publishMQTT()
+        self.state_streaming_prev = self.state_streaming
+
+    def _updateStateRingingFront(self, state: int):
+        if state:
+            self.state_ringing = StateRinging.FRONT
+            self.state_ringing_front = 1
+            if self.enable_auto_open_front_door:
+                self._startThreadAutoOpenFrontDoor()
         else:
-            if not self.init:
-                self.publishMQTT()
-                self.init = True
+            self.state_ringing = StateRinging.IDLE
+            self.state_ringing_front = 0
+            self._stopThreadAutoOpenFrontDoor()
+        self.publishMQTT()
+        self.state_ringing_prev = self.state_ringing
+        self.state_ringing_front_prev = self.state_ringing_front
+        writeLog(f"Ringing: {self.state_ringing.name}", self)
+
+    def _updateStateRingingCommunal(self, state: int):
+        if state:
+            self.state_ringing = StateRinging.COMMUNAL
+            self.state_ringring_communal = 1
+            if self.enable_auto_open_communal_door:
+                self._startThreadAutoOpenCommunalDoor()
+        else:
+            self.state_ringing = StateRinging.IDLE
+            self.state_ringring_communal = 0
+            self._stopThreadAutoOpenCommunalDoor()
+        self.publishMQTT()
+        self.state_ringing_prev = self.state_ringing
+        self.state_ringring_communal_prev = self.state_ringring_communal
+        writeLog(f"Ringing: {self.state_ringing.name}", self)
+
+    def _updateStateDoorlock(self, state: int):
+        self.state_doorlock = StateDoorLock(state)
+        if self.state_doorlock != self.state_doorlock_prev:
+            # self.publishMQTT()
+            pass
+        self.publishMQTT()
+        self.state_doorlock_prev = self.state_doorlock
+        # writeLog(f"DoorLock: {self.state_doorlock.name}", self)
+
+    def _updateStateLockFront(self, state: int):
+        self.state_lock_front = StateDoorLock(state)
+        if self.state_lock_front != self.state_lock_front_prev:
+            # self.publishMQTT()
+            pass
+        self.publishMQTT()
+        self.state_lock_front_prev = self.state_lock_front
+        writeLog(f"Lock Front: {self.state_lock_front.name}", self)
+
+    def _updateStateLockCommunal(self, state: int):
+        self.state_lock_communal = StateDoorLock(state)
+        if self.state_lock_communal != self.state_lock_communal_prev:
+            # self.publishMQTT()
+            pass
+        self.publishMQTT()
+        self.state_lock_communal_prev = self.state_lock_communal
+        writeLog(f"Lock Communal: {self.state_lock_communal.name}", self)
 
     def makePacketCommon(self, header: int) -> bytearray:
         return bytearray([0x7F, max(0, min(0xFF, header)), 0x00, 0x00, 0xEE])

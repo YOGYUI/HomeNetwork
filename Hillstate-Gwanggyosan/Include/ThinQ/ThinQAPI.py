@@ -34,9 +34,18 @@ class ThreadQueryDevices(threading.Thread):
     
     def run(self):
         writeLog('Started', self)
+        tm_start = time.perf_counter()
+        delay_time_sec = self.period_ms / 1000
         while self.keepAlive:
+            """
             time.sleep(self.period_ms / 1000)
             self.sig_query.emit()
+            """
+            elapsed = time.perf_counter() - tm_start
+            if elapsed >= delay_time_sec:
+                self.sig_query.emit()
+                tm_start = time.perf_counter()
+            time.sleep(1)
         self.sig_terminated.emit()
         writeLog('Terminated', self)
 
