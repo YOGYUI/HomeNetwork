@@ -86,6 +86,8 @@ class Elevator(Device):
     state_call_prev: int = 0
     arrived_flag: bool = False
 
+    verbose_packet: bool = False
+
     check_command_method: CheckCommandMethod = CheckCommandMethod.CALL_STATE
 
     _thread_state_change_timer: Union[ThreadStateChangeTimer, None] = None
@@ -113,6 +115,12 @@ class Elevator(Device):
     
     def getPacketCommandCallDownValue(self) -> int:
         return self.packet_command_call_down_value
+
+    def setVerbosePacket(self, value: bool):
+        self.verbose_packet = value
+
+    def getVerbosePacket(self) -> bool:
+        return self.verbose_packet
 
     def setCheckCommandMethod(self, value: int):
         try:
@@ -237,8 +245,9 @@ class Elevator(Device):
             moving_state = MovingState(kwargs.get('moving_state', 0))  # possible values: 0(idle), 1(arrived), 5(moving upside), 6(moving downside)
             ev_dev_idx = kwargs.get('ev_dev_idx', 0)
             floor = kwargs.get('floor', '')
-            # packet = kwargs.get('packet')
-            # writeLog(f"[Q] command: {command_state.name}, moving: {moving_state.name}, index: {ev_dev_idx}, floor: {floor}, packet: {packet}")
+            if self.verbose_packet:
+                packet = kwargs.get('packet')
+                writeLog(f"[Q] command: {command_state.name}, moving: {moving_state.name}, index: {ev_dev_idx}, floor: {floor}, packet: {packet}")
             if command_state != CommandState.IDLE:
                 # if CommandState(self.state_call) == command_state:
                 #    self.state = self.state_call
@@ -269,8 +278,9 @@ class Elevator(Device):
                 self.publishMQTTDevInfo()
         elif data_type == 'response':
             self.state_call = kwargs.get('call_state', 0)
-            # packet = kwargs.get('packet')
-            # writeLog(f"[R] call: {self.state_call}, packet: {packet}")
+            if self.verbose_packet:
+                packet = kwargs.get('packet')
+                writeLog(f"[R] call: {self.state_call}, packet: {packet}")
             if self.state_call != self.state_call_prev:
                 if self.state_call:
                     self.state = self.state_call

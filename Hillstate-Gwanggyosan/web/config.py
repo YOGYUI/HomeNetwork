@@ -507,6 +507,11 @@ class Config:
                     elem = ET.Element('packet_command_call_down_value')
                     pnode.append(elem)
                 elem.text = str(cfg.get('elevator_packet_command_call_down_value', 6))
+                elem = pnode.find('verbose_packet')
+                if elem is None:
+                    elem = ET.Element('verbose_packet')
+                    pnode.append(elem)
+                elem.text = str(int(cfg.get('elevator_verbose_packet', False)))
             
             thermo_nodes = list(filter(lambda x: x.tag == 'thermostat', list(entry_node)))
             for pnode in list(thermo_nodes):

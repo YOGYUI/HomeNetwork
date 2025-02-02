@@ -682,6 +682,9 @@ class Home:
                             packet_command_call_down_value_node = dev_node.find('packet_command_call_down_value')
                             packet_command_call_down_value = int(packet_command_call_down_value_node.text) if packet_command_call_down_value_node is not None else 6
                             device.setPacketCommandCallDownValue(packet_command_call_down_value)
+                            verbose_packet_node = dev_node.find('verbose_packet')
+                            verbose_packet = bool(int(verbose_packet_node.text)) if verbose_packet_node is not None else False
+                            device.setVerbosePacket(verbose_packet)
                         elif tag_name == 'batchoffsw':
                             device = BatchOffSwitch(name, index, room)
                         elif tag_name == 'subphone':
