@@ -7,6 +7,7 @@ class CommandState(IntEnum):
     IDLE = 0
     UPSIDE = 5
     DOWNSIDE = 6
+    DOWNSIDE2 = 7  # Imazu (HNT-4105)?
 
 
 class MovingState(IntEnum):
@@ -79,6 +80,7 @@ class Elevator(Device):
     time_threshold_check_duration: float = 10.
 
     packet_call_type: int = 0
+    packet_command_call_down_value: int = 6  # 하행 호출 명령값 (default = 6, imazu 7인 경우가 있음?)
 
     state_call: int = 0  # 미니월패드 호출중 상태, 0 = idle, 5 = 상행호출중(미지원), 6 = 하행호출중
     state_call_prev: int = 0
@@ -105,6 +107,12 @@ class Elevator(Device):
     
     def getPacketCallType(self) -> int:
         return self.packet_call_type
+
+    def setPacketCommandCallDownValue(self, value: int):
+        self.packet_command_call_down_value = value
+    
+    def getPacketCommandCallDownValue(self) -> int:
+        return self.packet_command_call_down_value
 
     def setCheckCommandMethod(self, value: int):
         try:
@@ -150,6 +158,7 @@ class Elevator(Device):
         
         # 호출 스위치 및 도착 알림용 센서를 위해 디바이스 정보를 각각 발행해야 한다
         topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}_calldown/config'
+        payload_on_template = f'{ "state": {self.packet_command_call_down_value} }'
         obj = {
             "name": self.name + " Call (Down)",
             "object_id": self.unique_id + "_calldown",
@@ -157,7 +166,7 @@ class Elevator(Device):
             "state_topic": self.mqtt_publish_topic,
             "command_topic": self.mqtt_subscribe_topic,
             "value_template": '{ "state": {{ value_json.state }} }',
-            "payload_on": '{ "state": 6 }',
+            "payload_on": payload_on_template,
             "payload_off": '{ "state": 0 }',
             "icon": "mdi:elevator"
         }
@@ -223,7 +232,7 @@ class Elevator(Device):
     def updateState(self, _: int, **kwargs):
         data_type = kwargs.get('data_type')
         if data_type == 'query':
-            command_state = CommandState(kwargs.get('command_state', 0))  # possible values: 0(idle), 5(command up), 6(command down)
+            command_state = CommandState(kwargs.get('command_state', 0))  # possible values: 0(idle), 5(command up), 6/7(command down)
             moving_state = MovingState(kwargs.get('moving_state', 0))  # possible values: 0(idle), 1(arrived), 5(moving upside), 6(moving downside)
             ev_dev_idx = kwargs.get('ev_dev_idx', 0)
             floor = kwargs.get('floor', '')
@@ -321,6 +330,22 @@ class Elevator(Device):
             self.publishMQTT()
             self.init = True
     
+    def makePacketCall(self, target: int) -> bytearray:
+        # 상/하행 호출
+        # F7 0B 01 34 02 41 10 XX 00 YY EE
+        # XX: 05 = 상행, 06 = 하행 (07 = 하행 for imazu?)
+        packet = bytearray([0xF7, 0x0B, 0x01, 0x34])
+        target_value = max(0, min(0xFF, target))
+        if self.packet_call_type == 1:
+            # 일부 환경에서는 F7 0B 01 34 04 41 10 00 XX YY EE로 호출해야 된다? (차이 파악 필요)
+            packet.extend([0x04, 0x41, 0x10, 0x00, target_value])
+        else:
+            packet.extend([0x02, 0x41, 0x10, target_value, 0x00])
+        packet.append(self.calcXORChecksum(packet))
+        packet.append(0xEE)
+        return packet
+
+    """
     def makePacketCallDownside(self) -> bytearray:
         # 하행 호출
         # F7 0B 01 34 02 41 10 06 00 XX EE
@@ -347,7 +372,6 @@ class Elevator(Device):
         packet.append(0xEE)
         return packet
 
-    """
     def makePacketRevokeCall(self) -> bytearray:
         packet = bytearray([0xF7, 0x0B, 0x01, 0x34])
         if self.packet_call_type == 1:

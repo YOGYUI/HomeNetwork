@@ -502,6 +502,11 @@ class Config:
                     elem = ET.Element('check_command_method')
                     pnode.append(elem)
                 elem.text = str(cfg.get('elevator_check_command_method', 0))
+                elem = pnode.find('packet_command_call_down_value')
+                if elem is None:
+                    elem = ET.Element('packet_command_call_down_value')
+                    pnode.append(elem)
+                elem.text = str(cfg.get('elevator_packet_command_call_down_value', 6))
             
             thermo_nodes = list(filter(lambda x: x.tag == 'thermostat', list(entry_node)))
             for pnode in list(thermo_nodes):

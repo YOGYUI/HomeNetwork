@@ -303,14 +303,17 @@ class ThreadCommandQueue(threading.Thread):
     def set_elevator_call(self, dev: Elevator, target: int, parser: PacketParser):
         tm_start = time.perf_counter()
         cnt = 0
-        if target == 5:
+        """
+        if target in 5:
             packet_command = dev.makePacketCallUpside()
         elif target == 6:
             packet_command = dev.makePacketCallDownside()
-        # elif target == 0:
-        #    packet_command = dev.makePacketRevokeCall()
+        elif target == 0:
+            packet_command = dev.makePacketRevokeCall()
         else:
             return
+        """
+        packet_command = dev.makePacketCall(target)
         interval, retry_cnt = self.getSendParams(parser)
         
         while cnt < retry_cnt:
