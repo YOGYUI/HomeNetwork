@@ -158,7 +158,7 @@ class Elevator(Device):
         
         # 호출 스위치 및 도착 알림용 센서를 위해 디바이스 정보를 각각 발행해야 한다
         topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}_calldown/config'
-        payload_on_template = f'{ "state": {self.packet_command_call_down_value} }'
+        payload_on_template = '{ "state": ' + f'{self.packet_command_call_down_value}' + ' }'
         obj = {
             "name": self.name + " Call (Down)",
             "object_id": self.unique_id + "_calldown",
