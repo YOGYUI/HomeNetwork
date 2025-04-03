@@ -114,6 +114,11 @@ class SubPhone(Device):
         obj = {"state": self.state_lock_communal.name}
         self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/communal', json.dumps(obj), 1)
 
+        if self.state_streaming:
+            self.mqtt_client.publish(self.mqtt_publish_topic + '/motion', "ON", 1)
+        else:
+            self.mqtt_client.publish(self.mqtt_publish_topic + '/motion', "OFF", 1)
+
     def _publishMQTT_AutoOpenState(self):
         if self.mqtt_client is None:
             return

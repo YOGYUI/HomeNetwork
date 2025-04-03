@@ -222,9 +222,10 @@ class PacketParser:
                     store = self.enable_store_packet_header_1C
                     packet_info['device'] = 'airconditioner'
                 elif packet[3] == 0x1E:  # 현관 도어락 (?)
-                    self.log(f'Doorlock Packet: {self.prettifyPacket(packet)}')
-                    packet_info['device'] = 'doorlock'
+                    # self.log(f'Doorlock Packet: {self.prettifyPacket(packet)}')
+                    self.handleDoorlock(packet)
                     store = self.enable_store_packet_header_1E
+                    packet_info['device'] = 'doorlock'
                 elif packet[3] == 0x1F:  # 아울렛 (콘센트)
                     self.handleOutlet(packet)
                     packet_info['device'] = 'outlet'
@@ -782,3 +783,15 @@ class PacketParser:
                 self.log(f'>> {dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]}')
         else:
             self.log(f'{self.prettifyPacket(packet)} >> ???')
+
+    def handleDoorlock(self, packet: bytearray):
+        unknown = True
+        if packet[4] == 0x01:
+            if packet[5] == 0x40:
+                if len(packet) >= 13:
+                    # packet[8:13] = month-day-hour-minute-second
+                    unknown = False
+        elif packet[4] == 0x02:
+            pass
+        if unknown:
+            self.log(f'Doorlock Packet: {self.prettifyPacket(packet)}')

@@ -35,6 +35,8 @@ class Device:
     thread_timer_onoff = None
     timer_onoff_params: dict
 
+    rs485_port_index: int = -1
+
     def __init__(self, name: str = 'Device', index: int = 0, room_index: int = 0):
         self.index = index
         self.room_index = room_index
@@ -170,6 +172,9 @@ class Device:
         writeLog(f'{self} Set On/Off Timer Params: {self.timer_onoff_params}')
         if self.thread_timer_onoff is not None:
             self.thread_timer_onoff.setParams(on_time, off_time, repeat)
+
+    def setRS485PortIndex(self, index: int):
+        self.rs485_port_index = index
 
 
 class ThreadDeviceTimerOnOff(threading.Thread):

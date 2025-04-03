@@ -628,6 +628,8 @@ class Home:
                     room = int(room_node.text) if room_node is not None else 0
                     enable_node = dev_node.find('enable')
                     enable = bool(int(enable_node.text)) if enable_node is not None else False
+                    rs485_port_index_node = dev_node.find('rs485_port_index')
+                    rs485_port_index = int(rs485_port_index_node.text) if rs485_port_index_node is not None else -1
                     
                     if not self.discover_device:
                         if not enable:
@@ -753,6 +755,8 @@ class Home:
                                 if mqtt_node is not None:
                                     device.setMqttPublishTopic(mqtt_node.find('publish').text)
                                     device.setMqttSubscribeTopic(mqtt_node.find('subscribe').text)
+                                if rs485_port_index >= 0:
+                                    device.setRS485PortIndex(rs485_port_index)
                                 self.device_list.append(device)
                             else:
                                 writeLog(f"Already Exist! {str(device)}", self)
@@ -1092,7 +1096,12 @@ class Home:
         try:
             dev: Device = kwargs['device']
             dev_type: DeviceType = dev.getType()
-            index = self.parser_mapping.get(dev_type)
+            index: int = self.parser_mapping.get(dev_type)
+            if dev.rs485_port_index >= 0:
+                if len(self.rs485_info_list) > dev.rs485_port_index:
+                    index = dev.rs485_port_index
+                else:
+                    writeLog(f'manual set rs485 port index for {dev} is {dev.rs485_port_index} but failed to find valid port instance!', self)
             info: RS485Info = self.rs485_info_list[index]
             kwargs['parser'] = info.parser
         except Exception as e:
@@ -1571,13 +1580,18 @@ class Home:
             writeLog(f'Failed to start FFServer Process ({e})', self)
     
     def stopFFServer(self):
+        try:
+            psutil.Process(self.pid_ffserver_proc).kill()
+        except Exception as e:
+            writeLog(f'Failed to kill FFServer Process ({self.pid_ffserver_proc})::{e}', self)
+            traceback.print_exc()
+
         if self.mp_ffserver is not None:
             try:
-                psutil.Process(self.pid_ffserver_proc).kill()
                 self.mp_ffserver.terminate()
                 writeLog(f'FFServer Process Terminated', self)
-            except Exception:
-                writeLog(f'Failed to kill FFServer Process', self)
+            except Exception as e:
+                writeLog(f'Failed to terminate FFServer MultiProc::{e}', self)
                 traceback.print_exc()
         self.mp_ffserver = None
 
@@ -1605,13 +1619,18 @@ class Home:
             writeLog(f'Failed to start FFMpeg Process ({e})', self)
     
     def stopFFMpeg(self):
+        try:
+            psutil.Process(self.pid_ffmpeg_proc).kill()
+        except Exception as e:
+            writeLog(f'Failed to kill FFMpeg Process ({self.pid_ffmpeg_proc})::{e}', self)
+            traceback.print_exc()
+
         if self.mp_ffmpeg is not None:
             try:
-                psutil.Process(self.pid_ffmpeg_proc).kill()
                 self.mp_ffmpeg.terminate()
                 writeLog(f'FFMpeg Process Terminated', self)
-            except Exception:
-                writeLog(f'Failed to kill FFMpeg Process', self)
+            except Exception as e:
+                writeLog(f'Failed to terminate FFMpeg MultiProc::{e}', self)
                 traceback.print_exc()
         self.mp_ffmpeg = None
 
@@ -1770,6 +1789,7 @@ class Home:
                 entry_info['index'] = dev_idx
                 entry_info['room'] = room_index
                 entry_info['enable'] = 1
+                entry_info['rs485_port_index'] = parser_index
 
                 self.parser_mapping[dev_type] = parser_index
                 
