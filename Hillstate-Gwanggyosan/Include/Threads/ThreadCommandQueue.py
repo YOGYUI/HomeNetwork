@@ -31,7 +31,7 @@ class ThreadCommandQueue(threading.Thread):
         writeLog('Started', self)
         while self._keepAlive:
             if not self._queue.empty():
-                elem = self._queue.get()
+                elem: dict = self._queue.get()
                 elem_txt = '\n'
                 for k, v in elem.items():
                     elem_txt += f'  {k}: {v}\n'
@@ -40,33 +40,34 @@ class ThreadCommandQueue(threading.Thread):
                     dev = elem.get('device')
                     category = elem.get('category')
                     target = elem.get('target')
-                    parser = elem.get('parser')
                     if target is None:
                         writeLog('target is not designated', self)
                         continue
+                    parser = elem.get('parser')
                     if parser is None:
                         writeLog('parser is not designated', self)
                         continue
-
+                    change_state = elem.get('change_state_after_command', False)
+                    
                     self.sig_start_seq.emit()
                     if isinstance(dev, Light):
                         if category == 'state':
-                            self.set_state_common(dev, target, parser)
+                            self.set_state_common(dev, target, parser, change_state)
                     elif isinstance(dev, EmotionLight):
                         if category == 'state':
-                            self.set_state_common(dev, target, parser)
+                            self.set_state_common(dev, target, parser, change_state)
                     elif isinstance(dev, DimmingLight):
                         if category == 'state':
-                            self.set_state_common(dev, target, parser)
+                            self.set_state_common(dev, target, parser, change_state)
                         elif category == 'brightness':
-                            self.set_brightness(dev, target, parser)
+                            self.set_brightness(dev, target, parser, change_state)
                     elif isinstance(dev, Outlet):
                         if category == 'state':
-                            self.set_state_common(dev, target, parser)
+                            self.set_state_common(dev, target, parser, change_state)
                     elif isinstance(dev, GasValve):
                         if category == 'state':
                             if target == 0:
-                                self.set_state_common(dev, target, parser)
+                                self.set_state_common(dev, target, parser, change_state)
                             else:  # 밸브 여는것은 지원되지 않음!
                                 """
                                 packet_test = dev.makePacketSetState(True)
@@ -79,30 +80,30 @@ class ThreadCommandQueue(threading.Thread):
                     elif isinstance(dev, Thermostat):
                         if category == 'state':
                             if target == 'OFF':
-                                self.set_state_common(dev, 0, parser)
+                                self.set_state_common(dev, 0, parser, change_state)
                             elif target == 'HEAT':
-                                self.set_state_common(dev, 1, parser)
+                                self.set_state_common(dev, 1, parser, change_state)
                         elif category == 'temperature':
-                            self.set_target_temperature(dev, target, parser)
+                            self.set_target_temperature(dev, target, parser, change_state)
                     elif isinstance(dev, Ventilator):
                         if category == 'state':
-                            self.set_state_common(dev, target, parser)
+                            self.set_state_common(dev, target, parser, change_state)
                         elif category == 'rotationspeed':
-                            self.set_rotation_speed(dev, target, parser)
+                            self.set_rotation_speed(dev, target, parser, change_state)
                     elif isinstance(dev, AirConditioner):
                         if category == 'active':
                             # for handling homebridge entity
-                            self.set_state_common(dev, target, parser)
+                            self.set_state_common(dev, target, parser, change_state)
                             if target:
-                                self.set_airconditioner_mode(dev, 1, parser)  # 최초 가동 시 모드를 '냉방'으로 바꿔준다
-                                # self.set_rotation_speed(dev, 1, parser)  # 최초 가동 시 풍량을 '자동'으로 바꿔준다
+                                self.set_airconditioner_mode(dev, 1, parser, change_state)  # 최초 가동 시 모드를 '냉방'으로 바꿔준다
+                                # self.set_rotation_speed(dev, 1, parser, change_state)  # 최초 가동 시 풍량을 '자동'으로 바꿔준다
                         elif category == 'mode':
                             # for handling homeassistant entity
                             # "off": 0, "cool": 1, "auto": 2, "dry": 3, "fan_only": 4
                             if not target:  
-                                self.set_state_common(dev, 0, parser)
+                                self.set_state_common(dev, 0, parser, change_state)
                             else:
-                                self.set_state_common(dev, 1, parser)
+                                self.set_state_common(dev, 1, parser, change_state)
                                 mode_value = 1  # default = 냉방
                                 if target == 2:
                                     # 자동
@@ -113,26 +114,26 @@ class ThreadCommandQueue(threading.Thread):
                                 elif target == 4:
                                     # 송풍
                                     mode_value = 3
-                                self.set_airconditioner_mode(dev, mode_value, parser)
+                                self.set_airconditioner_mode(dev, mode_value, parser, change_state)
                         elif category == 'temperature':
-                            self.set_target_temperature(dev, target, parser)
+                            self.set_target_temperature(dev, target, parser, change_state)
                         elif category == 'rotationspeed':
-                            self.set_rotation_speed(dev, target, parser)
+                            self.set_rotation_speed(dev, target, parser, change_state)
                     elif isinstance(dev, Elevator):
                         if category == 'state':
-                            self.set_elevator_call(dev, target, parser)
+                            self.set_elevator_call(dev, target, parser, change_state)
                     elif isinstance(dev, SubPhone):
                         if category == 'streaming':
-                            self.set_subphone_streaming_state(dev, target, parser)
+                            self.set_subphone_streaming_state(dev, target, parser, change_state)
                         elif category == 'doorlock':
-                            self.set_subphone_doorlock_state(dev, target, parser)
+                            self.set_subphone_doorlock_state(dev, target, parser, change_state)
                         elif category == 'lock_front':
-                            self.set_subphone_lock_front_state(dev, target, parser)
+                            self.set_subphone_lock_front_state(dev, target, parser, change_state)
                         elif category == 'lock_communal':
-                            self.set_subphone_lock_communal_state(dev, target, parser)
+                            self.set_subphone_lock_communal_state(dev, target, parser, change_state)
                     elif isinstance(dev, BatchOffSwitch):
                         if category == 'state':
-                            self.set_state_common(dev, target, parser)
+                            self.set_state_common(dev, target, parser, change_state)
                     """
                     elif isinstance(dev, DoorLock):
                         if category == 'state':
@@ -165,7 +166,7 @@ class ThreadCommandQueue(threading.Thread):
         retry_cnt = parser.send_command_retry_count
         return interval_sec, retry_cnt
 
-    def set_state_common(self, dev: Device, target: int, parser: PacketParser):
+    def set_state_common(self, dev: Device, target: int, parser: PacketParser, change_state: bool = False):
         tm_start = time.perf_counter()
         cnt = 0
 
@@ -177,8 +178,10 @@ class ThreadCommandQueue(threading.Thread):
 
         packet_command = dev.makePacketSetState(bool(target))
         interval, retry_cnt = self.getSendParams(parser)
+        success = False
         while cnt < retry_cnt:
             if dev.state == target:
+                success = True
                 break
             if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
@@ -190,16 +193,20 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_state_common::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
+        if not success and change_state:
+            dev.state = target
         dev.publishMQTT()
 
-    def set_brightness(self, dev: Union[DimmingLight], brightness: int, parser: PacketParser):
+    def set_brightness(self, dev: Union[DimmingLight], brightness: int, parser: PacketParser, change_state: bool = False):
         tm_start = time.perf_counter()
         cnt = 0
         conv = dev.convert_level_to_word(brightness)
         packet_command = dev.makePacketSetBrightness(conv)
         interval, retry_cnt = self.getSendParams(parser)
+        success = False
         while cnt < retry_cnt:
             if dev.brightness == conv:
+                success = True
                 break
             if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
@@ -211,15 +218,18 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_brightness::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
+        if not success and change_state:
+            dev.brightness = conv
         dev.publishMQTT()
 
-    def set_target_temperature(self, dev: Union[Thermostat, AirConditioner], target: float, parser: PacketParser):
+    def set_target_temperature(self, dev: Union[Thermostat, AirConditioner], target: float, parser: PacketParser, change_state: bool = False):
         # 힐스테이트는 온도값 범위가 정수형이므로 올림처리해준다
         tm_start = time.perf_counter()
         cnt = 0
         target_temp = math.ceil(target)
         packet_command = dev.makePacketSetTemperature(target_temp)
         interval, retry_cnt = self.getSendParams(parser)
+        success = False
         while cnt < retry_cnt:
             if not dev.state:
                 """
@@ -227,8 +237,10 @@ class ThreadCommandQueue(threading.Thread):
                 (애플 자동화 끄기 - OFF, 희망온도 두 개 명령이 각각 수신되는 경우, 희망온도 명령에 의해 켜지는 문제)
                 TODO: 옵션 플래그로 변경
                 """
+                success = True
                 break
             if dev.temp_config == target_temp:
+                success = True
                 break
             if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
@@ -240,9 +252,11 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_target_temperature::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
+        if not success and change_state:
+            dev.temp_config = target_temp
         dev.publishMQTT()
 
-    def set_rotation_speed(self, dev: Union[Ventilator, AirConditioner], target: int, parser: PacketParser):
+    def set_rotation_speed(self, dev: Union[Ventilator, AirConditioner], target: int, parser: PacketParser, change_state: bool = False):
         tm_start = time.perf_counter()
         if isinstance(dev, Ventilator):
             # Speed 값 변환 (100단계의 풍량을 세단계로 나누어 1, 3, 7 중 하나로)
@@ -265,8 +279,10 @@ class ThreadCommandQueue(threading.Thread):
         cnt = 0
         packet_command = dev.makePacketSetRotationSpeed(conv)
         interval, retry_cnt = self.getSendParams(parser)
+        success = False
         while cnt < retry_cnt:
             if dev.rotation_speed == conv:
+                success = True
                 break
             if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
@@ -278,15 +294,19 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_rotation_speed::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
+        if not success and change_state:
+            dev.rotation_speed = conv
         dev.publishMQTT()
 
-    def set_airconditioner_mode(self, dev: AirConditioner, target: int, parser: PacketParser):
+    def set_airconditioner_mode(self, dev: AirConditioner, target: int, parser: PacketParser, change_state: bool = False):
         tm_start = time.perf_counter()
         cnt = 0
         packet_command = dev.makePacketSetMode(target)
         interval, retry_cnt = self.getSendParams(parser)
+        success = False
         while cnt < retry_cnt:
             if dev.mode == target:
+                success = True
                 break
             if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
@@ -298,9 +318,11 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_airconditioner_mode::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
+        if not success and change_state:
+            dev.mode = target
         dev.publishMQTT()
     
-    def set_elevator_call(self, dev: Elevator, target: int, parser: PacketParser):
+    def set_elevator_call(self, dev: Elevator, target: int, parser: PacketParser, change_state: bool = False):
         tm_start = time.perf_counter()
         cnt = 0
         """
@@ -315,9 +337,10 @@ class ThreadCommandQueue(threading.Thread):
         """
         packet_command = dev.makePacketCall(target)
         interval, retry_cnt = self.getSendParams(parser)
-        
+        success = False
         while cnt < retry_cnt:
             if dev.check_call_command_done(target):
+                success = True
                 break
             if parser.isRS485LineBusy():
                 time.sleep(1e-3)  # prevent cpu occupation
@@ -329,14 +352,16 @@ class ThreadCommandQueue(threading.Thread):
             tm_elapsed = time.perf_counter() - tm_start
             writeLog('set_elevator_call({})::send # = {}, elapsed = {:g} msec'.format(target, cnt, tm_elapsed * 1000), self)
             time.sleep(self._delay_response)
+        if not success and change_state:
+            pass
         # dev.publishMQTT()
 
-    def set_subphone_streaming_state(self, dev: SubPhone, target: int, parser: PacketParser):
+    def set_subphone_streaming_state(self, dev: SubPhone, target: int, parser: PacketParser, change_state: bool = False):
         packet = dev.makePacketSetVideoStreamingState(target)
         parser.sendPacket(packet)
         dev.updateState(0, streaming=target)
 
-    def set_subphone_doorlock_state(self, dev: SubPhone, target: str, parser: PacketParser):
+    def set_subphone_doorlock_state(self, dev: SubPhone, target: str, parser: PacketParser, change_state: bool = False):
         if target == "Unsecured":
             dev.updateState(0, doorlock=0)  # 0: Unsecured
             if dev.state_ringing.value == 2:  # 공동출입문
@@ -355,7 +380,7 @@ class ThreadCommandQueue(threading.Thread):
         elif target == 'Secured':
             dev.updateState(0, doorlock=1)  # 1: Secured
 
-    def set_subphone_lock_front_state(self, dev: SubPhone, target: str, parser: PacketParser):
+    def set_subphone_lock_front_state(self, dev: SubPhone, target: str, parser: PacketParser, change_state: bool = False):
         if target == "Unsecured":
             dev.updateState(0, lock_front=0)  # 0: Unsecured
             packet_open = dev.makePacketOpenFrontDoor()
@@ -368,7 +393,7 @@ class ThreadCommandQueue(threading.Thread):
         elif target == "Secured":
             dev.updateState(0, lock_front=1)  # 1: Secured
 
-    def set_subphone_lock_communal_state(self, dev: SubPhone, target: str, parser: PacketParser):
+    def set_subphone_lock_communal_state(self, dev: SubPhone, target: str, parser: PacketParser, change_state: bool = False):
         if target == "Unsecured":
             dev.updateState(0, lock_communal=0)  # 0: Unsecured
             packet_open = dev.makePacketOpenCommunalDoor()

@@ -558,6 +558,12 @@ class Config:
                 node.append(clear_node)
             clear_node.text = str(int(cfg.get('clear_all_devices', False)))
 
+            change_state_node = node.find('change_state_after_command')
+            if change_state_node is None:
+                change_state_node = ET.Element('change_state_after_command')
+                node.append(change_state_node)
+            change_state_node.text = str(int(cfg.get('change_device_state_after_command', False)))
+
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
             print(f'Config::set_config_etc::Exception {e}')

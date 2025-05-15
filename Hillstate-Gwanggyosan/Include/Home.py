@@ -100,6 +100,7 @@ class Home:
     enable_periodic_query_state: bool = False
     query_state_period: int = 1000
     verbose_periodic_query_state: bool = False
+    change_device_state_after_command: bool = False
 
     clear_all_devices: bool = False
 
@@ -614,6 +615,14 @@ class Home:
                     self.clear_all_devices = bool(int(clear_node.text))
                 except Exception as e:
                     writeLog(f"Failed to read <clear> node ({e})", self)
+            
+            self.change_device_state_after_command = False
+            change_state_node = node.find('change_state_after_command')
+            if change_state_node is not None:
+                try:
+                    self.change_device_state_after_command = bool(int(change_state_node.text))
+                except Exception as e:
+                    writeLog(f"Failed to read <change_state_after_command> node ({e})", self)
 
             entry_node = node.find('entry')
             dev_entry_cnt = len(list(entry_node))
@@ -1104,6 +1113,7 @@ class Home:
                     writeLog(f'manual set rs485 port index for {dev} is {dev.rs485_port_index} but failed to find valid port instance!', self)
             info: RS485Info = self.rs485_info_list[index]
             kwargs['parser'] = info.parser
+            kwargs['change_state_after_command'] = self.change_device_state_after_command
         except Exception as e:
             writeLog('send_command Exception::{}'.format(e), self)
         self.queue_command.put(kwargs)
