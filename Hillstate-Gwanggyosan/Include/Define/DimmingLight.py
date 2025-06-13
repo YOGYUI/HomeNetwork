@@ -9,12 +9,12 @@ class DimmingLight(Device):
     max_brightness_level: int = 7
     conv_method: int = 0  # 0 = 반올림, 1 = 내림, 2 = 올림
 
-    def __init__(self, name: str = 'DimmingLight', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'DimmingLight', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.dev_type = DeviceType.DIMMINGLIGHT
         self.unique_id = f'dimminglight_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/dimminglight/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/dimminglight/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/dimminglight/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/dimminglight/{self.room_index}/{self.index}'
 
     def setDefaultName(self):
         self.name = 'DimmingLight'
@@ -26,7 +26,7 @@ class DimmingLight(Device):
             "brightness": brightness_conv
         }
         if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
 
     def configMQTT(self, retain: bool = False):
         if self.mqtt_client is None:
@@ -37,8 +37,8 @@ class DimmingLight(Device):
             "name": self.name,
             "object_id": self.unique_id,
             "unique_id": self.unique_id,
-            "state_topic": self.mqtt_publish_topic,
-            "command_topic": self.mqtt_subscribe_topic,
+            "state_topic": self.mqtt_state_topic,
+            "command_topic": self.mqtt_command_topic,
             "schema": "template",
             "command_on_template": '{'\
                 '"state": 1'\
@@ -51,6 +51,17 @@ class DimmingLight(Device):
             "brightness_template": '{{ value_json.brightness }}'
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        # add homebridge accessory
+        if not os.path.isfile(self.homebridge_config_path):
+            return
+        with open(self.homebridge_config_path, 'r') as fp:
+            hb_config = json.load(fp)
+        accessories = hb_config.get('accessories')
+        find = list(filter(lambda x: x.get('name') == self.name, accessories))
+        if len(find) > 0:
+            return
+        # todo:
 
     def setMaxBrightnessLevel(self, level: int):
         self.max_brightness_level = level

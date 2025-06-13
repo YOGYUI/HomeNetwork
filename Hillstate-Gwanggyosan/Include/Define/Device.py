@@ -26,9 +26,15 @@ class Device:
     state: int = 0  # mostly, 0 is OFF and 1 is ON
     state_prev: int = 0
     mqtt_client: mqtt.Client = None
-    mqtt_publish_topic: str = ''
-    mqtt_subscribe_topic: str = ''
+    mqtt_host: str = '127.0.0.1'
+    mqtt_port: int = 1883
+    mqtt_username: str = ''
+    mqtt_password: str = ''
+    mqtt_state_topic: str = ''
+    mqtt_command_topic: str = ''
     ha_discovery_prefix: str = 'homeassistant'
+    homebridge_config_path: str = '/var/lib/homebridge/config.json'
+    homebridge_modifed: bool = False
 
     last_published_time: float = time.perf_counter()
 
@@ -37,13 +43,14 @@ class Device:
 
     rs485_port_index: int = -1
 
-    def __init__(self, name: str = 'Device', index: int = 0, room_index: int = 0):
+    def __init__(self, name: str = 'Device', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
         self.index = index
         self.room_index = room_index
         if name is None:
             self.setDefaultName()
         else:
             self.name = name
+        self.topic_prefix = topic_prefix
 
         self.sig_set_state = Callback(int)
         self.timer_onoff_params = {
@@ -87,14 +94,23 @@ class Device:
     def getRoomIndex(self) -> int:
         return self.room_index
 
-    def setMqttClient(self, client: mqtt.Client):
+    def setMqttClient(self, 
+                      client: mqtt.Client,
+                      host: str,
+                      port: int,
+                      username: str,
+                      password: str):
         self.mqtt_client = client
+        self.mqtt_host = host
+        self.mqtt_port = port
+        self.mqtt_username = username
+        self.mqtt_password = password
 
-    def setMqttPublishTopic(self, topic: str):
-        self.mqtt_publish_topic = topic
+    def setMqttStateTopic(self, topic: str):
+        self.mqtt_state_topic = topic
 
-    def setMqttSubscribeTopic(self, topic: str):
-        self.mqtt_subscribe_topic = topic
+    def setMqttCommandTopic(self, topic: str):
+        self.mqtt_command_topic = topic
 
     def setTimerOnOffOnTime(self, value: int):
         self.timer_onoff_params['on_time'] = value
@@ -107,6 +123,9 @@ class Device:
 
     def setHomeAssistantDiscoveryPrefix(self, prefix: str):
         self.ha_discovery_prefix = prefix
+    
+    def setHomeBridgeConfigFilePath(self, path: str):
+        self.homebridge_config_path = path
 
     @staticmethod
     def calcXORChecksum(data: Union[bytearray, bytes, List[int]]) -> int:

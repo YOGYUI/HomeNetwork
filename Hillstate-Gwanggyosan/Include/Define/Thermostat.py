@@ -9,12 +9,12 @@ class Thermostat(Device):
     temp_config_prev: int = 0  # 난방 설정 온도 버퍼
     temp_range: List[int]  # 설정 가능한 온도값의 범위
 
-    def __init__(self, name: str = 'Thermostat', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'Thermostat', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.dev_type = DeviceType.THERMOSTAT
         self.unique_id = f'thermostat_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/thermostat/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/thermostat/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/thermostat/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/thermostat/{self.room_index}/{self.index}'
         self.temp_range = [0, 100]
 
     def setDefaultName(self):
@@ -28,7 +28,7 @@ class Thermostat(Device):
             "timer": int(self.isTimerOnOffRunning())
         }
         if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
 
     def configMQTT(self, retain: bool = False):
         if self.mqtt_client is None:
@@ -40,22 +40,99 @@ class Thermostat(Device):
             "object_id": self.unique_id,
             "unique_id": self.unique_id,
             "modes": ["off", "heat"],
-            "mode_state_topic": self.mqtt_publish_topic,
+            "mode_state_topic": self.mqtt_state_topic,
             "mode_state_template": "{{ value_json.state.lower() }}",
-            "mode_command_topic": self.mqtt_subscribe_topic,
+            "mode_command_topic": self.mqtt_command_topic,
             "mode_command_template": "{% set values = {'off': '\"OFF\"', 'heat': '\"HEAT\"'} %} \
                                       { \"state\": {{ values[value] if value in values.keys() else \"OFF\" }} }",
-            "temperature_state_topic": self.mqtt_publish_topic,
+            "temperature_state_topic": self.mqtt_state_topic,
             "temperature_state_template": "{{ value_json.targetTemperature }}",
-            "temperature_command_topic": self.mqtt_subscribe_topic,
+            "temperature_command_topic": self.mqtt_command_topic,
             "temperature_command_template": '{ "targetTemperature": {{ value }} }',
-            "current_temperature_topic": self.mqtt_publish_topic,
+            "current_temperature_topic": self.mqtt_state_topic,
             "current_temperature_template": "{{ value_json.currentTemperature }}",
             "min_temp": self.temp_range[0],
             "max_temp": self.temp_range[1],
             "precision": 1,
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        # add homebridge accessory
+        if not os.path.isfile(self.homebridge_config_path):
+            return
+        with open(self.homebridge_config_path, 'r') as fp:
+            hb_config = json.load(fp)
+        accessories = hb_config.get('accessories')
+        find = list(filter(lambda x: x.get('name') == self.name, accessories))
+        if len(find) > 0:
+            return
+        
+        elem = {
+            "name": self.name,
+            "accessory": "mqttthing",
+            "type": "thermostat",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "minTemperature": self.temp_range[0],
+            "maxTemperature": self.temp_range[1],
+            "restrictHeatingCoolingState": [0, 1],
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getCurrentHeatingCoolingState": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setTargetHeatingCoolingState": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getTargetHeatingCoolingState": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getCurrentTemperature": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "setTargetTemperature": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                },
+                "getTargetTemperature": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                }
+            }
+        }
+        accessories.append(elem)
+
+        elem = {
+            "name": self.name + "_timer",
+            "accessory": "mqttthing",
+            "type": "switch",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "onValue": 1,
+            "offValue": 0,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getOn": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return (JSON.parse(message).timer == 1);"
+                },
+                "setOn": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({timer: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+        self.homebridge_modifed = True
 
     def setTemperatureRange(self, range_min: int, range_max: int):
         self.temp_range[0] = range_min

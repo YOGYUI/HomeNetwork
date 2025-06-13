@@ -3,12 +3,12 @@ from Device import *
 
 
 class Light(Device):
-    def __init__(self, name: str = 'Light', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'Light', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.dev_type = DeviceType.LIGHT
         self.unique_id = f'light_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/light/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/light/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/light/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/light/{self.room_index}/{self.index}'
 
     def setDefaultName(self):
         self.name = 'Light'
@@ -16,7 +16,7 @@ class Light(Device):
     def publishMQTT(self):
         obj = {"state": self.state}
         if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
 
     def configMQTT(self, retain: bool = False):
         if self.mqtt_client is None:
@@ -27,14 +27,53 @@ class Light(Device):
             "name": self.name,
             "object_id": self.unique_id,
             "unique_id": self.unique_id,
-            "state_topic": self.mqtt_publish_topic,
-            "command_topic": self.mqtt_subscribe_topic,
+            "state_topic": self.mqtt_state_topic,
+            "command_topic": self.mqtt_command_topic,
             "schema": "template",
             "state_template": "{% if value_json.state %} on {% else %} off {% endif %}",
             "command_on_template": '{"state": 1}',
             "command_off_template": '{"state": 0}'
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        # add homebridge accessory
+        if not os.path.isfile(self.homebridge_config_path):
+            return
+        with open(self.homebridge_config_path, 'r') as fp:
+            hb_config = json.load(fp)
+        accessories = hb_config.get('accessories')
+        find = list(filter(lambda x: x.get('name') == self.name, accessories))
+        if len(find) > 0:
+            return
+        
+        elem = {
+            "name": self.name,
+            "accessory": "mqttthing",
+            "type": "lightbulb",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "onValue": 1, 
+            "offValue": 0,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getOn": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+        self.homebridge_modifed = True
+        
+        with open(self.homebridge_config_path, 'w') as fp:
+            json.dump(hb_config, fp, indent=4)
 
     def makePacketQueryState(self) -> bytearray:
         # F7 0B 01 19 01 40 XX 00 00 YY EE

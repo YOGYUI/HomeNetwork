@@ -124,7 +124,7 @@ class AirqualitySensor(Device):
                 "pm25": self._measure_data.get('pm25Value')
             }
             if self.mqtt_client is not None:
-                self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+                self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
         except Exception:
             pass
 

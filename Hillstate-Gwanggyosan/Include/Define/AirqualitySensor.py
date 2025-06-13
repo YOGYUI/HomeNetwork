@@ -1,3 +1,4 @@
+import os
 import json
 import datetime
 import requests
@@ -14,11 +15,11 @@ class AirqualitySensor(Device):
     _obs_name: str = ''
     _last_query_time: datetime.datetime = None
 
-    def __init__(self, name: str = 'Airquality', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'Airquality', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.unique_id = f'airquality_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/airquality/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/airquality/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/airquality/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/airquality/{self.room_index}/{self.index}'
         self._measure_data = {
             'khaiGrade': -1,
             'so2Value': 0.0,
@@ -132,9 +133,68 @@ class AirqualitySensor(Device):
                 "pm25": self._measure_data.get('pm25Value')
             }
             if self.mqtt_client is not None:
-                self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+                self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
         except Exception:
             pass
 
     def configMQTT(self, retain: bool = False):
-        pass
+        # add homebridge accessory
+        if not os.path.isfile(self.homebridge_config_path):
+            return
+        with open(self.homebridge_config_path, 'r') as fp:
+            hb_config = json.load(fp)
+        accessories = hb_config.get('accessories')
+        find = list(filter(lambda x: x.get('name') == self.name, accessories))
+        if len(find) > 0:
+            return
+        
+        elem = {
+            "name": self.name,
+            "accessory": "mqttthing",
+            "type": "airQualitySensor",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "airQualityValues": [-1, 0, 1, 2, 3, 4],
+            "startPub": [
+                {
+                    "topic": f"{self.topic_prefix}/command/system",
+                    "message": "{\"query_all\": 1}"
+                }
+            ],
+            "room2": False,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getAirQuality": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).grade;"
+                },
+                "getPM10Density": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).pm10;"
+                },
+                "getPM2_5Density": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).pm25;"
+                },
+                "getOzoneDensity": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).o3;"
+                },
+                "getNitrogenDioxideDensity": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).no2;"
+                },
+                "getSulphurDioxideDensity": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).so2;"
+                },
+                "getCarbonMonoxideLevel": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).co;"
+                }
+            }
+        }
+        accessories.append(elem)
+        self.homebridge_modifed = True

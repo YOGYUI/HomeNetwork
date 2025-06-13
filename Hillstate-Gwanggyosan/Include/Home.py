@@ -76,6 +76,7 @@ class Home:
     mqtt_is_connected: bool = False
     enable_mqtt_console_log: bool = True
     verbose_mqtt_regular_publish: dict
+    mqtt_topic_prefix: str = 'home'
 
     rs485_info_list: List[RS485Info]
     rs485_reconnect_limit: int = 60
@@ -94,6 +95,8 @@ class Home:
     ha_mqtt_discover_enable: bool = False
     ha_mqtt_discover_prefix: str = 'homeassistant'
     ha_mqtt_topic_status: str = 'homeassistant/status'
+
+    homebridge_config_path: str = '/var/lib/homebridge/config.json'
 
     verbose_unreg_dev_packet: bool = False
 
@@ -196,11 +199,16 @@ class Home:
         self.mqtt_client.on_log = self.onMqttClientLog
 
     def initDevices(self):
+        homebridge_modified: bool = False
         for dev in self.device_list:
-            dev.setMqttClient(self.mqtt_client)
+            dev.setMqttClient(self.mqtt_client, self.mqtt_host, self.mqtt_port, self.mqtt_username, self.mqtt_password)
             dev.sig_set_state.connect(partial(self.onDeviceSetState, dev))
             dev.setHomeAssistantDiscoveryPrefix(self.ha_mqtt_discover_prefix)
+            dev.setHomeBridgeConfigFilePath(self.homebridge_config_path)
             dev.configMQTT()
+            homebridge_modified |= dev.homebridge_modified
+        if homebridge_modified:
+            pass  # restart homebridge
 
     def release(self):
         if self.isSubphoneActivated():
@@ -448,6 +456,12 @@ class Home:
             writeLog(f"Failed to read <client_id> node ({e})", self)
             self.mqtt_client_id = 'yogyui_hyundai_ht'
         
+        try:
+            self.mqtt_topic_prefix = node.find('topic_prefix').text
+        except Exception as e:
+            writeLog(f"Failed to read <topic_prefix> node ({e})", self)
+            self.mqtt_topic_prefix = 'home'
+        
         tls_node = node.find('tls')
         if tls_node is not None:
             try:
@@ -508,6 +522,13 @@ class Home:
                     self.ha_mqtt_discover_prefix = ha_discovery_prefix_node.text
         writeLog(f"HA MQTT Discovery Enable: {self.ha_mqtt_discover_enable}", self)
         writeLog(f"HA MQTT Discovery Prefix: {self.ha_mqtt_discover_prefix}", self)
+    
+        hb_node = node.find('homebridge')
+        if hb_node is not None:
+            hb_config_path_node = hb_node.find('config_path')
+            if hb_config_path_node is not None:
+                self.homebridge_config_path = hb_config_path_node.text
+        writeLog(f"Homebridge Config File Path: {self.homebridge_config_path}", self)
 
     def loadDeviceConfig(self, node: ET.Element):
         self.device_list.clear()
@@ -762,8 +783,8 @@ class Home:
                                 # prevent duplicated device list
                                 mqtt_node = dev_node.find('mqtt')
                                 if mqtt_node is not None:
-                                    device.setMqttPublishTopic(mqtt_node.find('publish').text)
-                                    device.setMqttSubscribeTopic(mqtt_node.find('subscribe').text)
+                                    device.setMqttStateTopic(mqtt_node.find('publish').text)
+                                    device.setMqttCommandTopic(mqtt_node.find('subscribe').text)
                                 if rs485_port_index >= 0:
                                     device.setRS485PortIndex(rs485_port_index)
                                 self.device_list.append(device)
@@ -984,7 +1005,7 @@ class Home:
             try:
                 dev.publishMQTT()
             except ValueError as e:
-                writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
+                writeLog(f'{e}: {dev}, {dev.mqtt_state_topic}', self)
 
     def handlePacketParseResult(self, result: dict):
         if self.discover_device:
@@ -1133,12 +1154,12 @@ class Home:
             )
 
     def startMqttSubscribe(self):
-        self.mqtt_client.subscribe('home/command/system')
+        self.mqtt_client.subscribe(f'{self.mqtt_topic_prefix}/command/system')
         self.mqtt_client.subscribe(self.ha_mqtt_topic_status)
         for dev in self.device_list:
-            self.mqtt_client.subscribe(dev.mqtt_subscribe_topic)
+            self.mqtt_client.subscribe(dev.mqtt_command_topic)
         if self.thinq is not None:
-            self.mqtt_client.subscribe('home/command/thinq')
+            self.mqtt_client.subscribe(f'{self.mqtt_topic_prefix}/command/thinq')
 
     def onMqttClientConnect(self, _, userdata, flags, rc):
         if self.enable_mqtt_console_log:
@@ -1848,8 +1869,8 @@ class Home:
                     entry_info['type'] = 'hems'
 
                 entry_info['mqtt'] = dict()
-                entry_info['mqtt']['publish'] = f"home/state/{entry_info['type']}/{room_index}/{dev_idx}"
-                entry_info['mqtt']['subscribe'] = f"home/command/{entry_info['type']}/{room_index}/{dev_idx}"
+                entry_info['mqtt']['publish'] = f"{self.mqtt_topic_prefix}/state/{entry_info['type']}/{room_index}/{dev_idx}"
+                entry_info['mqtt']['subscribe'] = f"{self.mqtt_topic_prefix}/command/{entry_info['type']}/{room_index}/{dev_idx}"
 
                 element_node = ET.Element(entry_info['type'])
                 entry_info.pop('type')

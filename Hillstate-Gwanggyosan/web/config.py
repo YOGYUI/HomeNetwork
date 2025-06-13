@@ -77,6 +77,11 @@ class Config:
                 child = ET.Element('client_id')
                 node.append(child)
             child.text = cfg.get('client_id', 'yogyui_hyundai_ht')
+            child = node.find('topic_prefix')
+            if child is None:
+                child = ET.Element('topic_prefix')
+                node.append(child)
+            child.text = cfg.get('topic_prefix', 'home')
 
             subnode = node.find('tls')
             if subnode is None:
@@ -249,6 +254,16 @@ class Config:
                 elem3 = ET.Element('prefix')
                 elem2.append(elem3)
             elem3.text = cfg.get('prefix', 'homeassistant')
+        
+            elem = node.find('homebridge')
+            if elem is None:
+                elem = ET.Element('homebridge')
+                node.append(elem)
+            elem2 = elem.find('config_path')
+            if elem2 is None:
+                elem2 = ET.Element('config_path')
+                elem.append(elem2)
+            elem2.text = cfg.get('homebridge_config_path', '/var/lib/homebridge/config.json')
 
             node = root.find('device')
             if node is None:
@@ -472,7 +487,7 @@ class Config:
             node = root.find('rs485')
             if node is None:
                 node = ET.Element('rs485')
-                root.append(elem)
+                root.append(node)
             port_nodes = list(filter(lambda x: x.tag == 'port', list(node)))
             for pnode in port_nodes:
                 elem = pnode.find('thermo_len_per_dev')
@@ -567,6 +582,97 @@ class Config:
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
             print(f'Config::set_config_etc::Exception {e}')
+
+    def set_config_debug(self, cfg: dict):
+        if not os.path.isfile(self._config_file_path):
+            return
+        try:
+            root = ET.parse(self._config_file_path).getroot()
+            node = root.find('debug')
+            if node is None:
+                node = ET.Element('debug')
+                root.append(node)
+            
+            elem = node.find('verbose_packet')
+            if elem is None:
+                elem = ET.Element('verbose_packet')
+                node.append(elem)
+            
+            elem2 = elem.find('light')
+            if elem2 is None:
+                elem2 = ET.Element('light')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_light', False)))
+
+            elem2 = elem.find('outlet')
+            if elem2 is None:
+                elem2 = ET.Element('outlet')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_outlet', False)))
+
+            elem2 = elem.find('gasvalve')
+            if elem2 is None:
+                elem2 = ET.Element('gasvalve')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_gasvalve', False)))
+
+            elem2 = elem.find('thermostat')
+            if elem2 is None:
+                elem2 = ET.Element('thermostat')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_thermostat', False)))
+
+            elem2 = elem.find('ventilator')
+            if elem2 is None:
+                elem2 = ET.Element('ventilator')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_ventilator', False)))
+
+            elem2 = elem.find('airconditioner')
+            if elem2 is None:
+                elem2 = ET.Element('airconditioner')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_airconditioner', False)))
+
+            elem2 = elem.find('elevator')
+            if elem2 is None:
+                elem2 = ET.Element('elevator')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_elevator', False)))
+
+            elem2 = elem.find('subphone')
+            if elem2 is None:
+                elem2 = ET.Element('subphone')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_subphone', False)))
+
+            elem2 = elem.find('batchoffsw')
+            if elem2 is None:
+                elem2 = ET.Element('batchoffsw')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_batchoffsw', False)))
+
+            elem2 = elem.find('hems')
+            if elem2 is None:
+                elem2 = ET.Element('hems')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_hems', False)))
+
+            elem2 = elem.find('emotionlight')
+            if elem2 is None:
+                elem2 = ET.Element('emotionlight')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_emotionlight', False)))
+
+            elem2 = elem.find('dimminglight')
+            if elem2 is None:
+                elem2 = ET.Element('dimminglight')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('verbose_packet_dimminglight', False)))
+            
+            writeXmlFile(root, self._config_file_path)
+        except Exception as e:
+            print(f'Config::set_config_debug::Exception {e}')
 
 
 config_: Union[Config, None] = None

@@ -92,12 +92,12 @@ class Elevator(Device):
 
     _thread_state_change_timer: Union[ThreadStateChangeTimer, None] = None
 
-    def __init__(self, name: str = 'Elevator', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'Elevator', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.dev_type = DeviceType.ELEVATOR
         self.unique_id = f'elevator_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/elevator/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/elevator/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/elevator/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/elevator/{self.room_index}/{self.index}'
         self.dev_info_list = list()
         self.ha_dev_config_list = list()
     
@@ -134,9 +134,9 @@ class Elevator(Device):
         obj = {
             "state": self.state if not self.arrived_flag else 1
         }
-        self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+        self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
         self.publishMQTTDevInfo()
-        # writeLog(f"pub <{self.mqtt_publish_topic}>: {obj}", self)
+        # writeLog(f"pub <{self.mqtt_state_topic}>: {obj}", self)
     
     def publishMQTTDevInfo(self):
         for elem in self.ha_dev_config_list:
@@ -156,7 +156,7 @@ class Elevator(Device):
                     "direction": "",
                     "floor": ""
                 }
-            topic = self.mqtt_publish_topic + f'/dev/{ev_index}'
+            topic = self.mqtt_state_topic + f'/dev/{ev_index}'
             self.mqtt_client.publish(topic, json.dumps(obj), 1)
             # writeLog(f"pub <{topic}>: {obj}", self)
 
@@ -172,8 +172,8 @@ class Elevator(Device):
             "name": self.name + " Call (Down)",
             "object_id": self.unique_id + "_calldown",
             "unique_id": self.unique_id + "_calldown",
-            "state_topic": self.mqtt_publish_topic,
-            "command_topic": self.mqtt_subscribe_topic,
+            "state_topic": self.mqtt_state_topic,
+            "command_topic": self.mqtt_command_topic,
             "value_template": '{ "state": {{ value_json.state }} }',
             "payload_on": payload_on_template,
             "payload_off": '{ "state": 0 }',
@@ -186,7 +186,7 @@ class Elevator(Device):
             "name": self.name + " Arrived",
             "object_id": self.unique_id + "_arrived",
             "unique_id": self.unique_id + "_arrived",
-            "state_topic": self.mqtt_publish_topic,
+            "state_topic": self.mqtt_state_topic,
             "value_template": "{% if value_json.state == 0 %} \
                                IDLE \
                                {% elif value_json.state == 1 %} \
@@ -197,6 +197,65 @@ class Elevator(Device):
             "icon": "mdi:elevator-passenger"
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        # add homebridge accessory
+        name = self.name + "_Call(Down)"
+        if not os.path.isfile(self.homebridge_config_path):
+            return
+        with open(self.homebridge_config_path, 'r') as fp:
+            hb_config = json.load(fp)
+        accessories = hb_config.get('accessories')
+        find = list(filter(lambda x: x.get('name') == name, accessories))
+        if len(find) > 0:
+            return
+        
+        elem = {
+            "name": self.name + "_Call(Down)",
+            "accessory": "mqttthing",
+            "type": "switch",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "onValue": 1, 
+            "offValue": 0,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getOn": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return (JSON.parse(message).state == 6);"
+                },
+                "setOn": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({state: 6});"
+                }
+            }
+        }
+        accessories.append(elem)
+
+        elem = {
+            "name": self.name + "_Arrived",
+            "accessory": "mqttthing",
+            "type": "occupancySensor",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "onValue": 1, 
+            "offValue": 0,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getOccupancyDetected": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return (JSON.parse(message).state == 1);"
+                }
+            }
+        }
+        accessories.append(elem)
+
+        self.homebridge_modifed = True
 
     def configMQTTDevInfo(self, ev_dev_idx: int, retain: bool = False):
         if self.mqtt_client is None:
@@ -218,7 +277,7 @@ class Elevator(Device):
                 "name": self.name + f" #{ev_dev_idx} Floor",
                 "object_id": self.unique_id + f"_{ev_dev_idx}_floor",
                 "unique_id": self.unique_id + f"_{ev_dev_idx}_floor",
-                "state_topic": self.mqtt_publish_topic + f'/dev/{ev_dev_idx}',
+                "state_topic": self.mqtt_state_topic + f'/dev/{ev_dev_idx}',
                 "value_template": "{{ value_json.floor }}",
                 "icon": "mdi:counter"
             }
@@ -229,7 +288,7 @@ class Elevator(Device):
                 "name": self.name + f" #{ev_dev_idx} Direction",
                 "object_id": self.unique_id + f"_{ev_dev_idx}_direction",
                 "unique_id": self.unique_id + f"_{ev_dev_idx}_direction",
-                "state_topic": self.mqtt_publish_topic + f'/dev/{ev_dev_idx}',
+                "state_topic": self.mqtt_state_topic + f'/dev/{ev_dev_idx}',
                 "value_template": "{{ value_json.direction }}",
                 "icon": "mdi:swap-vertical-bold"
             }

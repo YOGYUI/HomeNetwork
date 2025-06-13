@@ -3,12 +3,12 @@ from Device import *
 
 
 class GasValve(Device):
-    def __init__(self, name: str = 'GasValve', index: int = 0, room_index: int = 0):
+    def __init__(self, name: str = 'GasValve', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
         super().__init__(name, index, room_index)
         self.dev_type = DeviceType.GASVALVE
         self.unique_id = f'gasvalve_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/gasvalve/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/gasvalve/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/gasvalve/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/gasvalve/{self.room_index}/{self.index}'
 
     def setDefaultName(self):
         self.name = 'GasValve'
@@ -16,7 +16,7 @@ class GasValve(Device):
     def publishMQTT(self):
         obj = {"state": self.state}
         if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
     
     def configMQTT(self, retain: bool = False):
         if self.mqtt_client is None:
@@ -27,14 +27,55 @@ class GasValve(Device):
             "name": self.name,
             "object_id": self.unique_id,
             "unique_id": self.unique_id,
-            "state_topic": self.mqtt_publish_topic,
-            "command_topic": self.mqtt_subscribe_topic,
+            "state_topic": self.mqtt_state_topic,
+            "command_topic": self.mqtt_command_topic,
             "value_template": '{ "state": {{ value_json.state }} }',
             "payload_on": '{ "state": 1 }',
             "payload_off": '{ "state": 0 }',
             "icon": "mdi:pipe-valve"
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        # add homebridge accessory
+        if not os.path.isfile(self.homebridge_config_path):
+            return
+        with open(self.homebridge_config_path, 'r') as fp:
+            hb_config = json.load(fp)
+        accessories = hb_config.get('accessories')
+        find = list(filter(lambda x: x.get('name') == self.name, accessories))
+        if len(find) > 0:
+            return
+        
+        elem = {
+            "name": self.name,
+            "accessory": "mqttthing",
+            "type": "valve",
+            "valveType": "faucet",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "onValue": 1, 
+            "offValue": 0,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getActive": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "getInUse": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setActive": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+        self.homebridge_modifed = True
 
     def makePacketQueryState(self) -> bytearray:
         # F7 0B 01 1B 01 43 11 00 00 B5 EE

@@ -13,12 +13,12 @@ class AirConditioner(Device):
     rotation_speed: int = -1  # 풍량
     rotation_speed_prev: int = -1  # 풍량 버퍼
 
-    def __init__(self, name: str = 'AirConditioner', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'AirConditioner', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.dev_type = DeviceType.AIRCONDITIONER
         self.unique_id = f'airconditioner_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/airconditioner/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/airconditioner/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/airconditioner/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/airconditioner/{self.room_index}/{self.index}'
         self.temp_range = [0, 100]
     
     def setDefaultName(self):
@@ -66,7 +66,7 @@ class AirConditioner(Device):
             obj['rotationspeed'] = 25
             obj['rotationspeed_name'] = 'Auto'
         if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
 
     def configMQTT(self, retain: bool = False):
         if self.mqtt_client is None:
@@ -79,26 +79,120 @@ class AirConditioner(Device):
             "unique_id": self.unique_id,
             "modes": ["off", "cool", "auto", "dry", "fan_only"],
             "fan_modes": ["Max", "Medium", "Min", "Auto"],  # TODO: [“auto”, “low”, “medium”, “high”]로 대체해야하나?
-            "mode_state_topic": self.mqtt_publish_topic,
+            "mode_state_topic": self.mqtt_state_topic,
             "mode_state_template": "{{ value_json.mode }}",
-            "mode_command_topic": self.mqtt_subscribe_topic,
+            "mode_command_topic": self.mqtt_command_topic,
             "mode_command_template": '{% set values = {"off": 0, "cool": 1, "auto": 2, "dry": 3, "fan_only": 4} %} \
                                       { "mode": {{ values[value] if value in values.keys() else 0 }} }',
-            "temperature_state_topic": self.mqtt_publish_topic,
+            "temperature_state_topic": self.mqtt_state_topic,
             "temperature_state_template": "{{ value_json.targetTemperature }}",
-            "temperature_command_topic": self.mqtt_subscribe_topic,
+            "temperature_command_topic": self.mqtt_command_topic,
             "temperature_command_template": '{ "targetTemperature": {{ value }} }',
-            "current_temperature_topic": self.mqtt_publish_topic,
+            "current_temperature_topic": self.mqtt_state_topic,
             "current_temperature_template": "{{ value_json.currentTemperature }}",
-            "fan_mode_command_topic": self.mqtt_subscribe_topic,
+            "fan_mode_command_topic": self.mqtt_command_topic,
             "fan_mode_command_template": '{ "rotationspeed_name": "{{ value }}" }',
-            "fan_mode_state_topic": self.mqtt_publish_topic,
+            "fan_mode_state_topic": self.mqtt_state_topic,
             "fan_mode_state_template": "{{ value_json.rotationspeed_name }}",
             "min_temp": self.temp_range[0],
             "max_temp": self.temp_range[1],
             "precision": 1,
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        # add homebridge accessory
+        if not os.path.isfile(self.homebridge_config_path):
+            return
+        with open(self.homebridge_config_path, 'r') as fp:
+            hb_config = json.load(fp)
+        accessories = hb_config.get('accessories')
+        find = list(filter(lambda x: x.get('name') == self.name, accessories))
+        if len(find) > 0:
+            return
+        
+        elem = {
+            "name": self.name,
+            "accessory": "mqttthing",
+            "type": "heaterCooler",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "minTemperature": self.temp_range[0],
+            "maxTemperature": self.temp_range[1],
+            "restrictHeaterCoolerState": [2],
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getActive": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).active;"
+                },
+                "setActive": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({active: message});"
+                },
+                "getCurrentHeaterCoolerState": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setTargetHeaterCoolerState": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({target_state: message});"
+                },
+                "getTargetHeaterCoolerState": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).target_state;"
+                },
+                "getRotationSpeed": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).rotationspeed;"
+                },
+                "setRotationSpeed": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({rotationspeed: message});"
+                },
+                "getCurrentTemperature": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).currentTemperature;"
+                },
+                "getCoolingThresholdTemperature": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).targetTemperature;"
+                },
+                "setCoolingThresholdTemperature": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({targetTemperature: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+
+        elem = {
+            "name": self.name + "_timer",
+            "accessory": "mqttthing",
+            "type": "switch",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "onValue": 1,
+            "offValue": 0,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getOn": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return (JSON.parse(message).timer == 1);"
+                },
+                "setOn": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({timer: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+        self.homebridge_modifed = True
 
     def setTemperatureRange(self, range_min: int, range_max: int):
         self.temp_range[0] = range_min

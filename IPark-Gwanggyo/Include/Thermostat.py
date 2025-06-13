@@ -20,7 +20,7 @@ class Thermostat(Device):
             "currentTemperature": self.temperature_current,
             "targetTemperature": self.temperature_setting
         }
-        self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+        self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
 
     def __repr__(self):
         repr_txt = f'<{self.name}({self.__class__.__name__} at {hex(id(self))})'

@@ -64,12 +64,12 @@ class SubPhone(Device):
     enable_auto_open_communal_door: bool = False
     auto_open_communal_door_interval_sec: float = 3
 
-    def __init__(self, name: str = 'SubPhone', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'SubPhone', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.dev_type = DeviceType.SUBPHONE
         self.unique_id = f'subphone_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/subphone/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/subphone/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/subphone/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/subphone/{self.room_index}/{self.index}'
         self.sig_state_streaming = Callback(int)
         self.enable_streaming = True
         self.streaming_config = {
@@ -106,18 +106,18 @@ class SubPhone(Device):
             "lock_front_state": self.state_lock_front.name,
             "lock_communal_state": self.state_lock_communal.name,
         }
-        self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+        self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
         
         obj = {"state": self.state_lock_front.name}
-        self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/front', json.dumps(obj), 1)
+        self.mqtt_client.publish(self.mqtt_state_topic + '/doorlock/front', json.dumps(obj), 1)
 
         obj = {"state": self.state_lock_communal.name}
-        self.mqtt_client.publish(self.mqtt_publish_topic + '/doorlock/communal', json.dumps(obj), 1)
+        self.mqtt_client.publish(self.mqtt_state_topic + '/doorlock/communal', json.dumps(obj), 1)
 
         if self.state_streaming:
-            self.mqtt_client.publish(self.mqtt_publish_topic + '/motion', "ON", 1)
+            self.mqtt_client.publish(self.mqtt_state_topic + '/motion', "ON", 1)
         else:
-            self.mqtt_client.publish(self.mqtt_publish_topic + '/motion', "OFF", 1)
+            self.mqtt_client.publish(self.mqtt_state_topic + '/motion', "OFF", 1)
 
     def _publishMQTT_AutoOpenState(self):
         if self.mqtt_client is None:
@@ -129,34 +129,34 @@ class SubPhone(Device):
             "enable_auto_open_communal": int(self.enable_auto_open_communal_door),
             "auto_open_communal_interval": self.auto_open_communal_door_interval_sec
         }
-        self.mqtt_client.publish(self.mqtt_publish_topic + '/autoopen', json.dumps(obj), 1)
+        self.mqtt_client.publish(self.mqtt_state_topic + '/autoopen', json.dumps(obj), 1)
 
     def _publishMQTT_DoorBellState(self):
         if self.mqtt_client is None:
             return
         
         if not self.init:
-            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'OFF', 1)
+            self.mqtt_client.publish(self.mqtt_state_topic + '/doorbell', 'OFF', 1)
             obj = {"state": 0}
-            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/front', json.dumps(obj), 1)
-            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/communal', json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic + '/doorbell/front', json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic + '/doorbell/communal', json.dumps(obj), 1)
 
         if self.state_ringing != self.state_ringing_prev:  # 초인종 호출 상태 알림이 반복적으로 뜨는 것 방지 
             # writeLog(f"Ringing Publish: Prev={self.state_ringing.name}, Current={self.state_ringing_prev.name}", self)
             if self.state_ringing in [StateRinging.FRONT, StateRinging.COMMUNAL]:
-                self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'ON', 1)
+                self.mqtt_client.publish(self.mqtt_state_topic + '/doorbell', 'ON', 1)
             else:
-                self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell', 'OFF', 1)
+                self.mqtt_client.publish(self.mqtt_state_topic + '/doorbell', 'OFF', 1)
         
         if self.state_ringing_front != self.state_ringing_front_prev:
             writeLog(f"Front Door Ringing State: Prev={bool(self.state_ringing_front_prev)}, Current={bool(self.state_ringing_front)}", self)
             obj = {"state": self.state_ringing_front}
-            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/front', json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic + '/doorbell/front', json.dumps(obj), 1)
 
         if self.state_ringring_communal != self.state_ringring_communal_prev:
             writeLog(f"Communal Door Ringing State: Prev={bool(self.state_ringring_communal_prev)}, Current={bool(self.state_ringring_communal)}", self)
             obj = {"state": self.state_ringring_communal}
-            self.mqtt_client.publish(self.mqtt_publish_topic + '/doorbell/communal', json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic + '/doorbell/communal', json.dumps(obj), 1)
 
     def configMQTT(self, retain: bool = False):
         if self.mqtt_client is None:
@@ -167,8 +167,8 @@ class SubPhone(Device):
             "name": self.name + " Doorlock",
             "object_id": self.unique_id + "_doorlock",
             "unique_id": self.unique_id + "_doorlock",
-            "state_topic": self.mqtt_publish_topic,
-            "command_topic": self.mqtt_subscribe_topic,
+            "state_topic": self.mqtt_state_topic,
+            "command_topic": self.mqtt_command_topic,
             "value_template": '{{ value_json.doorlock_state }}',
             "payload_lock": '{ "doorlock_state": "Secured" }',
             "payload_unlock": '{ "doorlock_state": "Unsecured" }',
@@ -185,8 +185,8 @@ class SubPhone(Device):
             "name": self.name + " Lock (Front)",
             "object_id": self.unique_id + "_lock_front",
             "unique_id": self.unique_id + "_lock_front",
-            "state_topic": self.mqtt_publish_topic + '/doorlock/front',
-            "command_topic": self.mqtt_subscribe_topic,
+            "state_topic": self.mqtt_state_topic + '/doorlock/front',
+            "command_topic": self.mqtt_command_topic,
             "value_template": '{{ value_json.state }}',
             "payload_lock": '{ "lock_front_state": "Secured" }',
             "payload_unlock": '{ "lock_front_state": "Unsecured" }',
@@ -202,7 +202,7 @@ class SubPhone(Device):
             "name": self.name + " Ringing (front)",
             "object_id": self.unique_id + "_ringing_front",
             "unique_id": self.unique_id + "_ringing_front",
-            "state_topic": self.mqtt_publish_topic + '/doorbell/front',
+            "state_topic": self.mqtt_state_topic + '/doorbell/front',
             "value_template": '{ "state": {{ value_json.state }} }',
             "payload_on": '{ "state": 1 }',
             "payload_off": '{ "state": 0 }',
@@ -215,8 +215,8 @@ class SubPhone(Device):
             "name": self.name + " Lock (Communal)",
             "object_id": self.unique_id + "_lock_communal",
             "unique_id": self.unique_id + "_lock_communal",
-            "state_topic": self.mqtt_publish_topic + '/doorlock/communal',
-            "command_topic": self.mqtt_subscribe_topic,
+            "state_topic": self.mqtt_state_topic + '/doorlock/communal',
+            "command_topic": self.mqtt_command_topic,
             "value_template": '{{ value_json.state }}',
             "payload_lock": '{ "lock_communal_state": "Secured" }',
             "payload_unlock": '{ "lock_communal_state": "Unsecured" }',
@@ -232,7 +232,7 @@ class SubPhone(Device):
             "name": self.name + " Ringing (Communal)",
             "object_id": self.unique_id + "_ringing_communal",
             "unique_id": self.unique_id + "_ringing_communal",
-            "state_topic": self.mqtt_publish_topic + '/doorbell/communal',
+            "state_topic": self.mqtt_state_topic + '/doorbell/communal',
             "value_template": '{ "state": {{ value_json.state }} }',
             "payload_on": '{ "state": 1 }',
             "payload_off": '{ "state": 0 }',
@@ -245,8 +245,8 @@ class SubPhone(Device):
             "name": self.name + " Auto Open (Front)",
             "object_id": self.unique_id + "_auto_open_front",
             "unique_id": self.unique_id + "_auto_open_front",
-            "state_topic": self.mqtt_publish_topic + '/autoopen',
-            "command_topic": self.mqtt_subscribe_topic,
+            "state_topic": self.mqtt_state_topic + '/autoopen',
+            "command_topic": self.mqtt_command_topic,
             "value_template": '{ "enable_auto_open_front": {{ value_json.enable_auto_open_front }} }',
             "payload_on": '{ "enable_auto_open_front": 1 }',
             "payload_off": '{ "enable_auto_open_front": 0 }',
@@ -259,8 +259,8 @@ class SubPhone(Device):
             "name": self.name + " Auto Open (Communal)",
             "object_id": self.unique_id + "_auto_open_communal",
             "unique_id": self.unique_id + "_auto_open_communal",
-            "state_topic": self.mqtt_publish_topic + '/autoopen',
-            "command_topic": self.mqtt_subscribe_topic,
+            "state_topic": self.mqtt_state_topic + '/autoopen',
+            "command_topic": self.mqtt_command_topic,
             "value_template": '{ "enable_auto_open_communal": {{ value_json.enable_auto_open_communal }} }',
             "payload_on": '{ "enable_auto_open_communal": 1 }',
             "payload_off": '{ "enable_auto_open_communal": 0 }',
