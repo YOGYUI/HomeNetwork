@@ -37,10 +37,7 @@ class BatchOffSwitch(Device):
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         # add homebridge accessory
-        if not os.path.isfile(self.homebridge_config_path):
-            return
-        with open(self.homebridge_config_path, 'r') as fp:
-            hb_config = json.load(fp)
+        hb_config = self.read_homebridge_config_template()
         accessories = hb_config.get('accessories')
         find = list(filter(lambda x: x.get('name') == self.name, accessories))
         if len(find) > 0:
@@ -70,7 +67,8 @@ class BatchOffSwitch(Device):
             }
         }
         accessories.append(elem)
-        self.homebridge_modifed = True
+        
+        self.write_homebridge_config_template(hb_config)
 
     def makePacketQueryState(self) -> bytearray:
         # F7 0E 01 2A 01 40 10 00 19 00 1B 03 82 EE

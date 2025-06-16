@@ -200,17 +200,14 @@ class Elevator(Device):
 
         # add homebridge accessory
         name = self.name + "_Call(Down)"
-        if not os.path.isfile(self.homebridge_config_path):
-            return
-        with open(self.homebridge_config_path, 'r') as fp:
-            hb_config = json.load(fp)
+        hb_config = self.read_homebridge_config_template()
         accessories = hb_config.get('accessories')
         find = list(filter(lambda x: x.get('name') == name, accessories))
         if len(find) > 0:
             return
         
         elem = {
-            "name": self.name + "_Call(Down)",
+            "name": name,
             "accessory": "mqttthing",
             "type": "switch",
             "url": f"{self.mqtt_host}:{self.mqtt_port}",
@@ -255,7 +252,7 @@ class Elevator(Device):
         }
         accessories.append(elem)
 
-        self.homebridge_modifed = True
+        self.write_homebridge_config_template(hb_config)
 
     def configMQTTDevInfo(self, ev_dev_idx: int, retain: bool = False):
         if self.mqtt_client is None:

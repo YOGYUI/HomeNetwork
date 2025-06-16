@@ -58,10 +58,7 @@ class Thermostat(Device):
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         # add homebridge accessory
-        if not os.path.isfile(self.homebridge_config_path):
-            return
-        with open(self.homebridge_config_path, 'r') as fp:
-            hb_config = json.load(fp)
+        hb_config = self.read_homebridge_config_template()
         accessories = hb_config.get('accessories')
         find = list(filter(lambda x: x.get('name') == self.name, accessories))
         if len(find) > 0:
@@ -132,7 +129,8 @@ class Thermostat(Device):
             }
         }
         accessories.append(elem)
-        self.homebridge_modifed = True
+        
+        self.write_homebridge_config_template(hb_config)
 
     def setTemperatureRange(self, range_min: int, range_max: int):
         self.temp_range[0] = range_min

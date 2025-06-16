@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import json
 import threading
 from typing import List, Union
 import paho.mqtt.client as mqtt
@@ -8,6 +9,7 @@ from abc import ABCMeta, abstractmethod
 from functools import reduce
 CURPATH = os.path.dirname(os.path.abspath(__file__))
 INCPATH = os.path.dirname(CURPATH)
+PROJPATH = os.path.dirname(INCPATH)
 sys.path.extend([CURPATH, INCPATH])
 sys.path = list(set(sys.path))
 del CURPATH, INCPATH
@@ -34,7 +36,7 @@ class Device:
     mqtt_command_topic: str = ''
     ha_discovery_prefix: str = 'homeassistant'
     homebridge_config_path: str = '/var/lib/homebridge/config.json'
-    homebridge_modifed: bool = False
+    homebridge_modified: bool = False
 
     last_published_time: float = time.perf_counter()
 
@@ -194,6 +196,28 @@ class Device:
 
     def setRS485PortIndex(self, index: int):
         self.rs485_port_index = index
+    
+    def read_homebridge_config_template(self) -> dict:
+        template_path = os.path.join(PROJPATH, "homebridge_config_template.json")
+        if os.path.isfile(template_path):
+            with open(template_path, 'r') as fp:
+                return json.load(fp)
+        else:
+            if os.path.isfile(self.homebridge_config_path):
+                try:
+                    with open(self.homebridge_config_path, 'r') as fp:
+                        return json.load(fp)
+                except Exception as e:
+                    writeLog(f"Failed to read homebridge config file ({e})", self)
+                    return {"accessories": []}    
+            else:
+                return {"accessories": []}
+
+    def write_homebridge_config_template(self, config: dict):
+        template_path = os.path.join(PROJPATH, "homebridge_config_template.json")
+        with open(template_path, 'w') as fp:
+            json.dump(config, fp, indent=4)
+        self.homebridge_modified = True
 
 
 class ThreadDeviceTimerOnOff(threading.Thread):

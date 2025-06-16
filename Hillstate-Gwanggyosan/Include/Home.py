@@ -208,7 +208,7 @@ class Home:
             dev.configMQTT()
             homebridge_modified |= dev.homebridge_modified
         if homebridge_modified:
-            pass  # restart homebridge
+            pass  # copy config file? restart homebridge?
 
     def release(self):
         if self.isSubphoneActivated():
@@ -461,6 +461,7 @@ class Home:
         except Exception as e:
             writeLog(f"Failed to read <topic_prefix> node ({e})", self)
             self.mqtt_topic_prefix = 'home'
+        writeLog(f"MQTT Topic Prefix: {self.mqtt_topic_prefix}", self)
         
         tls_node = node.find('tls')
         if tls_node is not None:

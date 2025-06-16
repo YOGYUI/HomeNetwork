@@ -37,10 +37,7 @@ class GasValve(Device):
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         # add homebridge accessory
-        if not os.path.isfile(self.homebridge_config_path):
-            return
-        with open(self.homebridge_config_path, 'r') as fp:
-            hb_config = json.load(fp)
+        hb_config = self.read_homebridge_config_template()
         accessories = hb_config.get('accessories')
         find = list(filter(lambda x: x.get('name') == self.name, accessories))
         if len(find) > 0:
@@ -75,7 +72,8 @@ class GasValve(Device):
             }
         }
         accessories.append(elem)
-        self.homebridge_modifed = True
+        
+        self.write_homebridge_config_template(hb_config)
 
     def makePacketQueryState(self) -> bytearray:
         # F7 0B 01 1B 01 43 11 00 00 B5 EE
