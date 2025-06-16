@@ -40,12 +40,16 @@ class ThreadEnergyMonitor(threading.Thread):
         query_init: bool = False
 
         writeLog('Started', self)
-        tm_loop_realtime = time.perf_counter_ns() / 1e6 
+        tm_loop_realtime = time.perf_counter_ns() / 1e6
         tm_loop_regular = time.perf_counter_ns() / 1e6
+        start_time = time.perf_counter()
         while self._keepAlive:
             if not self._home_initialized:
-                writeLog('Waiting for Initializing Home...', self)
+                writeLog('Waiting for HEMS connection...', self)
                 time.sleep(1)
+                if time.perf_counter() - start_time >= 10:
+                    writeLog('Timeout for waiting HEMS connection', self)
+                    self._keepAlive = False
                 continue
             
             try:
