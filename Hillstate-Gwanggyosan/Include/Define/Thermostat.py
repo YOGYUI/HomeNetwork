@@ -106,7 +106,7 @@ class Thermostat(Device):
         accessories.append(elem)
 
         elem = {
-            "name": self.name + "_timer",
+            "name": self.name + " TIMER",
             "accessory": "mqttthing",
             "type": "switch",
             "url": f"{self.mqtt_host}:{self.mqtt_port}",

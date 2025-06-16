@@ -60,6 +60,8 @@ class PacketParser:
     enable_store_packet_general: bool = False
     enable_trace_timestamp_packet: bool = False
 
+    debug_verbose_packet: dict
+
     def __init__(self, 
                  rs485_instance: RS485Comm, 
                  name: str, 
@@ -78,6 +80,7 @@ class PacketParser:
         self.type_interpret = type_interpret
         self.packet_storage = list()
         self.sig_parse_result = Callback(dict)
+        self.debug_verbose_packet = dict()
         writeLog(f"<{self.name}> initialized (index: {self.index}, " \
                  f"type: {self.type_interpret.name}, " \
                  f"command interval: {self.send_command_interval_ms}ms, " \
@@ -350,10 +353,14 @@ class PacketParser:
     def handleLight(self, packet: bytearray):
         room_idx = packet[6] >> 4
         if packet[4] == 0x01:  # 상태 쿼리
-            pass
+            if self.debug_verbose_packet.get(DeviceType.LIGHT, False):
+                writeLog("[LIGHT][Q]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x02:  # 상태 변경 명령
-            pass
+            if self.debug_verbose_packet.get(DeviceType.LIGHT, False):
+                writeLog("[LIGHT][C]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:  # 각 방별 On/Off
+            if self.debug_verbose_packet.get(DeviceType.LIGHT, False):
+                writeLog("[LIGHT][R]{}".format(self.prettifyPacket(packet)))
             dev_idx = packet[6] & 0x0F
             if dev_idx == 0:  # 일반 쿼리 (존재하는 모든 디바이스)
                 light_count = len(packet) - 10
@@ -375,14 +382,21 @@ class PacketParser:
                     'state': state
                 }
                 self.updateDeviceState(result)
+        else:
+            if self.debug_verbose_packet.get(DeviceType.LIGHT, False):
+                writeLog("[LIGHT][?]{}".format(self.prettifyPacket(packet)))
 
     def handleEmotionLight(self, packet: bytearray):
         room_idx = packet[6] >> 4
         if packet[4] == 0x01:  # 상태 쿼리
-            pass
+            if self.debug_verbose_packet.get(DeviceType.EMOTIONLIGHT, False):
+                writeLog("[EMOTIONLIGHT][Q]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x02:  # 상태 변경 명령
-            pass
+            if self.debug_verbose_packet.get(DeviceType.EMOTIONLIGHT, False):
+                writeLog("[EMOTIONLIGHT][C]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:  # 각 방별 On/Off
+            if self.debug_verbose_packet.get(DeviceType.EMOTIONLIGHT, False):
+                writeLog("[EMOTIONLIGHT][R]{}".format(self.prettifyPacket(packet)))
             dev_idx = packet[6] & 0x0F
             if dev_idx == 0:  # 일반 쿼리 (존재하는 모든 디바이스)
                 self.log(f'Warning: Un-implemented packet interpreter (zero device index, {self.prettifyPacket(packet)})')
@@ -396,14 +410,21 @@ class PacketParser:
                     'state': state
                 }
                 self.updateDeviceState(result)
+        else:
+            if self.debug_verbose_packet.get(DeviceType.EMOTIONLIGHT, False):
+                writeLog("[EMOTIONLIGHT][?]{}".format(self.prettifyPacket(packet)))
 
     def handleDimmingLight(self, packet: bytearray):
         room_idx = packet[6] >> 4
         if packet[4] == 0x01:  # 상태 쿼리
-            pass
+            if self.debug_verbose_packet.get(DeviceType.DIMMINGLIGHT, False):
+                writeLog("[DIMMINGLIGHT][Q]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x02:  # 상태 변경 명령
-            pass
+            if self.debug_verbose_packet.get(DeviceType.DIMMINGLIGHT, False):
+                writeLog("[DIMMINGLIGHT][C]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:  # 각 방별 On/Off
+            if self.debug_verbose_packet.get(DeviceType.DIMMINGLIGHT, False):
+                writeLog("[DIMMINGLIGHT][R]{}".format(self.prettifyPacket(packet)))
             state_type = packet[5]
             dev_idx = packet[6] & 0x0F
             if dev_idx == 0:  # 일반 쿼리 (존재하는 모든 디바이스)
@@ -451,14 +472,21 @@ class PacketParser:
                         'brightness': brightness
                     }
                     self.updateDeviceState(result)
+        else:
+            if self.debug_verbose_packet.get(DeviceType.DIMMINGLIGHT, False):
+                writeLog("[DIMMINGLIGHT][?]{}".format(self.prettifyPacket(packet)))
 
     def handleOutlet(self, packet: bytearray):
         room_idx = packet[6] >> 4
         if packet[4] == 0x01:  # 상태 쿼리
-            pass
+            if self.debug_verbose_packet.get(DeviceType.OUTLET, False):
+                writeLog("[OUTLET][Q]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x02:  # 상태 변경 명령
-            pass
+            if self.debug_verbose_packet.get(DeviceType.OUTLET, False):
+                writeLog("[OUTLET][C]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:  # 각 방별 상태 (On/Off)
+            if self.debug_verbose_packet.get(DeviceType.OUTLET, False):
+                writeLog("[OUTLET][R]{}".format(self.prettifyPacket(packet)))
             dev_idx = packet[6] & 0x0F
             if dev_idx == 0:  # 일반 쿼리 (모든 디바이스)
                 outlet_count = (len(packet) - 10) // 9
@@ -486,27 +514,41 @@ class PacketParser:
                     'state': state
                 }
                 self.updateDeviceState(result)
+        else:
+            if self.debug_verbose_packet.get(DeviceType.OUTLET, False):
+                writeLog("[OUTLET][?]{}".format(self.prettifyPacket(packet)))
 
     def handleGasValve(self, packet: bytearray):
         if packet[4] == 0x01:  # 상태 쿼리
-            pass
+            if self.debug_verbose_packet.get(DeviceType.GASVALVE, False):
+                writeLog("[GASVALVE][Q]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x02:  # 상태 변경 명령
-            pass
+            if self.debug_verbose_packet.get(DeviceType.GASVALVE, False):
+                writeLog("[GASVALVE][C]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:  # 상태 응답
+            if self.debug_verbose_packet.get(DeviceType.GASVALVE, False):
+                writeLog("[GASVALVE][R]{}".format(self.prettifyPacket(packet)))
             state = 0 if packet[8] == 0x03 else 1
             result = {
                 'device': DeviceType.GASVALVE,
                 'state': state
             }
             self.updateDeviceState(result)
+        else:
+            if self.debug_verbose_packet.get(DeviceType.GASVALVE, False):
+                writeLog("[GASVALVE][?]{}".format(self.prettifyPacket(packet)))
     
     def handleThermostat(self, packet: bytearray):
         room_idx = packet[6] & 0x0F
         if packet[4] == 0x01:  # 상태 쿼리
-            pass
+            if self.debug_verbose_packet.get(DeviceType.THERMOSTAT, False):
+                writeLog("[THERMOSTAT][Q]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x02:  # On/Off, 온도 변경 명령
-            pass
+            if self.debug_verbose_packet.get(DeviceType.THERMOSTAT, False):
+                writeLog("[THERMOSTAT][C]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:  # 상태 응답
+            if self.debug_verbose_packet.get(DeviceType.THERMOSTAT, False):
+                writeLog("[THERMOSTAT][R]{}".format(self.prettifyPacket(packet)))
             if room_idx == 0:  # 일반 쿼리 (존재하는 모든 디바이스)
                 thermostat_count = (len(packet) - 10) // self.thermo_len_per_dev
                 for idx in range(thermostat_count):
@@ -536,13 +578,20 @@ class PacketParser:
                         'temp_config': temp_config
                     }
                     self.updateDeviceState(result)
+        else:
+            if self.debug_verbose_packet.get(DeviceType.THERMOSTAT, False):
+                writeLog("[THERMOSTAT][?]{}".format(self.prettifyPacket(packet)))
     
     def handleVentilator(self, packet: bytearray):
         if packet[4] == 0x01:
-            pass
+            if self.debug_verbose_packet.get(DeviceType.VENTILATOR, False):
+                writeLog("[VENTILATOR][Q]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x02:
-            pass
+            if self.debug_verbose_packet.get(DeviceType.VENTILATOR, False):
+                writeLog("[VENTILATOR][C]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:
+            if self.debug_verbose_packet.get(DeviceType.VENTILATOR, False):
+                writeLog("[VENTILATOR][R]{}".format(self.prettifyPacket(packet)))
             state = 0 if packet[8] == 0x02 else 1
             rotation_speed = packet[9]  # 0x01=약, 0x03=중, 0x07=강
             result = {
@@ -552,15 +601,22 @@ class PacketParser:
             if rotation_speed != 0:
                 result['rotation_speed'] = rotation_speed
             self.updateDeviceState(result)
+        else:
+            if self.debug_verbose_packet.get(DeviceType.VENTILATOR, False):
+                writeLog("[VENTILATOR][?]{}".format(self.prettifyPacket(packet)))
 
     def handleAirconditioner(self, packet: bytearray):
         dev_idx = packet[6] & 0x0F
         room_idx = packet[6] >> 4
         if packet[4] == 0x01:  # 상태 쿼리
-            pass
+            if self.debug_verbose_packet.get(DeviceType.AIRCONDITIONER, False):
+                writeLog("[AIRCONDITIONER][Q]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x02:  # On/Off, 온도 변경 명령
-            pass
+            if self.debug_verbose_packet.get(DeviceType.AIRCONDITIONER, False):
+                writeLog("[AIRCONDITIONER][C]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:  # 상태 응답
+            if self.debug_verbose_packet.get(DeviceType.AIRCONDITIONER, False):
+                writeLog("[AIRCONDITIONER][R]{}".format(self.prettifyPacket(packet)))
             if dev_idx == 0:
                 if packet[5] == 0x5E:
                     # todo: https://github.com/YOGYUI/HomeNetwork/pull/12#issuecomment-2271148687
@@ -584,9 +640,14 @@ class PacketParser:
                     'rotation_speed': rotation_speed
                 }
                 self.updateDeviceState(result)
+        else:
+            if self.debug_verbose_packet.get(DeviceType.AIRCONDITIONER, False):
+                writeLog("[AIRCONDITIONER][?]{}".format(self.prettifyPacket(packet)))
 
     def handleElevator(self, packet: bytearray):
         if packet[4] == 0x01:  # 상태 쿼리 (월패드 -> 복도 미니패드)
+            if self.debug_verbose_packet.get(DeviceType.ELEVATOR, False):
+                writeLog("[ELEVATOR][Q]{}".format(self.prettifyPacket(packet)))
             # F7 0D 01 34 01 41 10 00 XX YY ZZ ** EE
             # XX: 00=Idle, 01=Arrived, 하위4비트가 6이면 하행 호출중, 5이면 상행 호출 중, 
             #     상위4비트 A: 올라가는 중, B: 내려가는 중
@@ -622,12 +683,15 @@ class PacketParser:
             }
             self.updateDeviceState(result)
         elif packet[4] == 0x02:
-            pass
+            if self.debug_verbose_packet.get(DeviceType.ELEVATOR, False):
+                writeLog("[ELEVATOR][C]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:  # 상태 응답 (복도 미니패드 -> 월패드)
             # F7 0B 01 34 04 41 10 00 XX YY EE
             # XX: 하위 4비트: 6 = 하행 호출  ** 상행 호출에 해당하는 5 값은 발견되지 않는다
             # YY: Checksum (XOR SUM)
             # 미니패드의 '엘리베이터 호출' 버튼의 상태를 반환함
+            if self.debug_verbose_packet.get(DeviceType.ELEVATOR, False):
+                writeLog("[ELEVATOR][R]{}".format(self.prettifyPacket(packet)))
             call_state = packet[8] & 0x0F  # 0 = idle, 6 = command (하행) 호출
             result = {
                 'device': DeviceType.ELEVATOR,
@@ -636,11 +700,17 @@ class PacketParser:
                 'packet': self.prettifyPacket(packet)
             }
             self.updateDeviceState(result)
+        else:
+            if self.debug_verbose_packet.get(DeviceType.ELEVATOR, False):
+                writeLog("[ELEVATOR][?]{}".format(self.prettifyPacket(packet)))
 
     def handleEnergyMonitoring(self, packet: bytearray):
         if packet[4] == 0x01:  # 상태 쿼리
-            pass
+            if self.debug_verbose_packet.get(DeviceType.HEMS, False):
+                writeLog("[HEMS][Q]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:
+            if self.debug_verbose_packet.get(DeviceType.HEMS, False):
+                writeLog("[HEMS][R]{}".format(self.prettifyPacket(packet)))
             # 값들이 hexa encoding되어있다!
             if packet[5] == 0x11:  # 전기 사용량
                 value = int(''.join('%02X' % x for x in packet[7:12]))
@@ -659,26 +729,40 @@ class PacketParser:
                 # self.log(f'EMON - Heating: {value}')
             else:
                 self.log(f'> {self.prettifyPacket(packet)}')
+        else:
+            if self.debug_verbose_packet.get(DeviceType.HEMS, False):
+                writeLog("[HEMS][?]{}".format(self.prettifyPacket(packet)))
 
     def handleBatchOffSwitch(self, packet: bytearray):
         if packet[4] == 0x01:  # 상태 쿼리
-            pass
+            if self.debug_verbose_packet.get(DeviceType.BATCHOFFSWITCH, False):
+                writeLog("[BATCHOFFSWITCH][Q]{}".format(self.prettifyPacket(packet)))
+        elif packet[4] == 0x02:
+            if self.debug_verbose_packet.get(DeviceType.BATCHOFFSWITCH, False):
+                writeLog("[BATCHOFFSWITCH][C]{}".format(self.prettifyPacket(packet)))
         elif packet[4] == 0x04:
             # 쿼리 응답
             # F7 0E 01 2A 04 40 10 00 19 XX 1B 03 YY EE
             # 명령 응답
             # F7 0C 01 2A 04 40 11 XX 19 YY ZZ EE
             # 길이는 다르지만 10번째 패킷이 스위치 상태를 가리킴
+            if self.debug_verbose_packet.get(DeviceType.BATCHOFFSWITCH, False):
+                writeLog("[BATCHOFFSWITCH][R]{}".format(self.prettifyPacket(packet)))
             state = 0 if packet[9] == 0x02 else 1
             result = {
                 'device': DeviceType.BATCHOFFSWITCH,
                 'state': state
             }
             self.updateDeviceState(result)
+        else:
+            if self.debug_verbose_packet.get(DeviceType.BATCHOFFSWITCH, False):
+                writeLog("[BATCHOFFSWITCH][?]{}".format(self.prettifyPacket(packet)))
     
     def handleFrontDoor(self, packet: bytearray):
         result = {'device': DeviceType.SUBPHONE}
         notify: bool = True
+        if self.debug_verbose_packet.get(DeviceType.SUBPHONE, False):
+            writeLog("[SUBPHONE][FD]{}".format(self.prettifyPacket(packet)))
         if packet[1] == 0xB5:
             # 현관 도어폰 초인종 호출 (월패드 -> 서브폰)
             result['ringing_front'] = 1
@@ -716,6 +800,8 @@ class PacketParser:
     def handleCommunalDoor(self, packet: bytearray):
         result = {'device': DeviceType.SUBPHONE}
         notify: bool = True
+        if self.debug_verbose_packet.get(DeviceType.SUBPHONE, False):
+            writeLog("[SUBPHONE][CD]{}".format(self.prettifyPacket(packet)))
         if packet[1] == 0x5A:
             # 공동현관문 호출 (월패드 -> 서브폰)
             result['ringing_communal'] = 1
@@ -740,11 +826,14 @@ class PacketParser:
     def handleHEMS(self, packet: bytearray):
         if packet[1] == 0xE0:
             # 쿼리 패킷 (서브폰 -> 월패드)
-            pass
+            if self.debug_verbose_packet.get(DeviceType.SUBPHONE, False):
+                writeLog("[SUBPHONE][Q]{}".format(self.prettifyPacket(packet)))
         elif packet[1] == 0xE1:
             result = {'device': DeviceType.HEMS, 'packet': packet}
             notify: bool = True
             # 응답 패킷 (월패드 -> 서브폰)
+            if self.debug_verbose_packet.get(DeviceType.SUBPHONE, False):
+                writeLog("[SUBPHONE][R]{}".format(self.prettifyPacket(packet)))
             devtype = HEMSDevType((packet[2] & 0xF0) >> 4)
             category = HEMSCategory(packet[2] & 0x0F)
             if category.value in [1, 2, 3, 4]:
@@ -775,6 +864,8 @@ class PacketParser:
             if notify:
                 self.updateDeviceState(result)
         elif packet[1] == 0xE2:
+            if self.debug_verbose_packet.get(DeviceType.SUBPHONE, False):
+                writeLog("[SUBPHONE][T]{}".format(self.prettifyPacket(packet)))
             if self.enable_trace_timestamp_packet:
                 year, month, day = int('%02X' % packet[2]), int('%02X' % packet[3]), int('%02X' % packet[4])
                 hour, minute, second = int('%02X' % packet[5]), int('%02X' % packet[6]), int('%02X' % packet[7])
@@ -782,7 +873,8 @@ class PacketParser:
                 self.log(f'Timestamp Packet: {self.prettifyPacket(packet)}')
                 self.log(f'>> {dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]}')
         else:
-            self.log(f'{self.prettifyPacket(packet)} >> ???')
+            if self.debug_verbose_packet.get(DeviceType.SUBPHONE, False):
+                writeLog("[SUBPHONE][?]{}".format(self.prettifyPacket(packet)))
 
     def handleDoorlock(self, packet: bytearray):
         unknown = True

@@ -107,6 +107,8 @@ class Home:
 
     clear_all_devices: bool = False
 
+    debug_verbose_packet: dict
+
     def __init__(self, name: str = 'Home', init_service: bool = True, config_file_path: str = None):
         self.name = name
         self.device_list = list()
@@ -127,6 +129,20 @@ class Home:
             DeviceType.SUBPHONE: 0,
             DeviceType.BATCHOFFSWITCH: 0,
             DeviceType.HEMS: 0,
+        }
+        self.debug_verbose_packet = {
+            DeviceType.LIGHT: False,
+            DeviceType.EMOTIONLIGHT: False,
+            DeviceType.DIMMINGLIGHT: False,
+            DeviceType.OUTLET: False,
+            DeviceType.GASVALVE: False,
+            DeviceType.THERMOSTAT: False,
+            DeviceType.VENTILATOR: False,
+            DeviceType.AIRCONDITIONER: False,
+            DeviceType.ELEVATOR: False,
+            DeviceType.SUBPHONE: False,
+            DeviceType.BATCHOFFSWITCH: False,
+            DeviceType.HEMS: False,
         }
         self.config_file_path = config_file_path
         if self.config_file_path is None:
@@ -294,6 +310,13 @@ class Home:
                 self.loadThinqConfig(node)
         except Exception:
             writeLog(f"Failed to read <thinq> node", self)
+            traceback.print_exc()
+        
+        try:
+            node = root.find('debug')
+            self.loadDebugConfig(node)
+        except Exception:
+            writeLog(f"Failed to read <debug> node", self)
             traceback.print_exc()
         
     def loadRS485Config(self, node: ET.Element):
@@ -667,11 +690,11 @@ class Home:
                             continue
                         device: Device = None
                         if tag_name == 'light':
-                            device = Light(name, index, room)
+                            device = Light(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                         elif tag_name == 'emotionlight':
-                            device = EmotionLight(name, index, room)
+                            device = EmotionLight(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                         elif tag_name == 'dimminglight':
-                            device = DimmingLight(name, index, room)
+                            device = DimmingLight(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                             max_brightness_level_node = dev_node.find('max_brightness_level')
                             if max_brightness_level_node is not None:
                                 max_brightness_level = int(max_brightness_level_node.text)
@@ -681,31 +704,31 @@ class Home:
                                 convert_method = int(convert_method_node.text)
                                 device.setConvertMethod(convert_method)
                         elif tag_name == 'outlet':
-                            device = Outlet(name, index, room)
+                            device = Outlet(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                             enable_off_cmd_node = dev_node.find('enable_off_cmd')
                             if enable_off_cmd_node is not None:
                                 enable_off_cmd = bool(int(enable_off_cmd_node.text))
                                 device.setEnableOffCommand(enable_off_cmd)
                         elif tag_name == 'thermostat':
-                            device = Thermostat(name, index, room)
+                            device = Thermostat(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                             range_min_node = dev_node.find('range_min')
                             range_min = int(range_min_node.text) if range_min_node is not None else 0
                             range_max_node = dev_node.find('range_max')
                             range_max = int(range_max_node.text) if range_max_node is not None else 100
                             device.setTemperatureRange(range_min, range_max)
                         elif tag_name == 'airconditioner':
-                            device = AirConditioner(name, index, room)
+                            device = AirConditioner(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                             range_min_node = dev_node.find('range_min')
                             range_min = int(range_min_node.text) if range_min_node is not None else 0
                             range_max_node = dev_node.find('range_max')
                             range_max = int(range_max_node.text) if range_max_node is not None else 100
                             device.setTemperatureRange(range_min, range_max)
                         elif tag_name == 'gasvalve':
-                            device = GasValve(name, index, room)
+                            device = GasValve(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                         elif tag_name == 'ventilator':
-                            device = Ventilator(name, index, room)
+                            device = Ventilator(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                         elif tag_name == 'elevator':
-                            device = Elevator(name, index, room)
+                            device = Elevator(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                             packet_call_type_node = dev_node.find('packet_call_type')
                             packet_call_type = int(packet_call_type_node.text) if packet_call_type_node is not None else 0
                             device.setPacketCallType(packet_call_type)
@@ -719,9 +742,9 @@ class Home:
                             verbose_packet = bool(int(verbose_packet_node.text)) if verbose_packet_node is not None else False
                             device.setVerbosePacket(verbose_packet)
                         elif tag_name == 'batchoffsw':
-                            device = BatchOffSwitch(name, index, room)
+                            device = BatchOffSwitch(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                         elif tag_name == 'subphone':
-                            device = SubPhone(name, index, room)
+                            device = SubPhone(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                             device.sig_state_streaming.connect(self.onSubphoneStateStreaming)
                             device.sig_open_front_door.connect(self.onSubphoneCommandOpenFrontDoor)
                             device.sig_open_communal_door.connect(self.onSubphoneCommandOpenCommunalDoor)
@@ -772,9 +795,9 @@ class Home:
                                         writeLog(f"Failed to read subphone <auto_open_communal_door><interval> node ({e})", self)
                                         device.setAutoOpenCommunalDoorInterval(3.)
                         elif tag_name == 'hems':
-                            device = HEMS(name, index, room)
+                            device = HEMS(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                         elif tag_name == 'airquality':
-                            device = AirqualitySensor(name, index, room)
+                            device = AirqualitySensor(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                             apikey = dev_node.find('apikey').text
                             obsname = dev_node.find('obsname').text
                             device.setApiParams(apikey, obsname)
@@ -860,6 +883,60 @@ class Home:
                 log_mqtt_message=log_mqtt_message
             )
             self.thinq.sig_publish_mqtt.connect(self.onThinqPublishMQTT)
+
+    def loadDebugConfig(self, node: ET.Element):
+        verbose_packet_node = node.find('verbose_packet')
+        if verbose_packet_node is not None:
+            try:
+                self.debug_verbose_packet[DeviceType.LIGHT] = bool(int(verbose_packet_node.find('light').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <light> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.EMOTIONLIGHT] = bool(int(verbose_packet_node.find('emotionlight').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <emotionlight> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.DIMMINGLIGHT] = bool(int(verbose_packet_node.find('dimminglight').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <dimminglight> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.OUTLET] = bool(int(verbose_packet_node.find('outlet').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <outlet> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.GASVALVE] = bool(int(verbose_packet_node.find('gasvalve').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <gasvalve> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.THERMOSTAT] = bool(int(verbose_packet_node.find('thermostat').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <thermostat> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.VENTILATOR] = bool(int(verbose_packet_node.find('ventilator').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <ventilator> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.AIRCONDITIONER] = bool(int(verbose_packet_node.find('airconditioner').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <airconditioner> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.ELEVATOR] = bool(int(verbose_packet_node.find('elevator').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <elevator> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.SUBPHONE] = bool(int(verbose_packet_node.find('subphone').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <subphone> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.BATCHOFFSWITCH] = bool(int(verbose_packet_node.find('batchoffsw').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <batchoffsw> node ({e})", self)
+            try:
+                self.debug_verbose_packet[DeviceType.HEMS] = bool(int(verbose_packet_node.find('hems').text))
+            except Exception as e:
+                writeLog(f"Failed to read <verbose_packet_node> - <hems> node ({e})", self)
+        for rs485_info in self.rs485_info_list:
+            rs485_info.parser.debug_verbose_packet = self.debug_verbose_packet
 
     def initRS485Connection(self):
         for elem in self.rs485_info_list:
@@ -1155,12 +1232,16 @@ class Home:
             )
 
     def startMqttSubscribe(self):
-        self.mqtt_client.subscribe(f'{self.mqtt_topic_prefix}/command/system')
-        self.mqtt_client.subscribe(self.ha_mqtt_topic_status)
-        for dev in self.device_list:
-            self.mqtt_client.subscribe(dev.mqtt_command_topic)
+        topics = [
+            f'{self.mqtt_topic_prefix}/command/system',
+            self.ha_mqtt_topic_status
+        ]
+        topics.extend([dev.mqtt_command_topic for dev in self.device_list])
         if self.thinq is not None:
-            self.mqtt_client.subscribe(f'{self.mqtt_topic_prefix}/command/thinq')
+            topics.append(f'{self.mqtt_topic_prefix}/command/thinq')
+        
+        for t in topics:
+            self.mqtt_client.subscribe(t)
 
     def onMqttClientConnect(self, _, userdata, flags, rc):
         if self.enable_mqtt_console_log:

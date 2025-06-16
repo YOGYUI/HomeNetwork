@@ -209,9 +209,9 @@ class Device:
                         return json.load(fp)
                 except Exception as e:
                     writeLog(f"Failed to read homebridge config file ({e})", self)
-                    return {"accessories": []}    
+                    return {"accessories": [], "platforms": []}
             else:
-                return {"accessories": []}
+                return {"accessories": [], "platforms": []}
 
     def write_homebridge_config_template(self, config: dict):
         template_path = os.path.join(PROJPATH, "homebridge_config_template.json")

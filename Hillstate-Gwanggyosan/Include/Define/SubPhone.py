@@ -268,6 +268,158 @@ class SubPhone(Device):
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
+        # add homebridge accessory
+        name = self.name + " Doorlock"
+        hb_config = self.read_homebridge_config_template()
+        accessories = hb_config.get('accessories')
+        find = list(filter(lambda x: x.get('name') == name, accessories))
+        if len(find) > 0:
+            return
+        
+        elem = {
+            "name": name,
+            "accessory": "mqttthing",
+            "type": "lockMechanism",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "lockValues": ["Unsecured", "Secured", "Jammed", "Unknown"],
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getLockCurrentState": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).doorlock_state;"
+                },
+                "getLockTargetState": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).doorlock_state;"
+                },
+                "setLockTargetState": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({doorlock_state: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+
+        elem = {
+            "name": self.name + " Door Camera",
+            "accessory": "mqttthing",
+            "type": "switch",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "onValue": 1,
+            "offValue": 0,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getOn": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return (JSON.parse(message).streaming_state == 1);"
+                },
+                "setOn": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({streaming_state: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+
+        elem = {
+            "name": self.name + " Auto Open Front Door",
+            "accessory": "mqttthing",
+            "type": "switch",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "onValue": 1,
+            "offValue": 0,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getOn": {
+                    "topic": self.mqtt_state_topic + '/autoopen',
+                    "apply": "return (JSON.parse(message).enable_auto_open_front == 1);"
+                },
+                "setOn": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({enable_auto_open_front: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+
+        elem = {
+            "name": self.name + " Auto Open Communal Door",
+            "accessory": "mqttthing",
+            "type": "switch",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "onValue": 1,
+            "offValue": 0,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getOn": {
+                    "topic": self.mqtt_state_topic + '/autoopen',
+                    "apply": "return (JSON.parse(message).enable_auto_open_communal == 1);"
+                },
+                "setOn": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({enable_auto_open_communal: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+
+        platforms = hb_config.get('platforms')
+        find = list(filter(lambda x: x.get('platform') == "Camera-ffmpeg", platforms))
+        if len(find) == 0:
+            elem = {
+                "platform": "Camera-ffmpeg",
+                "mqtt": f"{self.mqtt_host}",
+                "portmqtt": self.mqtt_port,
+                "usermqtt": self.mqtt_username,
+                "passmqtt": self.mqtt_password,
+                "cameras": [
+                    {
+                        "name": f"{self.name} DOORPHONE VIDEO",
+                        "manufacturer": "Hyundai HT",
+                        "model": "HDC-100S",
+                        "motion": True,
+                        "motionTimeout": 0,
+                        "doorbell": True,
+                        "switches": True,
+                        "unbridge": True,
+                        "videoConfig": {
+                            "source": "-i http://127.0.0.1:8090/main",
+                            "maxStreams": 2,
+                            "maxWidth": 640,
+                            "maxHeight": 480,
+                            "maxFPS": 60,
+                            "audio": False
+                        },
+                        "mqtt": {
+                            "doorbellTopic": self.mqtt_state_topic + "/doorbell",
+                            "doorbellMessage": "ON",
+                            "motionTopic": self.mqtt_state_topic + "/motion",
+                            "motionMessage": "ON",
+                            "motionResetTopic": self.mqtt_state_topic + "/motion",
+                            "motionResetMessage": "OFF"
+                        }
+                    }
+                ]
+            }
+            platforms.append(elem)
+        
+        self.write_homebridge_config_template(hb_config)
+
     def updateState(self, _: int, **kwargs):
         streaming = kwargs.get('streaming')
         if streaming is not None:

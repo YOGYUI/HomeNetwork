@@ -199,7 +199,7 @@ class Elevator(Device):
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         # add homebridge accessory
-        name = self.name + "_Call(Down)"
+        name = self.name + " CALL(DOWN)"
         hb_config = self.read_homebridge_config_template()
         accessories = hb_config.get('accessories')
         find = list(filter(lambda x: x.get('name') == name, accessories))
@@ -232,7 +232,7 @@ class Elevator(Device):
         accessories.append(elem)
 
         elem = {
-            "name": self.name + "_Arrived",
+            "name": self.name + " ARRIVED",
             "accessory": "mqttthing",
             "type": "occupancySensor",
             "url": f"{self.mqtt_host}:{self.mqtt_port}",
