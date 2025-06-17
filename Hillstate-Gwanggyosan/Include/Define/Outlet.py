@@ -5,12 +5,12 @@ from Device import *
 class Outlet(Device):
     enable_off_command: bool = False
 
-    def __init__(self, name: str = 'Outlet', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'Outlet', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.dev_type = DeviceType.OUTLET
         self.unique_id = f'outlet_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/outlet/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/outlet/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/outlet/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/outlet/{self.room_index}/{self.index}'
 
     def setDefaultName(self):
         self.name = 'Outlet'
@@ -30,7 +30,7 @@ class Outlet(Device):
     def publishMQTT(self):
         obj = {"state": self.state}
         if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
 
     def configMQTT(self, retain: bool = False):
         if self.mqtt_client is None:
@@ -41,14 +41,48 @@ class Outlet(Device):
             "name": self.name,
             "object_id": self.unique_id,
             "unique_id": self.unique_id,
-            "state_topic": self.mqtt_publish_topic,
-            "command_topic": self.mqtt_subscribe_topic,
+            "state_topic": self.mqtt_state_topic,
+            "command_topic": self.mqtt_command_topic,
             "value_template": '{ "state": {{ value_json.state }} }',
             "payload_on": '{ "state": 1 }',
             "payload_off": '{ "state": 0 }',
             "icon": "mdi:power-socket-de"
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        # add homebridge accessory
+        hb_config = self.read_homebridge_config_template()
+        accessories = hb_config.get('accessories')
+        find = list(filter(lambda x: x.get('name') == self.name, accessories))
+        if len(find) > 0:
+            return
+        
+        elem = {
+            "name": self.name,
+            "accessory": "mqttthing",
+            "type": "outlet",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": False,
+            "onValue": 1, 
+            "offValue": 0,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getOn": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({state: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+        
+        self.write_homebridge_config_template(hb_config)
 
     def makePacketQueryState(self) -> bytearray:
         # F7 0B 01 1F 01 40 XX 00 00 YY EE

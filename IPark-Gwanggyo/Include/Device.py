@@ -19,7 +19,7 @@ class Device:
     packet_get_state: str = ''
     """
     mqtt_client: mqtt.Client = None
-    mqtt_publish_topic: str = ''
+    mqtt_state_topic: str = ''
     mqtt_subscribe_topics: List[str]
 
     last_published_time: float = time.perf_counter()

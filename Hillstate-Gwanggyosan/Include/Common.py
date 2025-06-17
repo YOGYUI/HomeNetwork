@@ -132,7 +132,7 @@ def writeXmlFile(elem: ElementTree.Element, path: str = '', fp: _io.TextIOWrappe
         _fp.write('<?xml version="1.0" encoding="UTF-8" standalone="no"?>' + '\n')
     else:
         _fp = fp
-    _fp.write('\t' * level)
+    _fp.write('    ' * level)
     _fp.write('<' + elem.tag)
     for key in elem.keys():
         _fp.write(' ' + key + '="' + elem.attrib[key] + '"')
@@ -140,7 +140,7 @@ def writeXmlFile(elem: ElementTree.Element, path: str = '', fp: _io.TextIOWrappe
         _fp.write('>\n')
         for child in list(elem):
             writeXmlFile(child, fp=_fp, level=level+1)
-        _fp.write('\t' * level)
+        _fp.write('    ' * level)
         _fp.write('</' + elem.tag + '>\n')
     else:
         if elem.text is not None:

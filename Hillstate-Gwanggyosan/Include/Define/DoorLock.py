@@ -30,12 +30,12 @@ class DoorLock(Device):
     gpio_port: int = 0
     thread_open: Union[ThreadDoorLockOpen, None] = None
 
-    def __init__(self, name: str = 'Doorlock', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'Doorlock', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.dev_type = DeviceType.DOORLOCK
         self.unique_id = f'doorlock_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/doorlock/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/doorlock/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/doorlock/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/doorlock/{self.room_index}/{self.index}'
         self.state = 1
         self.setParams(True, 23)
     
@@ -51,7 +51,7 @@ class DoorLock(Device):
             state_str = 'Secured'
         obj = {"state": state_str}
         if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
 
     def configMQTT(self, retain: bool = False):
         pass

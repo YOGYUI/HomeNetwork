@@ -41,9 +41,10 @@
 		<username>username</username>
 		<password>password</password>
         <client_id>yogyui_hyundai_ht</client_id>
+        <topic_prefix>home</topic_prefix>
         <tls>
             <enable>0</enable>
-            <ca_certs></ca_certs>
+            <ca_certs>/config/ssl/cacert.pem</ca_certs>
             <certfile>/config/ssl/fullchain.pem</certfile>
             <keyfile>/config/ssl/privkey.pem</keyfile>
         </tls>
@@ -58,6 +59,9 @@
                 <prefix>homeassistant</prefix>
             </discovery>
         </homeassistant>
+        <homebridge>
+			<config_path>/var/lib/homebridge/config.json</config_path>
+		</homebridge>
     </mqtt>
     <device>
         <parser_mapping>
@@ -89,4 +93,20 @@
         <entry>
         </entry>
     </device>
+    <debug>
+		<verbose_packet>
+			<light>0</light>
+			<outlet>0</outlet>
+			<gasvalve>0</gasvalve>
+			<thermostat>0</thermostat>
+			<ventilator>0</ventilator>
+			<airconditioner>0</airconditioner>
+			<elevator>0</elevator>
+			<subphone>0</subphone>
+			<batchoffsw>0</batchoffsw>
+			<hems>0</hems>
+			<emotionlight>0</emotionlight>
+			<dimminglight>0</dimminglight>
+		</verbose_packet>
+	</debug>
 </config>

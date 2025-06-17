@@ -373,7 +373,7 @@ class Home:
                         room.lights[j].packet_get_state = light_node.find('get').text
                         """
                         mqtt_node = light_node.find('mqtt')
-                        room.lights[j].mqtt_publish_topic = mqtt_node.find('publish').text
+                        room.lights[j].mqtt_state_topic = mqtt_node.find('publish').text
                         room.lights[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
 
                 thermo_node = room_node.find('thermostat')
@@ -384,7 +384,7 @@ class Home:
                     room.thermostat.packet_get_state = thermo_node.find('get').text
                     """
                     mqtt_node = thermo_node.find('mqtt')
-                    room.thermostat.mqtt_publish_topic = mqtt_node.find('publish').text
+                    room.thermostat.mqtt_state_topic = mqtt_node.find('publish').text
                     room.thermostat.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
                 try:
                     for j in range(71):
@@ -401,7 +401,7 @@ class Home:
                         room.outlets[j].packet_get_state = outlet_node.find('get').text
                         """
                         mqtt_node = outlet_node.find('mqtt')
-                        room.outlets[j].mqtt_publish_topic = mqtt_node.find('publish').text
+                        room.outlets[j].mqtt_state_topic = mqtt_node.find('publish').text
                         room.outlets[j].mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
 
         node = root.find('gasvalve')
@@ -410,7 +410,7 @@ class Home:
         self.gas_valve.packet_get_state = node.find('get').text
         """
         mqtt_node = node.find('mqtt')
-        self.gas_valve.mqtt_publish_topic = mqtt_node.find('publish').text
+        self.gas_valve.mqtt_state_topic = mqtt_node.find('publish').text
         self.gas_valve.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
 
         node = root.find('ventilator')
@@ -426,7 +426,7 @@ class Home:
         self.ventilator.packet_set_rotation_speed = speed_setting_packets
         """
         mqtt_node = node.find('mqtt')
-        self.ventilator.mqtt_publish_topic = mqtt_node.find('publish').text
+        self.ventilator.mqtt_state_topic = mqtt_node.find('publish').text
         self.ventilator.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
 
         node = root.find('elevator')
@@ -438,21 +438,21 @@ class Home:
         except Exception as e:
             print(e)
         mqtt_node = node.find('mqtt')
-        self.elevator.mqtt_publish_topic = mqtt_node.find('publish').text
+        self.elevator.mqtt_state_topic = mqtt_node.find('publish').text
         topic_text = mqtt_node.find('subscribe').text
         topics = list(filter(lambda y: len(y) > 0, [x.strip() for x in topic_text.split('\n')]))
         self.elevator.mqtt_subscribe_topics.extend(topics)
 
         node = root.find('airquality')
         mqtt_node = node.find('mqtt')
-        self.airquality.mqtt_publish_topic = mqtt_node.find('publish').text
+        self.airquality.mqtt_state_topic = mqtt_node.find('publish').text
         apikey = node.find('apikey').text
         obsname = node.find('obsname').text
         self.airquality.setApiParams(apikey, obsname)
 
         node = root.find('doorlock')
         mqtt_node = node.find('mqtt')
-        self.doorlock.mqtt_publish_topic = mqtt_node.find('publish').text
+        self.doorlock.mqtt_state_topic = mqtt_node.find('publish').text
         self.doorlock.mqtt_subscribe_topics.append(mqtt_node.find('subscribe').text)
         enable = bool(int(node.find('enable').text))
         gpio_port = int(node.find('port').text)
@@ -519,7 +519,7 @@ class Home:
             try:
                 dev.publish_mqtt()
             except ValueError as e:
-                writeLog(f'{e}: {dev}, {dev.mqtt_publish_topic}', self)
+                writeLog(f'{e}: {dev}, {dev.mqtt_state_topic}', self)
 
     def sendRS485EnergyPacket(self, packet: str):
         self.rs485_energy.sendData(bytearray([int(x, 16) for x in packet.split(' ')]))

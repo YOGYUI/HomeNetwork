@@ -3,12 +3,12 @@ from Device import *
 
 
 class Ventilator(Device):
-    def __init__(self, name: str = 'Ventilator', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'Ventilator', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.dev_type = DeviceType.VENTILATOR
         self.unique_id = f'ventilator_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/ventilator/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/ventilator/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/ventilator/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/ventilator/{self.room_index}/{self.index}'
         self.rotation_speed: int = -1
         self.rotation_speed_prev: int = -1
     
@@ -28,7 +28,7 @@ class Ventilator(Device):
             elif self.rotation_speed == 0x07:
                 obj['rotationspeed'] = 100
         if self.mqtt_client is not None:
-            self.mqtt_client.publish(self.mqtt_publish_topic, json.dumps(obj), 1)
+            self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
 
     def configMQTT(self, retain: bool = False):
         if self.mqtt_client is None:
@@ -39,19 +39,59 @@ class Ventilator(Device):
             "name": self.name,
             "object_id": self.unique_id,
             "unique_id": self.unique_id,
-            "state_topic": self.mqtt_publish_topic,
+            "state_topic": self.mqtt_state_topic,
             "state_value_template": "{% if value_json.state %} ON {% else %} OFF {% endif %}",
-            "command_topic": self.mqtt_subscribe_topic,
+            "command_topic": self.mqtt_command_topic,
             "command_template": "{% set values = {'OFF': 0, 'ON': 1} %} \
                                  { \"state\": {{ values[value] if value in values.keys() else 0 }} }",
-            "percentage_state_topic": self.mqtt_publish_topic,
+            "percentage_state_topic": self.mqtt_state_topic,
             "percentage_value_template": "{{ value_json.rotationspeed }}",
-            "percentage_command_topic": self.mqtt_subscribe_topic,
+            "percentage_command_topic": self.mqtt_command_topic,
             "percentage_command_template": '{ "rotationspeed": {{ value }} }',
             "speed_range_min": 1,
             "speed_range_max": 100
         }
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
+
+        # add homebridge accessory
+        hb_config = self.read_homebridge_config_template()
+        accessories = hb_config.get('accessories')
+        find = list(filter(lambda x: x.get('name') == self.name, accessories))
+        if len(find) > 0:
+            return
+        
+        elem = {
+            "name": self.name,
+            "accessory": "mqttthing",
+            "type": "fan",
+            "url": f"{self.mqtt_host}:{self.mqtt_port}",
+            "username": self.mqtt_username,
+            "password": self.mqtt_password,
+            "integerValue": True,
+            "history": True,
+            "logMqtt": False,
+            "topics": {
+                "getOn": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).state;"
+                },
+                "setOn": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({state: message});"
+                },
+                "getRotationSpeed": {
+                    "topic": self.mqtt_state_topic,
+                    "apply": "return JSON.parse(message).rotationspeed;"
+                },
+                "setRotationSpeed": {
+                    "topic": self.mqtt_command_topic,
+                    "apply": "return JSON.stringify({rotationspeed: message});"
+                }
+            }
+        }
+        accessories.append(elem)
+        
+        self.write_homebridge_config_template(hb_config)
 
     def updateState(self, state: int, **kwargs):
         self.state = state

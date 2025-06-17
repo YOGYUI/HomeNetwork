@@ -7,12 +7,12 @@ from Common import HEMSDevType, HEMSCategory
 class HEMS(Device):
     data: dict
 
-    def __init__(self, name: str = 'HEMS', index: int = 0, room_index: int = 0):
-        super().__init__(name, index, room_index)
+    def __init__(self, name: str = 'HEMS', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
+        super().__init__(name, index, room_index, topic_prefix)
         self.dev_type = DeviceType.HEMS
         self.unique_id = f'hems_{self.room_index}_{self.index}'
-        self.mqtt_publish_topic = f'home/state/hems/{self.room_index}/{self.index}'
-        self.mqtt_subscribe_topic = f'home/command/hems/{self.room_index}/{self.index}'
+        self.mqtt_state_topic = f'{topic_prefix}/state/hems/{self.room_index}/{self.index}'
+        self.mqtt_command_topic = f'{topic_prefix}/command/hems/{self.room_index}/{self.index}'
         self.data = dict()
     
     def setDefaultName(self):
@@ -30,7 +30,7 @@ class HEMS(Device):
             "name": self.name + "_electricity_current",
             "object_id": self.unique_id + "_electricity_current",
             "unique_id": self.unique_id + "_electricity_current",
-            "state_topic": self.mqtt_publish_topic + '/electricity_current',
+            "state_topic": self.mqtt_state_topic + '/electricity_current',
             "unit_of_measurement": "W",
             "value_template": "{{ value_json.value }}",
             "device_class": "power",
@@ -45,7 +45,7 @@ class HEMS(Device):
             for key in list(monitor_data.keys()):
                 self.data[key] = monitor_data.get(key)
                 if key in ['electricity_current']:
-                    topic = self.mqtt_publish_topic + f'/{key}'
+                    topic = self.mqtt_state_topic + f'/{key}'
                     value = monitor_data.get(key)
                     """
                     if value == 0:

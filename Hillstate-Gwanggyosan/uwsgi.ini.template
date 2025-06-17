@@ -11,6 +11,8 @@ callable = app
 ; daemonize = ./uwsgi.log
 uid = hillstate_gwanggyosan_server
 pidfile = ./uwsgi.pid
+plugin = python3
+virtualenv = ./venv
 
 ; master = true
 processes = 1

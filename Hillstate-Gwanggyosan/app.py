@@ -30,6 +30,9 @@ parser.add_argument(
 parser.add_argument(
     '--etc', 
     help='Other optional configuration (json formatted string)')
+parser.add_argument(
+    '--debug',
+    help='Debug options(json formatted string)')
 args = parser.parse_args()
 
 app_config = get_app_config(args.config_file_path)
@@ -42,30 +45,42 @@ try:
     app_config.set_config_mqtt_broker(json.loads(args.mqtt_broker))
 except Exception as e:
     print(f'no <mqtt_broker> argument ({e})')
+    # app_config.set_config_mqtt_broker({})
 try:
     app_config.set_config_rs485(json.loads(args.rs485))
 except Exception as e:
     print(f'no <rs485> argument ({e})')
+    # app_config.set_config_rs485({})
 try:
     app_config.set_config_discovery(json.loads(args.discovery))
 except Exception as e:
     print(f'no <discovery> argument ({e})')
+    # app_config.set_config_discovery({})
 try:
     app_config.set_config_parser_mapping(json.loads(args.parser_mapping))
 except Exception as e:
     print(f'no <parser_mapping> argument ({e})')
+    # app_config.set_config_parser_mapping({})
 try:
     app_config.set_config_periodic_query_state(json.loads(args.periodic_query_state))
 except Exception as e:
     print(f'no <periodic_query_state> argument ({e})')
+    # app_config.set_config_periodic_query_state({})
 try:
     app_config.set_config_subphone(json.loads(args.subphone))
 except Exception as e:
     print(f'no <subphone> argument ({e})')
+    # app_config.set_config_subphone({})
 try:
     app_config.set_config_etc(json.loads(args.etc))
 except Exception as e:
     print(f'no <etc> argument ({e})')
+    # app_config.set_config_etc({})
+try:
+    app_config.set_config_debug(json.loads(args.debug))
+except Exception as e:
+    print(f'no <debug> argument ({e})')
+    # app_config.set_config_debug({})
 
 home: Home = get_home('Hillstate-Gwanggyosan', args.config_file_path)
 home.initRS485Connection()
