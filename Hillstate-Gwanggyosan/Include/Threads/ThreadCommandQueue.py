@@ -197,6 +197,12 @@ class ThreadCommandQueue(threading.Thread):
             dev.state = target
         dev.publishMQTT()
 
+        if target:
+            if isinstance(dev, DimmingLight):
+                level = dev.brightness_when_on
+                writeLog(f'try to set dimming level to {level}', self)
+                self.set_brightness(dev, level, parser, change_state)
+
     def set_brightness(self, dev: Union[DimmingLight], brightness: int, parser: PacketParser, change_state: bool = False):
         tm_start = time.perf_counter()
         cnt = 0

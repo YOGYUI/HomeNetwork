@@ -6,6 +6,7 @@ from Device import *
 class DimmingLight(Device):
     brightness: int = 0  # 현재 밝기 레벨
     brightness_prev: int = 0  # 현재 밝기 레벨 버퍼
+    brightness_when_on: int = 0  # 켜진 상태에서 밝기 레벨
     max_brightness_level: int = 7
     conv_method: int = 0  # 0 = 반올림, 1 = 내림, 2 = 올림
 
@@ -106,6 +107,10 @@ class DimmingLight(Device):
             if self.brightness != self.brightness_prev:
                 self.publishMQTT()
             self.brightness_prev = self.brightness
+            if self.state:
+                if self.brightness_when_on != self.brightness:
+                    writeLog(f"{str(self)} store level when switched on: {self.brightness}", self)
+                self.brightness_when_on = self.brightness
 
     def makePacketQueryState(self) -> bytearray:
         # F7 0B 01 1A 01 40 XX 00 00 YY EE
