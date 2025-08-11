@@ -103,6 +103,7 @@ class Home:
     enable_periodic_query_state: bool = False
     query_state_period: int = 1000
     verbose_periodic_query_state: bool = False
+    exclude_gas_valve_periodic_query: bool = False
     change_device_state_after_command: bool = False
 
     clear_all_devices: bool = False
@@ -652,6 +653,11 @@ class Home:
                     self.verbose_periodic_query_state = bool(int(verbose_node.text))
                 except Exception as e:
                     writeLog(f"Failed to read <periodic_query_state> - <verbose> node ({e})", self)
+                try:
+                    exclude_gas_valve_node = periodic_query_state_node.find('exclude_gas_valve')
+                    self.exclude_gas_valve_periodic_query = bool(int(exclude_gas_valve_node.text))
+                except Exception as e:
+                    writeLog(f"Failed to read <periodic_query_state> - <exclude_gas_valve> node ({e})", self)
 
             self.clear_all_devices = False
             clear_node = node.find('clear')
@@ -1066,8 +1072,8 @@ class Home:
                 self.query_state_period,
                 self.verbose_periodic_query_state
             )
+            self.thread_query_state.exclude_gas_valve = self.exclude_gas_valve_periodic_query
             self.thread_query_state.sig_terminated.connect(self.onThreadQueryStateTerminated)
-            self.thread_query_state.setDaemon(True)
             self.thread_query_state.start()
 
     def stopThreadQueryState(self):

@@ -9,7 +9,8 @@ DEFPATH = os.path.join(INCPATH, 'Define')  # Project/Include/Define
 sys.path.extend([CURPATH, INCPATH, DEFPATH])
 sys.path = list(set(sys.path))
 del CURPATH, INCPATH, DEFPATH
-from Common import Callback, writeLog
+from Common import Callback, writeLog, DeviceType
+from Define import Device
 
 
 class ThreadQueryState(threading.Thread):
@@ -17,18 +18,20 @@ class ThreadQueryState(threading.Thread):
 
     def __init__(
         self, 
-        device_list: list, 
+        device_list: List[Device], 
         parser_mapping: dict, 
         rs485_info_list: list,
         period: int,
         verbose: bool
     ):
         threading.Thread.__init__(self, name='Query State Thread')
+        self.daemon = True
         self.device_list = device_list
         self.parser_mapping = parser_mapping
         self.rs485_info_list = rs485_info_list
         self.period = period
         self.verbose = verbose
+        self.exclude_gas_valve: bool = False
         self.sig_terminated = Callback()
         self.available = True
     
@@ -40,6 +43,10 @@ class ThreadQueryState(threading.Thread):
                     break
 
                 dev_type = dev.getType()
+                if dev_type is DeviceType.GASVALVE:
+                    if self.exclude_gas_valve:
+                        time.sleep(self.period * 1e-3)
+                        continue
                 index = self.parser_mapping.get(dev_type)
                 info = self.rs485_info_list[index]
                 packet_query = dev.makePacketQueryState()

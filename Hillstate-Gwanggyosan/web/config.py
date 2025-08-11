@@ -360,7 +360,11 @@ class Config:
                 elem2 = ET.Element('verbose')
                 elem.append(elem2)
             elem2.text = str(int(cfg.get('verbose', True)))
-
+            elem2 = elem.find('exclude_gas_valve')
+            if elem2 is None:
+                elem2 = ET.Element('exclude_gas_valve')
+                elem.append(elem2)
+            elem2.text = str(int(cfg.get('exclude_gas_valve', False)))
             writeXmlFile(root, self._config_file_path)
         except Exception as e:
             print(f'Config::set_config_periodic_query_state::Exception {e}')
