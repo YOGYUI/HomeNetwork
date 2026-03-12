@@ -165,7 +165,6 @@ class SubPhone(Device):
         topic = f'{self.ha_discovery_prefix}/lock/{self.unique_id}/config'
         obj = {
             "name": self.name + " Doorlock",
-            "object_id": self.unique_id + "_doorlock",
             "unique_id": self.unique_id + "_doorlock",
             "state_topic": self.mqtt_state_topic,
             "command_topic": self.mqtt_command_topic,
@@ -177,13 +176,16 @@ class SubPhone(Device):
             "state_jammed": "Jammed",
             "icon": "mdi:door-closed-lock",
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id + "_doorlock"
+        else:
+            obj["object_id"] = self.unique_id + "_doorlock"
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
         
         # 세대현관문, 공동현관문 분리
         topic = f'{self.ha_discovery_prefix}/lock/{self.unique_id}_front/config'
         obj = {
             "name": self.name + " Lock (Front)",
-            "object_id": self.unique_id + "_lock_front",
             "unique_id": self.unique_id + "_lock_front",
             "state_topic": self.mqtt_state_topic + '/doorlock/front',
             "command_topic": self.mqtt_command_topic,
@@ -195,12 +197,15 @@ class SubPhone(Device):
             "state_jammed": "Jammed",
             "icon": "mdi:door-closed-lock",
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id + "_lock_front"
+        else:
+            obj["object_id"] = self.unique_id + "_lock_front"
         self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
         topic = f'{self.ha_discovery_prefix}/binary_sensor/{self.unique_id}_front/config'
         obj = {
             "name": self.name + " Ringing (front)",
-            "object_id": self.unique_id + "_ringing_front",
             "unique_id": self.unique_id + "_ringing_front",
             "state_topic": self.mqtt_state_topic + '/doorbell/front',
             "value_template": '{ "state": {{ value_json.state }} }',
@@ -208,12 +213,15 @@ class SubPhone(Device):
             "payload_off": '{ "state": 0 }',
             "device_class": "sound",
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id + "_ringing_front"
+        else:
+            obj["object_id"] = self.unique_id + "_ringing_front"
         self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
         topic = f'{self.ha_discovery_prefix}/lock/{self.unique_id}_communal/config'
         obj = {
             "name": self.name + " Lock (Communal)",
-            "object_id": self.unique_id + "_lock_communal",
             "unique_id": self.unique_id + "_lock_communal",
             "state_topic": self.mqtt_state_topic + '/doorlock/communal',
             "command_topic": self.mqtt_command_topic,
@@ -225,12 +233,15 @@ class SubPhone(Device):
             "state_jammed": "Jammed",
             "icon": "mdi:door-closed-lock",
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id + "_lock_communal"
+        else:
+            obj["object_id"] = self.unique_id + "_lock_communal"
         self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
         topic = f'{self.ha_discovery_prefix}/binary_sensor/{self.unique_id}_communal/config'
         obj = {
             "name": self.name + " Ringing (Communal)",
-            "object_id": self.unique_id + "_ringing_communal",
             "unique_id": self.unique_id + "_ringing_communal",
             "state_topic": self.mqtt_state_topic + '/doorbell/communal',
             "value_template": '{ "state": {{ value_json.state }} }',
@@ -238,12 +249,15 @@ class SubPhone(Device):
             "payload_off": '{ "state": 0 }',
             "device_class": "sound",
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id + "_ringing_communal"
+        else:
+            obj["object_id"] = self.unique_id + "_ringing_communal"
         self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
         topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}_auto_open_front/config'
         obj = {
             "name": self.name + " Auto Open (Front)",
-            "object_id": self.unique_id + "_auto_open_front",
             "unique_id": self.unique_id + "_auto_open_front",
             "state_topic": self.mqtt_state_topic + '/autoopen',
             "command_topic": self.mqtt_command_topic,
@@ -252,12 +266,15 @@ class SubPhone(Device):
             "payload_off": '{ "enable_auto_open_front": 0 }',
             "icon": "mdi:door-open"
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id + "_auto_open_front"
+        else:
+            obj["object_id"] = self.unique_id + "_auto_open_front"
         self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
         topic = f'{self.ha_discovery_prefix}/switch/{self.unique_id}_auto_open_communal/config'
         obj = {
             "name": self.name + " Auto Open (Communal)",
-            "object_id": self.unique_id + "_auto_open_communal",
             "unique_id": self.unique_id + "_auto_open_communal",
             "state_topic": self.mqtt_state_topic + '/autoopen',
             "command_topic": self.mqtt_command_topic,
@@ -266,6 +283,10 @@ class SubPhone(Device):
             "payload_off": '{ "enable_auto_open_communal": 0 }',
             "icon": "mdi:door-open"
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id + "_auto_open_communal"
+        else:
+            obj["object_id"] = self.unique_id + "_auto_open_communal"
         self.mqtt_client.publish(topic, json.dumps(obj), 1)
 
         # add homebridge accessory

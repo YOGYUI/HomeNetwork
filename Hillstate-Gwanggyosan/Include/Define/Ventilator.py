@@ -37,7 +37,6 @@ class Ventilator(Device):
         topic = f'{self.ha_discovery_prefix}/fan/{self.unique_id}/config'
         obj = {
             "name": self.name,
-            "object_id": self.unique_id,
             "unique_id": self.unique_id,
             "state_topic": self.mqtt_state_topic,
             "state_value_template": "{% if value_json.state %} ON {% else %} OFF {% endif %}",
@@ -51,6 +50,10 @@ class Ventilator(Device):
             "speed_range_min": 1,
             "speed_range_max": 100
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id
+        else:
+            obj["object_id"] = self.unique_id
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         # add homebridge accessory

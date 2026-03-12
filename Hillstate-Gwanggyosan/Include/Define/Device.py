@@ -35,6 +35,7 @@ class Device:
     mqtt_state_topic: str = ''
     mqtt_command_topic: str = ''
     ha_discovery_prefix: str = 'homeassistant'
+    ha_core_version: str = '2025.10.1'
     homebridge_config_path: str = '/var/lib/homebridge/config.json'
     homebridge_modified: bool = False
 
@@ -126,6 +127,9 @@ class Device:
     def setHomeAssistantDiscoveryPrefix(self, prefix: str):
         self.ha_discovery_prefix = prefix
     
+    def setHomeAssistantCoreVersion(self, version: str):
+        self.ha_core_version = version
+
     def setHomeBridgeConfigFilePath(self, path: str):
         self.homebridge_config_path = path
 
@@ -218,6 +222,11 @@ class Device:
         with open(template_path, 'w') as fp:
             json.dump(config, fp, indent=4)
         self.homebridge_modified = True
+    
+    def check_ha_core_version(self, target_version: str) -> bool:
+        my_ver_int = int(self.ha_core_version.replace('.', ''))
+        tar_ver_int = int(target_version.replace('.', ''))
+        return my_ver_int >= tar_ver_int
 
 
 class ThreadDeviceTimerOnOff(threading.Thread):

@@ -95,6 +95,7 @@ class Home:
     ha_mqtt_discover_enable: bool = False
     ha_mqtt_discover_prefix: str = 'homeassistant'
     ha_mqtt_topic_status: str = 'homeassistant/status'
+    ha_core_version: str = '2025.10.1'
 
     homebridge_config_path: str = '/var/lib/homebridge/config.json'
 
@@ -221,6 +222,7 @@ class Home:
             dev.setMqttClient(self.mqtt_client, self.mqtt_host, self.mqtt_port, self.mqtt_username, self.mqtt_password)
             dev.sig_set_state.connect(partial(self.onDeviceSetState, dev))
             dev.setHomeAssistantDiscoveryPrefix(self.ha_mqtt_discover_prefix)
+            dev.setHomeAssistantCoreVersion(self.ha_core_version)
             dev.setHomeBridgeConfigFilePath(self.homebridge_config_path)
             dev.configMQTT()
             homebridge_modified |= dev.homebridge_modified
@@ -545,8 +547,12 @@ class Home:
                 ha_discovery_prefix_node = ha_discovery_node.find('prefix')
                 if ha_discovery_prefix_node is not None:
                     self.ha_mqtt_discover_prefix = ha_discovery_prefix_node.text
+            ha_version_node = ha_node.find('version')
+            if ha_version_node is not None:
+                self.ha_core_version = ha_version_node.text
         writeLog(f"HA MQTT Discovery Enable: {self.ha_mqtt_discover_enable}", self)
         writeLog(f"HA MQTT Discovery Prefix: {self.ha_mqtt_discover_prefix}", self)
+        writeLog(f"HA Version: {self.ha_core_version}", self)
     
         hb_node = node.find('homebridge')
         if hb_node is not None:

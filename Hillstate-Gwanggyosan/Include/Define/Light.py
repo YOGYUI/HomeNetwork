@@ -25,7 +25,6 @@ class Light(Device):
         topic = f'{self.ha_discovery_prefix}/light/{self.unique_id}/config'
         obj = {
             "name": self.name,
-            "object_id": self.unique_id,
             "unique_id": self.unique_id,
             "state_topic": self.mqtt_state_topic,
             "command_topic": self.mqtt_command_topic,
@@ -34,6 +33,10 @@ class Light(Device):
             "command_on_template": '{"state": 1}',
             "command_off_template": '{"state": 0}'
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id
+        else:
+            obj["object_id"] = self.unique_id
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         # add homebridge accessory

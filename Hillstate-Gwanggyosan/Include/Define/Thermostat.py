@@ -37,7 +37,6 @@ class Thermostat(Device):
         topic = f'{self.ha_discovery_prefix}/climate/{self.unique_id}/config'
         obj = {
             "name": self.name,
-            "object_id": self.unique_id,
             "unique_id": self.unique_id,
             "modes": ["off", "heat"],
             "mode_state_topic": self.mqtt_state_topic,
@@ -55,6 +54,10 @@ class Thermostat(Device):
             "max_temp": self.temp_range[1],
             "precision": 1,
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id
+        else:
+            obj["object_id"] = self.unique_id
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         # add homebridge accessory

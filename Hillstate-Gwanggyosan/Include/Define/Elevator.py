@@ -170,7 +170,6 @@ class Elevator(Device):
         payload_on_template = '{ "state": 6 }'
         obj = {
             "name": self.name + " Call (Down)",
-            "object_id": self.unique_id + "_calldown",
             "unique_id": self.unique_id + "_calldown",
             "state_topic": self.mqtt_state_topic,
             "command_topic": self.mqtt_command_topic,
@@ -179,12 +178,15 @@ class Elevator(Device):
             "payload_off": '{ "state": 0 }',
             "icon": "mdi:elevator"
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id + "_calldown"
+        else:
+            obj["object_id"] = self.unique_id + "_calldown"
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_arrived/config'
         obj = {
             "name": self.name + " Arrived",
-            "object_id": self.unique_id + "_arrived",
             "unique_id": self.unique_id + "_arrived",
             "state_topic": self.mqtt_state_topic,
             "value_template": "{% if value_json.state == 0 %} \
@@ -196,6 +198,10 @@ class Elevator(Device):
                                {% endif %}",
             "icon": "mdi:elevator-passenger"
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id + "_arrived"
+        else:
+            obj["object_id"] = self.unique_id + "_arrived"
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         # add homebridge accessory
@@ -272,23 +278,29 @@ class Elevator(Device):
             topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_{ev_dev_idx}_floor/config'
             obj = {
                 "name": self.name + f" #{ev_dev_idx} Floor",
-                "object_id": self.unique_id + f"_{ev_dev_idx}_floor",
                 "unique_id": self.unique_id + f"_{ev_dev_idx}_floor",
                 "state_topic": self.mqtt_state_topic + f'/dev/{ev_dev_idx}',
                 "value_template": "{{ value_json.floor }}",
                 "icon": "mdi:counter"
             }
+            if self.check_ha_core_version("2025.10.1"):
+                obj["default_entity_id"] = self.unique_id + f"_{ev_dev_idx}_floor"
+            else:
+                obj["object_id"] = self.unique_id + f"_{ev_dev_idx}_floor"
             self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
             topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}_{ev_dev_idx}_direction/config'
             obj = {
                 "name": self.name + f" #{ev_dev_idx} Direction",
-                "object_id": self.unique_id + f"_{ev_dev_idx}_direction",
                 "unique_id": self.unique_id + f"_{ev_dev_idx}_direction",
                 "state_topic": self.mqtt_state_topic + f'/dev/{ev_dev_idx}',
                 "value_template": "{{ value_json.direction }}",
                 "icon": "mdi:swap-vertical-bold"
             }
+            if self.check_ha_core_version("2025.10.1"):
+                obj["default_entity_id"] = self.unique_id + f"_{ev_dev_idx}_direction"
+            else:
+                obj["object_id"] = self.unique_id + f"_{ev_dev_idx}_direction"
             self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
             ev_info['config'] = True

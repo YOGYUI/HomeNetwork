@@ -36,7 +36,6 @@ class DimmingLight(Device):
         topic = f'{self.ha_discovery_prefix}/light/{self.unique_id}/config'
         obj = {
             "name": self.name,
-            "object_id": self.unique_id,
             "unique_id": self.unique_id,
             "state_topic": self.mqtt_state_topic,
             "command_topic": self.mqtt_command_topic,
@@ -51,6 +50,10 @@ class DimmingLight(Device):
             "state_template": "{% if value_json.state %} on {% else %} off {% endif %}",
             "brightness_template": '{{ value_json.brightness }}'
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id
+        else:
+            obj["object_id"] = self.unique_id
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         # add homebridge accessory

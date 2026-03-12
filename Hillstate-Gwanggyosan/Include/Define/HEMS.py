@@ -28,7 +28,6 @@ class HEMS(Device):
         topic = f'{self.ha_discovery_prefix}/sensor/{self.unique_id}/config'
         obj = {
             "name": self.name + "_electricity_current",
-            "object_id": self.unique_id + "_electricity_current",
             "unique_id": self.unique_id + "_electricity_current",
             "state_topic": self.mqtt_state_topic + '/electricity_current',
             "unit_of_measurement": "W",
@@ -36,6 +35,10 @@ class HEMS(Device):
             "device_class": "power",
             "state_class": "measurement"
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id + "_electricity_current"
+        else:
+            obj["object_id"] = self.unique_id + "_electricity_current"
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
     def updateState(self, _: int, **kwargs):

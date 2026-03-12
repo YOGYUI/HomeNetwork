@@ -58,6 +58,7 @@
                 <enable>1</enable>
                 <prefix>homeassistant</prefix>
             </discovery>
+            <version>2025.10.1</version>
         </homeassistant>
         <homebridge>
 			<config_path>/var/lib/homebridge/config.json</config_path>

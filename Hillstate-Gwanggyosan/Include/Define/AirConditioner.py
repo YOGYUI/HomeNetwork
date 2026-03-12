@@ -75,7 +75,6 @@ class AirConditioner(Device):
         topic = f'{self.ha_discovery_prefix}/climate/{self.unique_id}/config'
         obj = {
             "name": self.name,
-            "object_id": self.unique_id,
             "unique_id": self.unique_id,
             "modes": ["off", "cool", "auto", "dry", "fan_only"],
             "fan_modes": ["Max", "Medium", "Min", "Auto"],  # TODO: [“auto”, “low”, “medium”, “high”]로 대체해야하나?
@@ -98,6 +97,10 @@ class AirConditioner(Device):
             "max_temp": self.temp_range[1],
             "precision": 1,
         }
+        if self.check_ha_core_version("2025.10.1"):
+            obj["default_entity_id"] = self.unique_id
+        else:
+            obj["object_id"] = self.unique_id
         self.mqtt_client.publish(topic, json.dumps(obj), 1, retain)
 
         # add homebridge accessory
