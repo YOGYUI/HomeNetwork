@@ -254,6 +254,11 @@ class Config:
                 elem3 = ET.Element('prefix')
                 elem2.append(elem3)
             elem3.text = cfg.get('prefix', 'homeassistant')
+            elem2 = elem.find('version')
+            if elem2 is None:
+                elem2 = ET.Element('version')
+                elem.append(elem2)
+            elem2.text = cfg.get('version', '2025.10.1')
         
             elem = node.find('homebridge')
             if elem is None:
