@@ -223,9 +223,17 @@ class Device:
             json.dump(config, fp, indent=4)
         self.homebridge_modified = True
     
+    @staticmethod
+    def convert_version_string(ver_str: str) -> float:
+        temp = ver_str.split('.')
+        value = 0.
+        for i, s in enumerate(temp):
+            value += int(s) * 10 ** -(i * 3)
+        return value
+
     def check_ha_core_version(self, target_version: str) -> bool:
-        my_ver_int = int(self.ha_core_version.replace('.', ''))
-        tar_ver_int = int(target_version.replace('.', ''))
+        my_ver_int = self.convert_version_string(self.ha_core_version)
+        tar_ver_int = self.convert_version_string(target_version)
         return my_ver_int >= tar_ver_int
 
 
