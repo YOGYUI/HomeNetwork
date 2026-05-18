@@ -17,12 +17,14 @@ def procFFMpeg(cfg: dict, pipe: connection.Connection):
     prefix = f'[MultiProcess][{name}({pid})] '
     writeLog(prefix + 'Started')
 
-    idev = cfg.get('input_device')
-    fps = cfg.get('frame_rate')
-    width = cfg.get('width')
-    height = cfg.get('height')
-    feed = cfg.get('feed_path')
-    cmd = f"exec ~/ffmpeg/ffmpeg -i {idev} -r {fps} -s {width}x{height} -threads 1 {feed}"
+    idev = cfg.get('input_device', '/dev/video0')
+    fps = cfg.get('frame_rate', 30)
+    width = cfg.get('width', 480)
+    height = cfg.get('height', 320)
+    feed = cfg.get('feed_path', 'http://0.0.0.0:8090/feed.ffm')
+    rtmp_server = cfg.get('rtmp_server', 'rtmp://0.0.0.0:1935/live')
+    # cmd = f"exec ~/ffmpeg/ffmpeg -i {idev} -r {fps} -s {width}x{height} -threads 1 {feed}"
+    cmd = f"exec ffmpeg -i {idev} -f flv {rtmp_server}"
 
     with subprocess.Popen(cmd, 
         shell=True, 

@@ -177,7 +177,7 @@ class Home:
                 self.thinq.start()
         if self.isSubphoneActivated():
             # 카메라 스트리밍
-            self.startFFServer()
+            # self.startFFServer()
             self.startFFMpeg()
             if self.isHEMSActivated():
                 self.startThreadEnergyMonitor()
@@ -233,7 +233,7 @@ class Home:
         if self.isSubphoneActivated():
             self.stopThreadEnergyMonitor()
             self.stopFFMpeg()
-            self.stopFFServer()
+            # self.stopFFServer()
         
         self.mqtt_client.loop_stop()
         self.mqtt_client.disconnect()
@@ -774,6 +774,7 @@ class Home:
                                 device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
                                 device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
                                 device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
+                                device.streaming_config['rtmp_server'] = ffmpeg_node.find('rtmp_server').text
                             auto_open_front_door_node = dev_node.find('auto_open_front_door')
                             if auto_open_front_door_node is not None:
                                 enable_node = auto_open_front_door_node.find('enable')
@@ -1954,8 +1955,9 @@ class Home:
                         'feed_path': 'http://0.0.0.0:8090/feed.ffm',
                         'input_device': '/dev/video0',
                         'frame_rate': 30,
-                        'width': 640,
-                        'height': 480
+                        'width': 480,
+                        'height': 320,
+                        'rtmp_server': 'rtmp://0.0.0.0:1935/live'
                     }
                 elif dev_type is DeviceType.BATCHOFFSWITCH:
                     entry_info['type'] = 'batchoffsw'

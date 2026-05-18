@@ -89,6 +89,7 @@
             <enable>0</enable>
             <period>100</period>
             <verbose>0</verbose>
+            <exclude_gas_valve>0</exclude_gas_valve>
         </periodic_query_state>
         <clear>0</clear>
         <entry>
