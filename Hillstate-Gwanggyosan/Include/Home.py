@@ -774,7 +774,9 @@ class Home:
                                 device.streaming_config['frame_rate'] = int(ffmpeg_node.find('frame_rate').text)
                                 device.streaming_config['width'] = int(ffmpeg_node.find('width').text)
                                 device.streaming_config['height'] = int(ffmpeg_node.find('height').text)
-                                device.streaming_config['rtmp_server'] = ffmpeg_node.find('rtmp_server').text
+                                rtmp_server_node = ffmpeg_node.find('rtmp_server')
+                                if rtmp_server_node is not None:
+                                    device.streaming_config['rtmp_server'] = rtmp_server_node.text
                             auto_open_front_door_node = dev_node.find('auto_open_front_door')
                             if auto_open_front_door_node is not None:
                                 enable_node = auto_open_front_door_node.find('enable')

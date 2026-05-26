@@ -10,6 +10,7 @@ from Common import writeLog
 class AirqualitySensor(Device):
     """
     공공데이터포털 - 대기오염정보
+    url: https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15073861
     """
     _api_key: str = ''
     _obs_name: str = ''
@@ -17,6 +18,7 @@ class AirqualitySensor(Device):
 
     def __init__(self, name: str = 'Airquality', index: int = 0, room_index: int = 0, topic_prefix: str = 'home'):
         super().__init__(name, index, room_index, topic_prefix)
+        self.dev_type = DeviceType.AIRQUALITYSENSOR
         self.unique_id = f'airquality_{self.room_index}_{self.index}'
         self.mqtt_state_topic = f'{topic_prefix}/state/airquality/{self.room_index}/{self.index}'
         self.mqtt_command_topic = f'{topic_prefix}/command/airquality/{self.room_index}/{self.index}'
@@ -38,14 +40,13 @@ class AirqualitySensor(Device):
         self._obs_name = obs_name
 
     def refreshData(self):
+        call_api: bool = False
         if self._last_query_time is None:
             call_api = True
         else:
             tmdiff = datetime.datetime.now() - self._last_query_time
             if tmdiff.seconds > 3600:
                 call_api = True
-            else:
-                call_api = False
 
         if call_api:
             url_base = "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc"
@@ -119,6 +120,8 @@ class AirqualitySensor(Device):
                     writeLog(f"Request GET Error ({response.status_code})", self)
             except requests.exceptions.ConnectionError as e:
                 writeLog(f'{e}', self)
+            except Exception as e:
+                writeLog(f'{e}', self)
 
     def publishMQTT(self):
         try:
@@ -134,8 +137,8 @@ class AirqualitySensor(Device):
             }
             if self.mqtt_client is not None:
                 self.mqtt_client.publish(self.mqtt_state_topic, json.dumps(obj), 1)
-        except Exception:
-            pass
+        except Exception as e:
+            writeLog(f'{e}', self)
 
     def configMQTT(self, retain: bool = False):
         # add homebridge accessory

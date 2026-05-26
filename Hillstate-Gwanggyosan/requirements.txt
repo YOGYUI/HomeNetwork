@@ -11,3 +11,4 @@ beautifulsoup4
 regex
 pyOpenSSL
 psutil
+lxml

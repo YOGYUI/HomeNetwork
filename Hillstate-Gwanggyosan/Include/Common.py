@@ -102,6 +102,7 @@ class DeviceType(IntEnum):
     DOORLOCK = auto()
     EMOTIONLIGHT = auto()
     DIMMINGLIGHT = auto()
+    AIRQUALITYSENSOR = auto()
 
 
 @unique
