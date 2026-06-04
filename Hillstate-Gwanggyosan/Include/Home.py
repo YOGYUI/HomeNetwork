@@ -721,6 +721,14 @@ class Home:
                             if enable_off_cmd_node is not None:
                                 enable_off_cmd = bool(int(enable_off_cmd_node.text))
                                 device.setEnableOffCommand(enable_off_cmd)
+                            handle_power_consumption_node = dev_node.find('handle_power_consumption')
+                            if handle_power_consumption_node is not None:
+                                handle_power_consumption = bool(int(handle_power_consumption_node.text))
+                                device.setEnableHandlePowerConsumption(handle_power_consumption)
+                            handle_standby_cutoff_mode_node = dev_node.find('handle_standby_cutoff_mode')
+                            if handle_standby_cutoff_mode_node is not None:
+                                handle_standby_cutoff_mode = bool(int(handle_standby_cutoff_mode_node.text))
+                                device.setEnableHandleStandbyCutoffMode(handle_standby_cutoff_mode)
                         elif tag_name == 'thermostat':
                             device = Thermostat(name, index, room, topic_prefix=self.mqtt_topic_prefix)
                             range_min_node = dev_node.find('range_min')
@@ -816,6 +824,13 @@ class Home:
                             apikey = dev_node.find('apikey').text
                             obsname = dev_node.find('obsname').text
                             device.setApiParams(apikey, obsname)
+                        elif tag_name == 'weatherstation':
+                            device = WeatherStation(name, index, room, topic_prefix=self.mqtt_topic_prefix)
+                            apikey = dev_node.find('apikey').text
+                            coordinate = dev_node.find('coordinate')
+                            coord_x = int(coordinate.find('x').text)
+                            coord_y = int(coordinate.find('y').text)
+                            device.setApiParams(apikey, coord_x, coord_y)
                         
                         if device is not None:
                             if self.findDevice(device.getType(), device.getIndex(), device.getRoomIndex()) is None:
@@ -1135,11 +1150,19 @@ class Home:
             if dev_type in [
                     DeviceType.LIGHT,
                     DeviceType.EMOTIONLIGHT,
-                    DeviceType.OUTLET,
                     DeviceType.GASVALVE,
                     DeviceType.BATCHOFFSWITCH]:
                 state = result.get('state')
                 device.updateState(state)
+            elif dev_type is DeviceType.OUTLET:
+                state = result.get('state')
+                power_consumption = result.get('power_consumption')
+                standby_cutoff_mode = result.get('standby_cutoff_mode')
+                device.updateState(
+                    state,
+                    power_consumption=power_consumption,
+                    standby_cutoff_mode=standby_cutoff_mode
+                )
             elif dev_type is DeviceType.DIMMINGLIGHT:
                 state = result.get('state')
                 if state is None:
@@ -1451,6 +1474,12 @@ class Home:
                     device=device,
                     category='state',
                     target=message['state']
+                )
+            if 'standby_cutoff_mode' in message.keys():
+                self.send_command(
+                    device=device,
+                    category='standby_cutoff_mode',
+                    target=message['standby_cutoff_mode']
                 )
 
     def onMqttCommandGasvalve(self, topic: str, message: dict):

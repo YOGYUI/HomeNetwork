@@ -491,18 +491,22 @@ class PacketParser:
             if dev_idx == 0:  # 일반 쿼리 (모든 디바이스)
                 outlet_count = (len(packet) - 10) // 9
                 for idx in range(outlet_count):
-                    # XX YY -- -- -- -- -- -- ZZ
+                    # XX YY W1 W2 -- -- -- -- ZZ
                     # XX: 상위 4비트 = 공간 인덱스, 하위 4비트는 디바이스 인덱스
                     # YY: 02 = OFF, 01 = ON
-                    # ZZ: 02 = 대기전력 차단 수동, 01 = 대기전력 차단 자동
-                    # 중간에 있는 패킷들은 전력량계 데이터같은데, 파싱 위한 레퍼런스가 없음
+                    # [W1:W2]: 소비전력 (W)
+                    # ZZ: 대기전력 차단 모드, 02 =  수동, 01 = 자동
                     dev_packet = packet[8 + idx * 9: 8 + (idx + 1) * 9]
                     state = 0 if dev_packet[1] == 0x02 else 1
+                    power_consumption = int.from_bytes(dev_packet[2:4], byteorder='big', signed=False)
+                    standby_cutoff_mode = 0 if dev_packet[8] == 0x02 else 1  # 0 = 수동, 1 = 자동
                     result = {
                         'device': DeviceType.OUTLET,
                         'index': idx,
                         'room_index': room_idx,
-                        'state': state
+                        'state': state,
+                        'power_consumption': power_consumption,
+                        'standby_cutoff_mode': standby_cutoff_mode
                     }
                     self.updateDeviceState(result)
             else:  # 상태 변경 명령 직후 응답

@@ -64,6 +64,8 @@ class ThreadCommandQueue(threading.Thread):
                     elif isinstance(dev, Outlet):
                         if category == 'state':
                             self.set_state_common(dev, target, parser, change_state)
+                        elif category == 'standby_cutoff_mode':
+                            self.set_outlet_standby_cutoff_mode(dev, target, parser, change_state)
                     elif isinstance(dev, GasValve):
                         if category == 'state':
                             if target == 0:
@@ -414,6 +416,11 @@ class ThreadCommandQueue(threading.Thread):
                 dev.updateState(0, lock_communal=1)  # 1: Secured
         elif target == "Secured":
             dev.updateState(0, lock_communal=1)  # 1: Secured
+
+    def set_outlet_standby_cutoff_mode(self, dev: Outlet, target: int, parser: PacketParser, change_state: bool = False):
+        # todo: 
+        packet_command = dev.makePacketSetStandbyCutoffMode(bool(target))
+        dev.publishMQTT()
 
     """
     def set_doorlock_open(self, dev: DoorLock, parser: PacketParser):

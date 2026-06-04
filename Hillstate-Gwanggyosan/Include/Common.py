@@ -103,6 +103,7 @@ class DeviceType(IntEnum):
     EMOTIONLIGHT = auto()
     DIMMINGLIGHT = auto()
     AIRQUALITYSENSOR = auto()
+    WEATHERSTATION  = auto()
 
 
 @unique

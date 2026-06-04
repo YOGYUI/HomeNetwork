@@ -20,3 +20,4 @@ from SubPhone import SubPhone
 from AirqualitySensor import AirqualitySensor
 from BatchOffSwitch import BatchOffSwitch
 from HEMS import HEMS
+from WeatherStation import WeatherStation

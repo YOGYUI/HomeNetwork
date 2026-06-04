@@ -453,6 +453,11 @@ class Config:
                 elem = ET.Element('height')
                 ffmpeg_node.append(elem)
             elem.text = str(cfg.get('height', 480))
+            elem = ffmpeg_node.find('rtmp_server')
+            if elem is None:
+                elem = ET.Element('rtmp_server')
+                ffmpeg_node.append(elem)
+            elem.text = cfg.get('rtmp_server', 'rtmp://0.0.0.0:1935/live')
 
             auto_open_front_door_node = subphone_node.find('auto_open_front_door')
             if auto_open_front_door_node is None:
@@ -576,6 +581,19 @@ class Config:
                     pnode.append(elem)
                 elem.text = str(cfg.get('dimminglight_convert_method', 0))
             
+            outlet_nodes = list(filter(lambda x: x.tag == 'outlet', list(entry_node)))
+            for pnode in list(outlet_nodes):
+                elem = pnode.find('handle_power_consumption')
+                if elem is None:
+                    elem = ET.Element('handle_power_consumption')
+                    pnode.append(elem)
+                elem.text = str(cfg.get('outlet_handle_power_consumption', 0))
+                elem = pnode.find('handle_standby_cutoff_mode')
+                if elem is None:
+                    elem = ET.Element('handle_standby_cutoff_mode')
+                    pnode.append(elem)
+                elem.text = str(cfg.get('outlet_handle_standby_cutoff_mode', 0))
+
             clear_node = node.find('clear')
             if clear_node is None:
                 clear_node = ET.Element('clear')

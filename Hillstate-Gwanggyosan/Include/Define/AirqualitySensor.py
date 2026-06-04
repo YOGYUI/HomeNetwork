@@ -2,9 +2,12 @@ import os
 import json
 import datetime
 import requests
-from bs4 import BeautifulSoup
-from Device import Device
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
+from Device import *
 from Common import writeLog
+import warnings
+
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 
 class AirqualitySensor(Device):
