@@ -198,5 +198,16 @@ class Outlet(Device):
         return packet
 
     def makePacketSetStandbyCutoffMode(self, mode: bool) -> bytearray:
-        # F7 0B 01 1F 02 ?? XX YY 00 ZZ EE
-        pass
+        # F7 0B 01 1F 02 4? XX YY 00 ZZ EE
+        # XX: 상위 4비트 = Room Index, 하위 4비트 = Device Index (1-based)
+        # YY: 02 = 수동, 01 = 자동
+        # ZZ: Checksum (XOR SUM)
+        packet = bytearray([0xF7, 0x0B, 0x01, 0x1F, 0x02, 0x47])
+        packet.append((self.room_index << 4) + (self.index + 1))
+        if mode:
+            packet.extend([0x01, 0x00])
+        else:
+            packet.extend([0x02, 0x00])
+        packet.append(self.calcXORChecksum(packet))
+        packet.append(0xEE)
+        return packet

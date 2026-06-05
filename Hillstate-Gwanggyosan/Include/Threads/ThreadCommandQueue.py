@@ -418,8 +418,28 @@ class ThreadCommandQueue(threading.Thread):
             dev.updateState(0, lock_communal=1)  # 1: Secured
 
     def set_outlet_standby_cutoff_mode(self, dev: Outlet, target: int, parser: PacketParser, change_state: bool = False):
-        # todo: 
+        tm_start = time.perf_counter()
+        cnt = 0
+
         packet_command = dev.makePacketSetStandbyCutoffMode(bool(target))
+        interval, retry_cnt = self.getSendParams(parser)
+        success = False
+        while cnt < retry_cnt:
+            if dev.standby_cutoff_mode == target:
+                success = True
+                break
+            if parser.isRS485LineBusy():
+                time.sleep(1e-3)  # prevent cpu occupation
+                continue
+            parser.sendPacket(packet_command)
+            cnt += 1
+            time.sleep(interval)  # wait for parsing response
+        if cnt > 0:
+            tm_elapsed = time.perf_counter() - tm_start
+            writeLog('set_outlet_standby_cutoff_mode::send # = {}, elapsed = {:g} msec'.format(cnt, tm_elapsed * 1000), self)
+            time.sleep(self._delay_response)
+        if not success and change_state:
+            dev.standby_cutoff_mode = target
         dev.publishMQTT()
 
     """

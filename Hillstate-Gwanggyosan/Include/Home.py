@@ -1155,7 +1155,7 @@ class Home:
                 state = result.get('state')
                 device.updateState(state)
             elif dev_type is DeviceType.OUTLET:
-                state = result.get('state')
+                state = result.get('state', device.state)
                 power_consumption = result.get('power_consumption')
                 standby_cutoff_mode = result.get('standby_cutoff_mode')
                 device.updateState(

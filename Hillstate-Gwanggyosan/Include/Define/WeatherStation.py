@@ -1,9 +1,15 @@
 import json
 import datetime
 import requests
+import bs4
 from bs4 import BeautifulSoup
 from Device import *
 from Common import writeLog
+from packaging.version import Version
+if (Version(bs4.__version__) >= Version("4.11.0")):
+    from bs4 import XMLParsedAsHTMLWarning
+    import warnings
+    warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 
 class WeatherStation(Device):
