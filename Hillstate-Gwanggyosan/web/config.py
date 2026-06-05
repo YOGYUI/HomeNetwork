@@ -587,12 +587,12 @@ class Config:
                 if elem is None:
                     elem = ET.Element('handle_power_consumption')
                     pnode.append(elem)
-                elem.text = str(cfg.get('outlet_handle_power_consumption', 0))
+                elem.text = str(int(cfg.get('outlet_handle_power_consumption', False)))
                 elem = pnode.find('handle_standby_cutoff_mode')
                 if elem is None:
                     elem = ET.Element('handle_standby_cutoff_mode')
                     pnode.append(elem)
-                elem.text = str(cfg.get('outlet_handle_standby_cutoff_mode', 0))
+                elem.text = str(int(cfg.get('outlet_handle_standby_cutoff_mode', False)))
 
             clear_node = node.find('clear')
             if clear_node is None:
