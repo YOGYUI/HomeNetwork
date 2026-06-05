@@ -510,7 +510,7 @@ class PacketParser:
                     }
                     self.updateDeviceState(result)
             else:  # 상태 변경 명령 직후 응답
-                if packet[5] == 0x40:
+                if packet[5] == 0x40:  # On/Off 설정 변경에 대한 응답
                     state = 0 if packet[8] == 0x02 else 1
                     result = {
                         'device': DeviceType.OUTLET,
@@ -519,10 +519,8 @@ class PacketParser:
                         'state': state
                     }
                     self.updateDeviceState(result)
-                else:
-                    writeLog("[OUTLET][?]{}".format(self.prettifyPacket(packet)))
-                    """
-                    standby_cutoff_mode = 0 if packet[8] == 0x02 else 1
+                elif packet[5] == 0x57:  # 대기전력 차단 모드 변경에 대한 응답
+                    standby_cutoff_mode = 0 if packet[8] == 0x02 else 1  # 0 = manual, 1 = auto
                     result = {
                         'device': DeviceType.OUTLET,
                         'index': dev_idx - 1,
@@ -530,7 +528,6 @@ class PacketParser:
                         'standby_cutoff_mode': standby_cutoff_mode
                     }
                     self.updateDeviceState(result)
-                    """
         else:
             if self.debug_verbose_packet.get(DeviceType.OUTLET, False):
                 writeLog("[OUTLET][?]{}".format(self.prettifyPacket(packet)))
